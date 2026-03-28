@@ -85,10 +85,10 @@ Status values: `success`, `warning`, `error`, `muted` (maps to semantic colors)
 - [x] **2.4** Chat client — SSE EventSource with cancel/abort support
 
 ### Day 3: Demo App Backend
-- [ ] **3.1** MCP client hub — `@modelcontextprotocol/sdk`, reads `mcp-servers.json`
-- [ ] **3.2** LLM orchestrator — Anthropic SDK, tool-call loop (5 rounds max), SSE streaming
-- [ ] **3.3** Hono API server — `/api/chat`, `/api/chat/:id/stream`, `/api/servers`
-- [ ] **3.4** System prompt template — generic component docs, exportable for extension
+- [x] **3.1** MCP client hub — `@modelcontextprotocol/sdk`, reads `mcp-servers.json`
+- [x] **3.2** LLM orchestrator — Anthropic SDK, tool-call loop (5 rounds max), SSE streaming
+- [x] **3.3** Hono API server — `/api/chat`, `/api/chat/:id/stream`, `/api/servers`
+- [x] **3.4** System prompt template — generic component docs, exportable for extension
 
 ### Day 4: Demo App Frontend + Drill-Down
 - [ ] **4.1** SPA shell — two-pane layout (content + chat sidebar), prompt bar
