@@ -1,0 +1,70 @@
+/* === MCPUI Design Tokens === */
+/* Override these custom properties to theme all components */
+
+:root {
+    /* ── Colors: Primary ── */
+    --mcpui-primary: #1a1a2e;
+    --mcpui-primary-hover: rgba(255, 255, 255, 0.1);
+    --mcpui-surface: #ffffff;
+    --mcpui-surface-alt: #f5f6f8;
+    --mcpui-surface-hover: #f9fafb;
+    --mcpui-accent: #4f6df5;
+    --mcpui-link: #3b82f6;
+
+    /* ── Colors: Status ── */
+    --mcpui-success: #22c55e;
+    --mcpui-warning: #eab308;
+    --mcpui-error: #ef4444;
+    --mcpui-muted: #9ca3af;
+
+    /* ── Colors: Status Borders (lighter) ── */
+    --mcpui-border-success: #dcfce7;
+    --mcpui-border-warning: #fef9c3;
+    --mcpui-border-error: #fee2e2;
+    --mcpui-border-muted: #e5e7eb;
+
+    /* ── Colors: Neutral ── */
+    --mcpui-text: #1f2937;
+    --mcpui-text-secondary: #6b7280;
+    --mcpui-text-muted: #9ca3af;
+    --mcpui-border: #e5e7eb;
+    --mcpui-border-light: #f3f4f6;
+
+    /* ── Spacing ── */
+    --mcpui-space-xs: 4px;
+    --mcpui-space-sm: 8px;
+    --mcpui-space-md: 12px;
+    --mcpui-space-lg: 16px;
+    --mcpui-space-xl: 20px;
+    --mcpui-space-2xl: 24px;
+
+    /* ── Typography ── */
+    --mcpui-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --mcpui-font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    --mcpui-font-size-xs: 11px;
+    --mcpui-font-size-sm: 12px;
+    --mcpui-font-size-base: 13px;
+    --mcpui-font-size-md: 14px;
+    --mcpui-font-size-lg: 16px;
+    --mcpui-font-size-xl: 18px;
+    --mcpui-font-size-2xl: 24px;
+
+    /* ── Borders & Radius ── */
+    --mcpui-radius-sm: 4px;
+    --mcpui-radius-md: 8px;
+    --mcpui-radius-lg: 12px;
+    --mcpui-radius-pill: 20px;
+    --mcpui-radius-round: 50%;
+
+    /* ── Shadows ── */
+    --mcpui-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --mcpui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --mcpui-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+
+    /* ── Transitions ── */
+    --mcpui-transition-fast: 0.15s ease;
+    --mcpui-transition-normal: 0.25s ease;
+
+    /* ── Layout ── */
+    --mcpui-chart-height: 300px;
+}

@@ -62,21 +62,21 @@ Status values: `success`, `warning`, `error`, `muted` (maps to semantic colors)
 ### Day 0: Repo + Plan
 - [x] Create GitHub repo (danfking/mcpui)
 - [x] Write CLAUDE.md with full plan
-- [ ] Initial commit with project structure
+- [x] Initial commit with project structure
 
 ### Day 1: Project Scaffold + Core Components
-- [ ] **1.1** pnpm workspace, tsconfig base, package.json files
-- [ ] **1.2** Design tokens (`packages/components/src/tokens.css`) — `--mcpui-*` CSS custom props
-- [ ] **1.3** Core components (TypeScript Lit):
-  - [ ] `<mcpui-card>` — status card with drill-down event
-  - [ ] `<mcpui-stat-bar>` — horizontal metric chips
-  - [ ] `<mcpui-table>` — data table with status coloring
-  - [ ] `<mcpui-chart>` — Chart.js wrapper
-  - [ ] `<mcpui-section>` — collapsible section with grid
-  - [ ] `<mcpui-metric>` — single KPI display
-  - [ ] `<mcpui-message>` — chat bubble
-  - [ ] `index.ts` barrel export
-- [ ] Build succeeds (`pnpm build`)
+- [x] **1.1** pnpm workspace, tsconfig base, package.json files
+- [x] **1.2** Design tokens (`packages/components/src/tokens.css`) — `--mcpui-*` CSS custom props
+- [x] **1.3** Core components (TypeScript Lit):
+  - [x] `<mcpui-card>` — status card with drill-down event
+  - [x] `<mcpui-stat-bar>` — horizontal metric chips
+  - [x] `<mcpui-table>` — data table with status coloring
+  - [x] `<mcpui-chart>` — Chart.js wrapper
+  - [x] `<mcpui-section>` — collapsible section with grid
+  - [x] `<mcpui-metric>` — single KPI display
+  - [x] `<mcpui-message>` — chat bubble
+  - [x] `index.ts` barrel export
+- [x] Build succeeds (`pnpm build`)
 
 ### Day 2: Streaming Renderer
 - [ ] **2.1** Stream parser — `findStreamElements()` + `appendStreamElement()`
