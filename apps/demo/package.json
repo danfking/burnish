@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
+    "dev:cli": "LLM_BACKEND=cli tsx watch server/index.ts",
     "build": "echo 'demo app - no build step'",
     "clean": "echo 'nothing to clean'"
   },

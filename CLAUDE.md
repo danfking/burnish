@@ -7,8 +7,18 @@ A component library + streaming renderer + demo app that connects to any MCP ser
 ```bash
 pnpm install
 pnpm build
-pnpm dev        # starts demo app
+
+# Option 1: Use Claude Code CLI auth (no API key needed)
+pnpm dev:cli
+
+# Option 2: Use direct API key
+ANTHROPIC_API_KEY=sk-... pnpm dev
 ```
+
+### LLM Backend Selection
+- `LLM_BACKEND=cli` — Spawns `claude` CLI subprocess, uses your Claude Code subscription auth. No API key needed. Tools are pre-fetched into context (no tool-call loop).
+- `LLM_BACKEND=api` (default when ANTHROPIC_API_KEY is set) — Direct Anthropic SDK with streaming tool-call loop (5 rounds max).
+- If no API key and no explicit backend, defaults to `cli`.
 
 ## Architecture
 

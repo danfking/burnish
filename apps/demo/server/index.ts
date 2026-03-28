@@ -86,13 +86,15 @@ async function start() {
     const port = parseInt(process.env.PORT || '3000', 10);
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const modelName = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250514';
+    const llmBackend = (process.env.LLM_BACKEND || (apiKey ? 'api' : 'cli')) as 'api' | 'cli';
 
-    if (!apiKey) {
-        console.error('[mcpui] ANTHROPIC_API_KEY environment variable is required');
+    if (llmBackend === 'api' && !apiKey) {
+        console.error('[mcpui] ANTHROPIC_API_KEY required for api backend.');
+        console.error('[mcpui] Set LLM_BACKEND=cli to use your Claude Code subscription instead.');
         process.exit(1);
     }
 
-    llm.configure({ apiKey, model: modelName });
+    llm.configure({ backend: llmBackend, apiKey, model: modelName });
 
     // Connect to MCP servers
     const configPath = resolve(__dirname, '../mcp-servers.json');

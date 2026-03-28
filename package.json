@@ -5,6 +5,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm --filter demo dev",
+    "dev:cli": "pnpm --filter demo dev:cli",
     "clean": "pnpm -r clean"
   },
   "engines": {
