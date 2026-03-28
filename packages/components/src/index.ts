@@ -1,4 +1,9 @@
-// @mcpui/components — Lit web components for MCP UI
-// Components will be added here as they are built
+// @mcpui/components — Lit web components for rendering MCP tool call results
 
-export {};
+export { McpuiCard } from './card.js';
+export { McpuiStatBar } from './stat-bar.js';
+export { McpuiTable } from './table.js';
+export { McpuiChart } from './chart.js';
+export { McpuiSection } from './section.js';
+export { McpuiMetric } from './metric.js';
+export { McpuiMessage } from './message.js';
