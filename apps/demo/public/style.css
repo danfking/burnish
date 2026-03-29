@@ -235,6 +235,25 @@ body {
     transition: all var(--mcpui-transition-fast);
     color: var(--mcpui-text);
 }
+.mcpui-server-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.mcpui-suggestion-server {
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 24px;
+    text-transform: capitalize;
+}
+.mcpui-tool-shortcuts {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
 .mcpui-suggestion-sub {
     display: block;
     font-size: 11px;

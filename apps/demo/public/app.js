@@ -1137,99 +1137,80 @@ function escapeAttr(text) {
     return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function getEmptyState(suggestions) {
-    const items = suggestions && suggestions.length > 0
-        ? suggestions
-        : [{ label: 'Available tools', prompt: 'What tools are available?' }];
-
+function getEmptyState() {
     return `
         <div class="mcpui-empty-state">
-            <div class="mcpui-empty-icon">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="20" stroke="#d1d5db" stroke-width="2" fill="none"/>
-                    <path d="M16 24h16M24 16v16" stroke="#d1d5db" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
             <h2>Welcome to MCPUI</h2>
             <p>Explore your connected data sources.</p>
-            <div class="mcpui-suggestions">
-                ${items.map(s => `
-                    <button class="mcpui-suggestion" data-prompt="${escapeAttr(s.prompt)}" data-label="${escapeAttr(s.label)}">
-                        ${escapeHtml(s.label)}
-                        ${s.sublabel ? `<span class="mcpui-suggestion-sub">${escapeHtml(s.sublabel)}</span>` : ''}
-                    </button>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-function getSuggestionSkeleton() {
-    return `
-        <div class="mcpui-empty-state">
-            <div class="mcpui-empty-icon">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <circle cx="24" cy="24" r="20" stroke="#d1d5db" stroke-width="2" fill="none"/>
-                    <path d="M16 24h16M24 16v16" stroke="#d1d5db" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <h2>Welcome to MCPUI</h2>
-            <p>Discovering connected data sources...</p>
-            <div class="mcpui-suggestions">
+            <div class="mcpui-server-buttons" id="server-buttons">
                 <div class="mcpui-suggestion-skeleton-pill"></div>
+                <div class="mcpui-suggestion-skeleton-pill"></div>
+            </div>
+            <div class="mcpui-tool-shortcuts" id="tool-shortcuts">
                 <div class="mcpui-suggestion-skeleton-pill"></div>
                 <div class="mcpui-suggestion-skeleton-pill"></div>
                 <div class="mcpui-suggestion-skeleton-pill"></div>
             </div>
         </div>
     `;
-}
-
-function generateSuggestions(servers) {
-    const suggestions = [];
-
-    // One "explore" button per connected server
-    for (const s of servers) {
-        if (s.toolCount > 0) {
-            suggestions.push({
-                label: `Explore ${s.name}`,
-                sublabel: `${s.toolCount} tools`,
-                prompt: `Show me what I can do with the connected ${s.name} tools. List the available operations as cards.`,
-            });
-        }
-    }
-
-    // Pick up to 3 read-only tools across all servers as quick actions
-    const readPattern = /^(list|search|get|read|find|query|browse|fetch|describe|directory)/;
-    const seenServers = new Set();
-    for (const s of servers) {
-        if (seenServers.has(s.name)) continue;
-        for (const tool of s.tools) {
-            if (readPattern.test(tool.name)) {
-                const label = tool.description
-                    ? tool.description.split(/[.!]/)[0].substring(0, 50)
-                    : tool.name.replace(/_/g, ' ');
-                suggestions.push({
-                    label,
-                    prompt: `${tool.description || tool.name}. Show results using mcpui-* components.`,
-                });
-                seenServers.add(s.name);
-                break;
-            }
-        }
-    }
-
-    return suggestions.slice(0, 6);
 }
 
 async function loadDynamicSuggestions(container) {
     try {
         const res = await fetch('/api/servers');
         const { servers } = await res.json();
-        const suggestions = generateSuggestions(servers);
-        container.innerHTML = getEmptyState(suggestions);
+
+        // Render server buttons immediately
+        const serverBtns = container.querySelector('#server-buttons');
+        if (serverBtns) {
+            if (servers.length === 0) {
+                serverBtns.innerHTML = `<button class="mcpui-suggestion" data-prompt="What tools are available?" data-label="Available tools">Available tools</button>`;
+            } else {
+                serverBtns.innerHTML = servers.map(s => `
+                    <button class="mcpui-suggestion mcpui-suggestion-server" data-prompt="${escapeAttr(`Show me what I can do with the connected ${s.name} tools. List the available operations as cards.`)}" data-label="${escapeAttr(s.name)}">
+                        ${escapeHtml(s.name)}
+                        <span class="mcpui-suggestion-sub">${s.toolCount} tools</span>
+                    </button>
+                `).join('');
+            }
+        }
+
+        // Generate tool shortcuts from read-only tools
+        const readPattern = /^(list|search|get|read|find|query|browse|fetch|describe|directory)/;
+        const shortcuts = [];
+        for (const s of servers) {
+            for (const tool of s.tools) {
+                if (readPattern.test(tool.name) && shortcuts.length < 6) {
+                    const label = tool.description
+                        ? tool.description.split(/[.!]/)[0].substring(0, 40)
+                        : tool.name.replace(/_/g, ' ');
+                    shortcuts.push({
+                        label,
+                        prompt: `${tool.description || tool.name}. Show results using mcpui-* components.`,
+                    });
+                }
+            }
+        }
+
+        const toolSection = container.querySelector('#tool-shortcuts');
+        if (toolSection) {
+            if (shortcuts.length === 0) {
+                toolSection.innerHTML = '';
+            } else {
+                toolSection.innerHTML = shortcuts.map(s => `
+                    <button class="mcpui-suggestion" data-prompt="${escapeAttr(s.prompt)}" data-label="${escapeAttr(s.label)}">
+                        ${escapeHtml(s.label)}
+                    </button>
+                `).join('');
+            }
+        }
     } catch {
-        container.innerHTML = getEmptyState();
+        const serverBtns = container.querySelector('#server-buttons');
+        if (serverBtns) {
+            serverBtns.innerHTML = `<button class="mcpui-suggestion" data-prompt="What tools are available?" data-label="Available tools">Available tools</button>`;
+        }
+        const toolSection = container.querySelector('#tool-shortcuts');
+        if (toolSection) toolSection.innerHTML = '';
     }
 }
 
