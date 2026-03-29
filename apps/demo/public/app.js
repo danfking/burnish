@@ -451,6 +451,10 @@ function renderTreeNode(container, session, node, activePath) {
         } else {
             contentEl.innerHTML = `<div class="mcpui-text-response">${renderMarkdown(node.response)}</div>`;
         }
+    } else if (isActiveLeaf && !node.collapsed) {
+        // Show progress indicator for active nodes with no response yet
+        const contentEl = nodeEl.querySelector('.mcpui-node-content');
+        if (contentEl) contentEl.innerHTML = getProgressHtml();
     }
 
     const children = getChildren(session, node.id);
