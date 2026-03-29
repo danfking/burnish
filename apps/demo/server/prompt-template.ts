@@ -49,19 +49,18 @@ Renders a form for user input before calling a write tool. Use this for create/u
 Attributes: title (form heading), tool-id (full tool name), fields (JSON array of field definitions)
 Field format: [{key, label, type ("text"|"textarea"|"number"|"select"), required (boolean), placeholder, options (for select), lookup (optional)}]
 
-**Lookup-enabled fields**: For fields that can be populated by calling other tools, add a "lookup" property to the field definition:
-  {"key":"owner", "label":"Owner", "type":"text", "required":true, "lookup":{"prompt":"Search for GitHub users"}}
-The form renders a search button next to lookup fields. Clicking it calls the appropriate tool to populate options.
+**Lookup-enabled fields**: For fields whose values can be found by calling other available tools, add a "lookup" property:
+  {"key":"name", "label":"Name", "type":"text", "required":true, "lookup":{"prompt":"Search for matching items"}}
+The form renders a search button next to lookup fields. Clicking it calls the appropriate tool to find valid values.
 
-Common lookup patterns (use these when generating forms):
-- User/owner fields → lookup: { "prompt": "Search for GitHub users" }
-- Repository fields → lookup: { "prompt": "Search for GitHub repositories owned by the user" }
-- Branch fields → lookup: { "prompt": "List branches in the repository" }
-- File/path fields → lookup: { "prompt": "List files and directories" }
-- Label fields → lookup: { "prompt": "List available labels for the repository" }
-- Assignee fields → lookup: { "prompt": "Search for GitHub users who can be assigned" }
+When generating lookup prompts, describe WHAT to search for — not which specific tool to call. The system will figure out which tool to use based on the available MCP servers. Examples:
+- A field for a user/person → lookup: { "prompt": "Search for users" }
+- A field for a project/repo → lookup: { "prompt": "Search for repositories or projects" }
+- A field for a file path → lookup: { "prompt": "List files and directories" }
+- A field for a category/label → lookup: { "prompt": "List available categories or labels" }
+- A field for a branch/version → lookup: { "prompt": "List available branches or versions" }
 
-Always add lookup to fields where another tool can provide valid values. This works for ANY MCP server, not just GitHub.
+Always add lookup to ANY field where another tool could provide valid values, regardless of which MCP server is connected. Keep lookup prompts generic and descriptive — never reference specific tool names or MCP servers.
 
 ### <mcpui-metric>
 Single KPI / metric display with optional trend indicator.
@@ -81,7 +80,7 @@ Attributes: label, value, unit, trend ("up"|"down"|"flat")
 When the user asks what tools are available or wants an overview of capabilities:
 - Show a mcpui-stat-bar with tool category counts
 - Show each tool as a mcpui-card inside a mcpui-section, grouped by category (e.g. "File Operations", "Search", etc.)
-- Each card should have: title=tool name, body=short description, item-id=full tool name (e.g. mcp__github__search_repositories), status="success"
+- Each card should have: title=tool name, body=short description, item-id=full tool name (e.g. mcp__servername__toolname), status="success"
 - ALWAYS use status="success" for ALL tool cards — tools are available and ready to use, never "warning" or "error"
 - NEVER list tools as plain text or markdown bullet points — always use mcpui-card components
 
@@ -96,7 +95,7 @@ When the user asks to use a tool, or clicks on a tool to explore it:
 - If a tool returns a single item, show it as mcpui-card
 - If a tool returns counts/stats, show as mcpui-stat-bar or mcpui-metric
 
-Example: if asked to explore "search_repositories", call it with query="stars:>10000" and render the results as a table of repos — do NOT describe what parameters it accepts.
+Example: if asked to explore a search tool, call it with a reasonable default query and render the results as a table — do NOT describe what parameters it accepts.
 
 ## Drill-Down Responses
 When the user clicks on an item to explore further:

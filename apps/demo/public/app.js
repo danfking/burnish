@@ -581,21 +581,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let contextClause = '';
         if (context && Object.keys(context).length > 0) {
             const parts = Object.entries(context).map(([k, v]) => `${k}="${v}"`);
-            contextClause = ` (context: ${parts.join(', ')})`;
+            contextClause = `. Other fields already filled: ${parts.join(', ')}. Use these to narrow the search where relevant`;
         }
 
-        const toolHint = prompt.toLowerCase().includes('user') ? 'search_users'
-            : prompt.toLowerCase().includes('repo') ? 'search_repositories'
-            : 'the appropriate search tool';
-
-        formEl.setLookupStatus(`Calling ${toolHint}${query ? ` for "${query}"` : ''}...`);
+        formEl.setLookupStatus(`Searching${query ? ` for "${query}"` : ''}...`);
 
         try {
             const res = await fetch('/api/lookup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt: `${prompt}${queryClause}${contextClause}. Use the context values to filter results — for example if owner is set, search for repositories belonging to that owner. Call the appropriate tool to get real results. Return ONLY a JSON array of objects with "value" and "label" string fields. No markdown, no code fences, no explanation — just the raw JSON array. Example format: [{"value":"my-repo","label":"my-repo (My Repository)"}]. Limit to 10 results.`,
+                    prompt: `${prompt}${queryClause}${contextClause}. Call the appropriate tool to get real results. Return ONLY a JSON array of objects with "value" and "label" string fields. No markdown, no code fences, no explanation — just the raw JSON array. Example: [{"value":"item1","label":"item1 (Description)"}]. Limit to 10 results.`,
                 }),
             });
             const data = await res.json();
