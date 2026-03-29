@@ -9,7 +9,7 @@ export class McpuiSection extends LitElement {
     };
 
     static styles = css`
-        :host { display: block; margin: var(--mcpui-space-xl, 20px) 0 var(--mcpui-space-md, 12px); }
+        :host { display: block; }
         :host(:first-child) { margin-top: 0; }
         .header {
             display: flex; align-items: center; gap: var(--mcpui-space-sm, 8px);

@@ -1,6 +1,7 @@
 /* === MCPUI Demo App Styles === */
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; }
+body, h1, h2, h3, h4, p, ul, ol, figure, blockquote { margin: 0; padding: 0; }
 
 body {
     font-family: var(--mcpui-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
@@ -50,7 +51,13 @@ body {
     transition: margin-right var(--mcpui-transition-normal, 0.25s ease);
 }
 .mcpui-content.sidebar-open { margin-right: 380px; }
-.mcpui-dashboard { max-width: 1200px; margin: 0 auto; }
+.mcpui-dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mcpui-space-lg, 16px);
+}
 
 /* ── Sidebar ── */
 .mcpui-sidebar {
