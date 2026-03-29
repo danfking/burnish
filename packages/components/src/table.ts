@@ -9,7 +9,7 @@ export class McpuiTable extends LitElement {
     };
 
     static styles = css`
-        :host { display: block; margin: var(--mcpui-space-lg, 16px) 0; }
+        :host { display: block; }
         .table-container {
             background: var(--mcpui-surface, #fff);
             border-radius: var(--mcpui-radius-md, 8px);
