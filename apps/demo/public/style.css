@@ -629,8 +629,11 @@ body {
 .mcpui-node-summary {
     font-size: var(--mcpui-font-size-sm, 12px);
     color: var(--mcpui-text-muted, #9ca3af);
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 .mcpui-node-tags {
     display: inline-flex;
@@ -668,13 +671,36 @@ body {
     display: flex;
     gap: 12px;
     position: relative;
-    padding-top: 0;
+    padding-top: 16px;
+}
+/* Horizontal connector line between branches */
+.mcpui-tree-branches::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    /* Connect from first column center to last column center */
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: var(--mcpui-border, #e5e7eb);
 }
 .mcpui-tree-branch-col {
     min-width: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: visible;
+}
+/* Vertical drop from horizontal line to branch */
+.mcpui-tree-branch-col::before {
+    content: '';
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    width: 2px;
+    height: 16px;
+    background: var(--mcpui-border, #e5e7eb);
 }
 .mcpui-tree-branch-col:not(.active) {
     opacity: 0.5;
