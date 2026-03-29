@@ -715,20 +715,35 @@ document.addEventListener('DOMContentLoaded', () => {
             cards.forEach(el => el.style.display = '');
             tables.forEach(el => el.style.display = '');
         } else {
-            // Filter by label text — check section labels and card content
             const filterLower = filter.toLowerCase();
+            const filterWords = filterLower.split(/\s+/);
+
+            // Try matching sections by label (fuzzy: any word matches)
+            let anyMatch = false;
             sections.forEach(el => {
                 const label = (el.getAttribute('label') || '').toLowerCase();
-                const matches = label.includes(filterLower) || filterLower.includes(label.replace(/\s*\(.*\)/, ''));
+                const matches = filterWords.some(w => label.includes(w)) || label.split(/\s+/).some(w => filterLower.includes(w));
                 el.style.display = matches ? '' : 'none';
+                if (matches) anyMatch = true;
             });
-            // If no sections matched, try filtering cards directly
-            const visibleSections = [...sections].filter(el => el.style.display !== 'none');
-            if (visibleSections.length === 0) {
+
+            // If no sections matched, try filtering cards by text content
+            if (!anyMatch && sections.length > 0) {
+                // Show all sections but filter cards within them
+                sections.forEach(el => el.style.display = '');
                 cards.forEach(el => {
                     const text = el.textContent?.toLowerCase() || '';
-                    el.style.display = text.includes(filterLower) ? '' : 'none';
+                    const matches = filterWords.some(w => text.includes(w));
+                    el.style.display = matches ? '' : 'none';
                 });
+                anyMatch = [...cards].some(el => el.style.display !== 'none');
+            }
+
+            // If still nothing matched, show everything (filter doesn't apply)
+            if (!anyMatch) {
+                sections.forEach(el => el.style.display = '');
+                cards.forEach(el => el.style.display = '');
+                tables.forEach(el => el.style.display = '');
             }
         }
     });
