@@ -58,6 +58,14 @@ Attributes: label, value, unit, trend ("up"|"down"|"flat")
 - Use <mcpui-metric> for single key values
 - Keep HTML clean — no inline styles, the components handle styling
 
+## Tool Listings
+When the user asks what tools are available or wants an overview of capabilities:
+- Show a mcpui-stat-bar with tool category counts
+- Show each tool as a mcpui-card inside a mcpui-section, grouped by category (e.g. "File Operations", "Search", etc.)
+- Each card should have: title=tool name, body=description, item-id=tool name, status="success"
+- This lets users click a tool card to drill down and learn more about it
+- NEVER list tools as plain text or markdown bullet points — always use mcpui-card components
+
 ## Drill-Down Responses
 When the user asks about a specific item (by name or ID):
 - Respond with ONLY mcpui-* components — no plain text, no markdown
