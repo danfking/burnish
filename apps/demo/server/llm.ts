@@ -18,6 +18,10 @@ import * as mcpHub from './mcp-hub.js';
 import * as conversations from './conversation.js';
 import { buildSystemPrompt } from './prompt-template.js';
 
+export type StreamChunk =
+    | { type: 'content'; text: string }
+    | { type: 'progress'; stage: string; detail?: string };
+
 const MAX_TOOL_ROUNDS = 5;
 
 let backend: 'api' | 'cli' = 'api';
@@ -42,15 +46,17 @@ export function configure(options: {
 
 /**
  * Stream a response for a conversation.
- * Routes to API or CLI backend based on configuration.
+ * Yields StreamChunk objects (content text or progress updates).
  */
 export async function* streamResponse(
     conversationId: string,
-): AsyncGenerator<string> {
+    requestModel?: string,
+): AsyncGenerator<StreamChunk> {
+    const useModel = requestModel || model;
     if (backend === 'cli') {
-        yield* streamResponseCli(conversationId);
+        yield* streamResponseCli(conversationId, useModel);
     } else {
-        yield* streamResponseApi(conversationId);
+        yield* streamResponseApi(conversationId, useModel);
     }
 }
 
@@ -60,7 +66,8 @@ export async function* streamResponse(
 
 async function* streamResponseCli(
     conversationId: string,
-): AsyncGenerator<string> {
+    useModel = model,
+): AsyncGenerator<StreamChunk> {
     const conv = conversations.get(conversationId);
     if (!conv) return;
 
@@ -93,7 +100,7 @@ async function* streamResponseCli(
             '--print',
             '--verbose',
             '--output-format', 'stream-json',
-            '--model', model,
+            '--model', useModel,
             '--system-prompt-file', tempFile,
             '--mcp-config', mcpConfigPath,
             '--strict-mcp-config',
@@ -127,7 +134,7 @@ async function* streamResponseCli(
         let stderr = '';
         proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
 
-        // Parse streaming JSON from stdout
+        // Parse streaming JSON from stdout — emit both content and progress events
         const rl = createInterface({ input: proc.stdout });
         let fullResponse = '';
 
@@ -136,6 +143,13 @@ async function* streamResponseCli(
 
             let doc: any;
             try { doc = JSON.parse(line); } catch { continue; }
+
+            // System init — MCP servers connecting
+            if (doc.type === 'system' && doc.subtype === 'init') {
+                const serverCount = doc.mcp_servers?.length ?? 0;
+                yield { type: 'progress', stage: 'connecting', detail: `Connected to ${serverCount} MCP server(s)` };
+                continue;
+            }
 
             // Handle stream_event wrappers (streaming mode)
             if (doc.type === 'stream_event') {
@@ -146,17 +160,24 @@ async function* streamResponseCli(
                     event.delta?.text
                 ) {
                     fullResponse += event.delta.text;
-                    yield event.delta.text;
+                    yield { type: 'content', text: event.delta.text };
                 }
                 continue;
             }
 
-            // Handle assistant messages (non-streaming / final result)
+            // Handle assistant messages — extract progress from thinking/tool_use blocks
             if (doc.type === 'assistant' && doc.message?.content) {
                 for (const block of doc.message.content) {
-                    if (block.type === 'text' && block.text) {
+                    if (block.type === 'thinking') {
+                        yield { type: 'progress', stage: 'thinking', detail: 'Analyzing your request...' };
+                    } else if (block.type === 'tool_use') {
+                        const toolName = (block.name || '').replace(/^mcp__\w+__/, '');
+                        yield { type: 'progress', stage: 'tool_call', detail: `Calling ${toolName}...` };
+                    } else if (block.type === 'tool_result') {
+                        yield { type: 'progress', stage: 'tool_result', detail: 'Processing results...' };
+                    } else if (block.type === 'text' && block.text) {
                         fullResponse += block.text;
-                        yield block.text;
+                        yield { type: 'content', text: block.text };
                     }
                 }
                 continue;
@@ -165,7 +186,7 @@ async function* streamResponseCli(
             // Handle result message (final)
             if (doc.type === 'result' && doc.result && !fullResponse) {
                 fullResponse = doc.result;
-                yield doc.result;
+                yield { type: 'content', text: doc.result };
             }
         }
 
@@ -219,7 +240,8 @@ function buildUserMessage(conv: conversations.Conversation): string {
 
 async function* streamResponseApi(
     conversationId: string,
-): AsyncGenerator<string> {
+    useModel = model,
+): AsyncGenerator<StreamChunk> {
     if (!client) throw new Error('LLM not configured — call configure() first');
 
     const conv = conversations.get(conversationId);
@@ -242,7 +264,7 @@ async function* streamResponseApi(
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         const params: Anthropic.MessageCreateParams = {
-            model,
+            model: useModel,
             max_tokens: 4096,
             system: systemPrompt,
             messages,
@@ -257,6 +279,10 @@ async function* streamResponseApi(
             input: Record<string, unknown>;
         }> = [];
 
+        if (round === 0) {
+            yield { type: 'progress', stage: 'thinking', detail: 'Analyzing your request...' };
+        }
+
         for await (const event of stream) {
             if (
                 event.type === 'content_block_delta' &&
@@ -265,7 +291,7 @@ async function* streamResponseApi(
                 const text = event.delta.text;
                 fullResponse += text;
                 textAccumulator += text;
-                yield text;
+                yield { type: 'content', text };
             }
         }
 
@@ -299,6 +325,7 @@ async function* streamResponseApi(
         const toolResults: Anthropic.ToolResultBlockParam[] = [];
         for (const tc of pendingToolCalls) {
             try {
+                yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}...` };
                 console.log(`[llm] Executing tool: ${tc.name}`);
                 const result = await mcpHub.executeTool(tc.name, tc.input);
                 toolResults.push({
