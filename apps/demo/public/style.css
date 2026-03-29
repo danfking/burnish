@@ -371,6 +371,11 @@ body {
 }
 
 /* ── Component fade-in ── */
+/* Cards directly in node content should be full width, not fixed 340px */
+.mcpui-node-content > mcpui-card {
+    width: 100% !important;
+    flex: 1 1 auto !important;
+}
 .mcpui-node-content > :not(.mcpui-progress):not(.mcpui-skeleton) {
     animation: fadeSlideIn 0.25s ease-out;
 }
