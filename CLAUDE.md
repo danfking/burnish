@@ -107,10 +107,18 @@ Status values: `success`, `warning`, `error`, `muted` (maps to semantic colors)
 - [ ] **4.4** MCP server config panel (stretch)
 
 ### Day 5: Integration Testing + Polish
-- [ ] **5.1** Demo with filesystem MCP server
+- [x] **5.1** Demo with filesystem MCP server (CLI + real MCP tool calling works)
 - [ ] **5.2** Demo with GitHub MCP server (stretch)
 - [ ] **5.3** Demo with SQLite MCP server (stretch)
 - [ ] **5.4** README with screenshots, getting started guide
+
+### Navigation UX (Post-MVP)
+- [x] **N.1** Append-below rendering (sections instead of replace)
+- [x] **N.2** Collapse/expand with auto-summary generation
+- [x] **N.3** Browser history (pushState/popstate for back/forward)
+- [x] **N.4** Persistence (localStorage save/restore)
+- [x] **N.5** Sidebar ↔ section linking (click message → scroll to section)
+- [ ] **N.6** Branching (fork from previous node) — see `docs/NAVIGATION-UX-PLAN.md`
 
 ## Verification Checklist
 
