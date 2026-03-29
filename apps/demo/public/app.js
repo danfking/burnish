@@ -6,11 +6,11 @@
 // ── DOMPurify Config ──
 const PURIFY_CONFIG = {
     ADD_TAGS: ['mcpui-card', 'mcpui-stat-bar', 'mcpui-table', 'mcpui-chart',
-               'mcpui-section', 'mcpui-metric', 'mcpui-message'],
+               'mcpui-section', 'mcpui-metric', 'mcpui-message', 'mcpui-form'],
     ADD_ATTR: ['items', 'title', 'status', 'body', 'meta', 'columns', 'rows',
                'status-field', 'type', 'config', 'role', 'content', 'class',
                'label', 'count', 'collapsed', 'item-id', 'value', 'unit', 'trend',
-               'streaming'],
+               'streaming', 'tool-id', 'fields'],
 };
 
 const CONTAINER_TAGS = new Set(['mcpui-section']);
@@ -557,6 +557,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ── Form submission (write tools) ──
+    container.addEventListener('mcpui-form-submit', (e) => {
+        const { toolId, values } = e.detail || {};
+        if (!toolId) return;
+        const params = Object.entries(values)
+            .filter(([, v]) => v && String(v).trim())
+            .map(([k, v]) => `${k}="${v}"`)
+            .join(', ');
+        promptInput.value = `Call the tool ${toolId} with these exact parameters: ${params}. Show the result using mcpui-* components.`;
+        const toolName = toolId.split('__').pop() || toolId;
+        handleSubmit(toolName);
+    });
+
     // ── Browser history ──
     window.addEventListener('popstate', (e) => {
         if (e.state?.nodeId) scrollToNode(e.state.nodeId);
@@ -816,11 +829,20 @@ function extractHtmlContent(text) {
 }
 
 // ── Drill-Down ──
+// Write/mutate tool patterns — these should NOT be auto-invoked
+const WRITE_TOOL_PATTERNS = /^(create|update|delete|remove|push|write|edit|move|fork|merge|add|set|close|lock|assign)/i;
+
 function getDrillDownPrompt(title, status, itemId) {
     const idClause = itemId ? ` (tool: ${itemId})` : '';
-    // If this looks like a tool/function name, invoke it rather than describe it
     const looksLikeTool = itemId && (itemId.includes('__') || itemId.includes('mcp_'));
+
     if (looksLikeTool) {
+        // Check if this is a write/mutate tool
+        const toolName = title || '';
+        if (WRITE_TOOL_PATTERNS.test(toolName)) {
+            return `The user wants to use the "${title}" tool${idClause}. This is a write/mutate operation — do NOT call it automatically. Instead, show a mcpui-form component with the tool's required and optional input parameters as form fields. Use field types appropriate to each parameter (text for strings, number for integers). Mark required fields. Include a submit button. Use ONLY mcpui-* web components.`;
+        }
+        // Read-only tool — safe to auto-invoke
         return `Call the "${title}" tool${idClause} with sensible default parameters and show the results using mcpui-* components (tables, cards, stat-bars, charts). If the tool requires a query or search term, use a reasonable example. Actually execute the tool — do NOT just describe its parameters. Use ONLY mcpui-* web components.`;
     }
     return `Explore "${title}"${idClause} in more detail. If this is a file, read it. If this is a resource, fetch its data. If this is an item in a list, get its details. Call the appropriate tools to get real data and show the results using mcpui-* web components — no markdown.`;

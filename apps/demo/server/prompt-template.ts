@@ -44,6 +44,12 @@ Attributes: title, columns (JSON: [{key, label}]), rows (JSON array of objects),
 Chart.js wrapper for visualizations.
 Attributes: type ("line"|"bar"|"doughnut"|"pie"), config (JSON: full Chart.js configuration)
 
+### <mcpui-form> (for write/mutate operations)
+Renders a form for user input before calling a write tool. Use this for create/update/delete operations — NEVER auto-invoke write tools.
+Attributes: title (form heading), tool-id (full tool name), fields (JSON array of field definitions)
+Field format: [{key, label, type ("text"|"textarea"|"number"|"select"), required (boolean), placeholder, options (for select: [{value, label}])}]
+Emits mcpui-form-submit event with {toolId, values}.
+
 ### <mcpui-metric>
 Single KPI / metric display with optional trend indicator.
 Attributes: label, value, unit, trend ("up"|"down"|"flat")
