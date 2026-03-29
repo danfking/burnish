@@ -313,6 +313,7 @@ body {
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    margin: 4px;
 }
 .mcpui-progress-entry.done .mcpui-progress-dot {
     background: var(--mcpui-success, #22c55e);
