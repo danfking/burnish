@@ -666,34 +666,15 @@ body {
 }
 .mcpui-tree-branches {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     position: relative;
-    padding-top: 16px;
-}
-.mcpui-tree-branches::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 40px;
-    right: 40px;
-    height: 2px;
-    background: var(--mcpui-border, #e5e7eb);
+    padding-top: 0;
 }
 .mcpui-tree-branch-col {
-    min-width: 400px;
+    min-width: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
-    position: relative;
-}
-.mcpui-tree-branch-col::before {
-    content: '';
-    position: absolute;
-    top: -16px;
-    left: 50%;
-    width: 2px;
-    height: 16px;
-    background: var(--mcpui-border, #e5e7eb);
 }
 .mcpui-tree-branch-col:not(.active) {
     opacity: 0.5;

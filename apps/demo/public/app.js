@@ -837,8 +837,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         history.pushState({ nodeId }, '');
 
+        // Build ancestry context so the LLM knows the path that led here
+        let contextualPrompt = prompt;
+        if (node.parentId) {
+            const ancestry = getAncestryPath(session, node.parentId);
+            const contextParts = ancestry
+                .filter(n => n.response)
+                .slice(-3)  // last 3 ancestors max to avoid huge prompts
+                .map(n => `Previous step "${n.promptDisplay}": ${(n.response || '').substring(0, 200)}`)
+                .join('\n');
+            if (contextParts) {
+                contextualPrompt = `Context from previous steps:\n${contextParts}\n\nCurrent request: ${prompt}`;
+            }
+        }
+
         submitPrompt(
-            prompt,
+            contextualPrompt,
             session.conversationId,
             // onChunk
             (chunk, fullText) => {
