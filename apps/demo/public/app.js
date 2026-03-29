@@ -891,15 +891,23 @@ function getDrillDownPrompt(title, status, itemId) {
     const looksLikeTool = itemId && (itemId.includes('__') || itemId.includes('mcp_'));
 
     if (looksLikeTool) {
-        // Check if this is a write/mutate tool
         const toolName = title || '';
-        if (WRITE_TOOL_PATTERNS.test(toolName)) {
-            return `The user wants to use the "${title}" tool${idClause}. This is a write/mutate operation — do NOT call it automatically. Instead, show a mcpui-form component with the tool's required and optional input parameters as form fields. Use field types appropriate to each parameter (text for strings, number for integers). Mark required fields. Include a submit button. Use ONLY mcpui-* web components.`;
-        }
-        // Read-only tool — safe to auto-invoke
-        return `Call the "${title}" tool${idClause} with sensible default parameters and show the results using mcpui-* components (tables, cards, stat-bars, charts). If the tool requires a query or search term, use a reasonable example. Actually execute the tool — do NOT just describe its parameters. Use ONLY mcpui-* web components.`;
+        const isWrite = WRITE_TOOL_PATTERNS.test(toolName);
+
+        // All tools: let the LLM decide based on required parameters
+        // Write tools MUST show a form. Read tools with required params SHOULD show a form.
+        return `The user wants to use the "${title}" tool${idClause}.
+
+${isWrite ? 'This is a WRITE operation — do NOT call it. Show a form.' : 'Check if this tool has required parameters.'}
+
+RULES:
+- If the tool has required parameters that need user input → show a mcpui-form with the parameters as fields. Add lookup to fields where values can be searched. Do NOT guess parameter values.
+- If the tool can run with NO parameters or has obvious defaults (like listing the current directory) → call it and show results.
+${isWrite ? '- This is a write tool — ALWAYS show a form, never auto-invoke.' : '- Only auto-invoke if truly no user input is needed.'}
+
+Use ONLY mcpui-* web components. Include mcpui-actions with next steps after results.`;
     }
-    return `Explore "${title}"${idClause} in more detail. If this is a file, read it. If this is a resource, fetch its data. If this is an item in a list, get its details. Call the appropriate tools to get real data and show the results using mcpui-* web components — no markdown.`;
+    return `Explore "${title}"${idClause} in more detail. Call the appropriate tools to get real data and show the results using mcpui-* web components. If a tool requires parameters, show a mcpui-form instead of guessing. Include mcpui-actions with next steps.`;
 }
 
 // ── Helpers ──
