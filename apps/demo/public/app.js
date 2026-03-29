@@ -307,7 +307,8 @@ function renderMainContent() {
     const session = getActiveSession();
 
     if (!session || session.nodes.length === 0) {
-        container.innerHTML = getEmptyState();
+        container.innerHTML = getSuggestionSkeleton();
+        loadDynamicSuggestions(container);
         return;
     }
 
@@ -910,7 +911,15 @@ function renderMarkdown(text) {
     return div.innerHTML;
 }
 
-function getEmptyState() {
+function escapeAttr(text) {
+    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getEmptyState(suggestions) {
+    const items = suggestions && suggestions.length > 0
+        ? suggestions
+        : [{ label: 'Available tools', prompt: 'What tools are available?' }];
+
     return `
         <div class="mcpui-empty-state">
             <div class="mcpui-empty-icon">
@@ -920,14 +929,86 @@ function getEmptyState() {
                 </svg>
             </div>
             <h2>Welcome to MCPUI</h2>
-            <p>Connect to any MCP server and explore your data visually.</p>
+            <p>Explore your connected data sources.</p>
             <div class="mcpui-suggestions">
-                <button class="mcpui-suggestion" data-prompt="What tools are available?">Available tools</button>
-                <button class="mcpui-suggestion" data-prompt="Show me an overview of the data">Data overview</button>
-                <button class="mcpui-suggestion" data-prompt="List everything you can access">List resources</button>
+                ${items.map(s => `
+                    <button class="mcpui-suggestion" data-prompt="${escapeAttr(s.prompt)}">
+                        ${escapeHtml(s.label)}
+                        ${s.sublabel ? `<span class="mcpui-suggestion-sub">${escapeHtml(s.sublabel)}</span>` : ''}
+                    </button>
+                `).join('')}
             </div>
         </div>
     `;
+}
+
+function getSuggestionSkeleton() {
+    return `
+        <div class="mcpui-empty-state">
+            <div class="mcpui-empty-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="20" stroke="#d1d5db" stroke-width="2" fill="none"/>
+                    <path d="M16 24h16M24 16v16" stroke="#d1d5db" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h2>Welcome to MCPUI</h2>
+            <p>Discovering connected data sources...</p>
+            <div class="mcpui-suggestions">
+                <div class="mcpui-suggestion-skeleton-pill"></div>
+                <div class="mcpui-suggestion-skeleton-pill"></div>
+                <div class="mcpui-suggestion-skeleton-pill"></div>
+                <div class="mcpui-suggestion-skeleton-pill"></div>
+            </div>
+        </div>
+    `;
+}
+
+function generateSuggestions(servers) {
+    const suggestions = [];
+
+    // One "explore" button per connected server
+    for (const s of servers) {
+        if (s.toolCount > 0) {
+            suggestions.push({
+                label: `Explore ${s.name}`,
+                sublabel: `${s.toolCount} tools`,
+                prompt: `Show me what I can do with the connected ${s.name} tools. List the available operations as cards.`,
+            });
+        }
+    }
+
+    // Pick up to 3 read-only tools across all servers as quick actions
+    const readPattern = /^(list|search|get|read|find|query|browse|fetch|describe|directory)/;
+    const seenServers = new Set();
+    for (const s of servers) {
+        if (seenServers.has(s.name)) continue;
+        for (const tool of s.tools) {
+            if (readPattern.test(tool.name)) {
+                const label = tool.description
+                    ? tool.description.split(/[.!]/)[0].substring(0, 50)
+                    : tool.name.replace(/_/g, ' ');
+                suggestions.push({
+                    label,
+                    prompt: `${tool.description || tool.name}. Show results using mcpui-* components.`,
+                });
+                seenServers.add(s.name);
+                break;
+            }
+        }
+    }
+
+    return suggestions.slice(0, 6);
+}
+
+async function loadDynamicSuggestions(container) {
+    try {
+        const res = await fetch('/api/servers');
+        const { servers } = await res.json();
+        const suggestions = generateSuggestions(servers);
+        container.innerHTML = getEmptyState(suggestions);
+    } catch {
+        container.innerHTML = getEmptyState();
+    }
 }
 
 // ── Server Config Modal ──

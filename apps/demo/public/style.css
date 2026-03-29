@@ -226,6 +226,21 @@ body {
     transition: all var(--mcpui-transition-fast);
     color: var(--mcpui-text);
 }
+.mcpui-suggestion-sub {
+    display: block;
+    font-size: 11px;
+    color: var(--mcpui-text-muted, #9ca3af);
+    font-weight: 400;
+    margin-top: 2px;
+}
+.mcpui-suggestion-skeleton-pill {
+    width: 140px;
+    height: 40px;
+    border-radius: var(--mcpui-radius-pill, 20px);
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
 .mcpui-suggestion:hover {
     border-color: var(--mcpui-accent, #4f6df5);
     color: var(--mcpui-accent);
