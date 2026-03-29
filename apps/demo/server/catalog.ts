@@ -18,8 +18,8 @@ export const CATALOG: PresetServer[] = [
     { id: 'git', name: 'Git', description: 'Git status, log, diff, and branch operations', category: 'devtools', config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-git', '--repository', '{repoPath}'] }, requiredFields: [{ key: 'repoPath', label: 'Repository path', placeholder: '/home/user/repo' }] },
     { id: 'memory', name: 'Memory', description: 'Knowledge graph for persistent memory', category: 'devtools', config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-memory'] } },
     { id: 'fetch', name: 'Web Fetch', description: 'Fetch and convert web content', category: 'devtools', config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-fetch'] } },
-    { id: 'github', name: 'GitHub', description: 'Repos, issues, PRs, and actions', category: 'saas', config: { command: 'npx', args: ['-y', '@anthropic/mcp-server-github'], env: { GITHUB_PERSONAL_ACCESS_TOKEN: '{token}' } }, requiredFields: [{ key: 'token', label: 'GitHub Personal Access Token', placeholder: 'ghp_...' }] },
-    { id: 'brave-search', name: 'Brave Search', description: 'Web and local search', category: 'saas', config: { command: 'npx', args: ['-y', '@anthropic/mcp-server-brave-search'], env: { BRAVE_API_KEY: '{apiKey}' } }, requiredFields: [{ key: 'apiKey', label: 'Brave API Key', placeholder: 'BSA...' }] },
+    { id: 'github', name: 'GitHub', description: 'Repos, issues, PRs, and actions', category: 'saas', config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-github'], env: { GITHUB_PERSONAL_ACCESS_TOKEN: '{token}' } }, requiredFields: [{ key: 'token', label: 'GitHub Personal Access Token', placeholder: 'ghp_...' }] },
+    { id: 'brave-search', name: 'Brave Search', description: 'Web and local search', category: 'saas', config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-brave-search'], env: { BRAVE_API_KEY: '{apiKey}' } }, requiredFields: [{ key: 'apiKey', label: 'Brave API Key', placeholder: 'BSA...' }] },
 ];
 
 export function getCatalog(): PresetServer[] {
