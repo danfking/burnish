@@ -694,8 +694,15 @@ document.addEventListener('DOMContentLoaded', () => {
             .map(([k, v]) => `${k}="${v}"`)
             .join(', ');
         promptInput.value = `Call the tool ${toolId} with these exact parameters: ${params}. Show the result using mcpui-* components.`;
-        const toolName = toolId.split('__').pop() || toolId;
-        handleSubmit(toolName);
+        // Build a readable display label from the submitted values
+        const keyValues = Object.entries(values)
+            .filter(([, v]) => v && String(v).trim())
+            .slice(0, 3)
+            .map(([, v]) => v)
+            .join(', ');
+        const toolName = (toolId.split('__').pop() || toolId).replace(/_/g, ' ');
+        const displayLabel = keyValues ? `${toolName}: ${keyValues}` : toolName;
+        handleSubmit(displayLabel);
     });
 
     // ── Action bar clicks ──
