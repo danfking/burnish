@@ -6,6 +6,7 @@ interface FormField {
     type?: 'text' | 'textarea' | 'number' | 'select';
     required?: boolean;
     placeholder?: string;
+    value?: string;
     options?: Array<{ value: string; label: string }>;
     lookup?: { prompt: string; placeholder?: string };
 }
@@ -258,7 +259,7 @@ export class McpuiForm extends LitElement {
 
         if (f.type === 'textarea') {
             return html`<textarea class="form-textarea" data-key="${f.key}"
-                placeholder="${f.placeholder || ''}" ?required=${f.required}></textarea>`;
+                placeholder="${f.placeholder || ''}" ?required=${f.required}>${f.value || ''}</textarea>`;
         }
 
         if (f.type === 'select' && f.options) {
@@ -269,13 +270,13 @@ export class McpuiForm extends LitElement {
         }
 
         const input = html`<input class="form-input" type="${f.type === 'number' ? 'number' : 'text'}"
-            data-key="${f.key}" placeholder="${f.placeholder || ''}" ?required=${f.required} />`;
+            data-key="${f.key}" placeholder="${f.placeholder || ''}" .value=${f.value || ''} ?required=${f.required} />`;
 
         if (!hasLookup) return input;
 
         // For lookup fields, use an input with Enter key support
         const lookupInput = html`<input class="form-input" type="${f.type === 'number' ? 'number' : 'text'}"
-            data-key="${f.key}" placeholder="${f.placeholder || ''}" ?required=${f.required}
+            data-key="${f.key}" placeholder="${f.placeholder || ''}" .value=${f.value || ''} ?required=${f.required}
             @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); this._handleLookup(f); } }} />`;
 
         return html`

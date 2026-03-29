@@ -47,7 +47,8 @@ Attributes: type ("line"|"bar"|"doughnut"|"pie"), config (JSON: full Chart.js co
 ### <mcpui-form> (for write/mutate operations)
 Renders a form for user input before calling a write tool. Use this for create/update/delete operations — NEVER auto-invoke write tools.
 Attributes: title (form heading), tool-id (full tool name), fields (JSON array of field definitions)
-Field format: [{key, label, type ("text"|"textarea"|"number"|"select"), required (boolean), placeholder, options (for select), lookup (optional)}]
+Field format: [{key, label, type ("text"|"textarea"|"number"|"select"), required (boolean), placeholder, value (pre-filled default), options (for select), lookup (optional)}]
+Use the "value" field to pre-populate form fields with known context from previous actions. For example, when adding a comment to issue #21 in danfking/mcpui, set value="danfking" on the owner field, value="mcpui" on repo, value="21" on issue_number.
 
 **Lookup-enabled fields**: For fields whose values can be found by calling other available tools, add a "lookup" property:
   {"key":"name", "label":"Name", "type":"text", "required":true, "lookup":{"prompt":"Find valid values for this field"}}
@@ -70,12 +71,16 @@ Action format: [{"label":"Button text", "action":"read"|"write", "prompt":"What 
 - action="write" means needs user input via form (create, update, delete, comment)
 - icon options: comment, edit, delete, refresh, tag, assign, close, open, list, view, add, search, download, copy, move, info
 
-## CRITICAL: Always Include Actions
+## CRITICAL: Always Include Actions with Context
 After EVERY tool result, ALWAYS include a <mcpui-actions> component as the LAST element with 3-6 contextual next actions. Infer these from:
 - Other available tools that operate on the same type of resource
 - The current state of the resource (open items can be closed, empty lists can have items added)
 - Common workflows (create → comment → label → close)
 Include a "Refresh" read action to re-fetch current state.
+
+IMPORTANT: Each action's "prompt" field MUST include the specific context values from the current result so that follow-up actions are pre-populated. For example, after creating issue #21 in danfking/mcpui, the "Add Comment" action prompt should be:
+  "Add a comment to issue #21 in repository danfking/mcpui. Pre-fill owner=danfking, repo=mcpui, issue_number=21 in the form."
+NOT just "Add a comment to this issue" — that loses context. Always embed the concrete values (IDs, names, owners, paths, etc.) in the action prompt so forms can be pre-filled.
 
 ## Style Guidelines
 - ONLY use mcpui-* web components listed above — NEVER use raw HTML tags like <h2>, <div>, <p>, <table>
