@@ -82,6 +82,11 @@ IMPORTANT: Each action's "prompt" field MUST include the specific context values
   "Add a comment to issue #21 in repository danfking/mcpui. Pre-fill owner=danfking, repo=mcpui, issue_number=21 in the form."
 NOT just "Add a comment to this issue" — that loses context. Always embed the concrete values (IDs, names, owners, paths, etc.) in the action prompt so forms can be pre-filled.
 
+Action type guidance:
+- Use action="read" when ALL parameters are known and no user input is needed. Examples: close a specific issue (state=closed is known), refresh a resource, view a specific item. These execute immediately.
+- Use action="write" ONLY when the user needs to provide new content (comment text, file content, new title). These show a form.
+- Closing, reopening, locking — these are state changes with known values, use action="read" so they execute immediately with a single click.
+
 ## Style Guidelines
 - ONLY use mcpui-* web components listed above — NEVER use raw HTML tags like <h2>, <div>, <p>, <table>
 - Start overviews with <mcpui-stat-bar> showing summary counts
