@@ -18,24 +18,26 @@ const app = new Hono();
 // --- API Routes ---
 
 app.post('/api/chat', async (c) => {
-    const body = await c.req.json<{ prompt: string; conversationId?: string }>();
+    const body = await c.req.json<{ prompt: string; conversationId?: string; model?: string }>();
     const conv = conversations.getOrCreate(body.conversationId);
     conversations.addMessage(conv.id, 'user', body.prompt);
+    const modelParam = body.model ? `?model=${encodeURIComponent(body.model)}` : '';
     return c.json({
         conversationId: conv.id,
-        streamUrl: `/api/chat/${conv.id}/stream`,
+        streamUrl: `/api/chat/${conv.id}/stream${modelParam}`,
     });
 });
 
 app.get('/api/chat/:id/stream', async (c) => {
     const id = c.req.param('id');
+    const requestModel = c.req.query('model') || undefined;
 
     const stream = new ReadableStream({
         async start(controller) {
             const encoder = new TextEncoder();
             try {
-                for await (const chunk of llm.streamResponse(id)) {
-                    const data = JSON.stringify({ type: 'content', text: chunk });
+                for await (const chunk of llm.streamResponse(id, requestModel)) {
+                    const data = JSON.stringify(chunk);
                     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                 }
                 controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));

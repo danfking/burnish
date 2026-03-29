@@ -23,6 +23,7 @@ const ICON_STOP = `<svg width="20" height="20" viewBox="0 0 20 20" fill="current
 let conversationId = null;
 let activeSource = null;
 let cancelGeneration = 0;
+let fastMode = false;
 
 // Node tree — each prompt/response pair is a node
 let nodes = [];
@@ -195,6 +196,64 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// ── Progress Indicator ──
+const PROGRESS_STAGES = ['connecting', 'thinking', 'tool_call', 'tool_result', 'generating'];
+const STAGE_LABELS = {
+    connecting: 'Connecting to data sources',
+    thinking: 'Analyzing request',
+    tool_call: 'Fetching data',
+    tool_result: 'Processing results',
+    generating: 'Generating view',
+};
+
+function getProgressHtml() {
+    return `
+        <div class="mcpui-progress">
+            <div class="mcpui-progress-stages">
+                ${PROGRESS_STAGES.map(s => `
+                    <div class="mcpui-progress-stage pending" data-stage="${s}">
+                        <span class="mcpui-progress-dot"></span>
+                        <span class="mcpui-progress-label">${STAGE_LABELS[s]}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="mcpui-progress-bar">
+                <div class="mcpui-progress-fill" style="width: 5%"></div>
+            </div>
+        </div>
+    `;
+}
+
+function updateProgress(contentEl, stage, detail) {
+    const progressEl = contentEl.querySelector('.mcpui-progress');
+    if (!progressEl) return;
+
+    const stageIdx = PROGRESS_STAGES.indexOf(stage);
+    if (stageIdx === -1) return;
+
+    // Update stages: done for previous, active for current, pending for future
+    const stageEls = progressEl.querySelectorAll('.mcpui-progress-stage');
+    stageEls.forEach((el, i) => {
+        el.classList.remove('done', 'active', 'pending');
+        if (i < stageIdx) el.classList.add('done');
+        else if (i === stageIdx) el.classList.add('active');
+        else el.classList.add('pending');
+    });
+
+    // Update label for active stage with detail
+    if (detail) {
+        const activeLabel = progressEl.querySelector(`.mcpui-progress-stage[data-stage="${stage}"] .mcpui-progress-label`);
+        if (activeLabel) activeLabel.textContent = detail;
+    }
+
+    // Update progress bar
+    const fill = progressEl.querySelector('.mcpui-progress-fill');
+    if (fill) {
+        const pct = Math.min(95, ((stageIdx + 1) / PROGRESS_STAGES.length) * 100);
+        fill.style.width = `${pct}%`;
+    }
+}
+
 // ── Restore from persistence ──
 function restoreFromStorage(container) {
     const state = loadState();
@@ -258,6 +317,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentArea = document.getElementById('content-area');
     const container = document.getElementById('dashboard-container');
     const breadcrumb = document.getElementById('breadcrumb');
+
+    // ── Fast mode toggle ──
+    const fastToggle = document.getElementById('fast-toggle');
+    if (fastToggle) {
+        fastToggle.addEventListener('click', () => {
+            fastMode = !fastMode;
+            fastToggle.classList.toggle('active', fastMode);
+        });
+    }
 
     // ── Try to restore from localStorage ──
     const restored = restoreFromStorage(container);
@@ -398,8 +466,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Get the content area for this node
         const contentEl = nodeEl.querySelector('.mcpui-node-content');
 
-        // Show skeleton in the content area
-        contentEl.innerHTML = getSkeletonState();
+        // Show live progress indicator instead of static skeleton
+        contentEl.innerHTML = getProgressHtml();
 
         // Scroll to new node
         nodeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -483,6 +551,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateNodeSummary(nodeId);
                 finalizeChatMessage(streamingMsg, `Error: ${error}`);
                 saveState();
+            },
+            // onProgress
+            (stage, detail) => {
+                updateProgress(contentEl, stage, detail);
+                if (detail) updateChatMessage(streamingMsg, detail);
             }
         );
 
@@ -493,23 +566,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── SSE Streaming ──
 
-async function submitPrompt(prompt, onChunk, onDone, onError) {
+async function submitPrompt(prompt, onChunk, onDone, onError, onProgress) {
     try {
         const res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, conversationId }),
+            body: JSON.stringify({ prompt, conversationId, model: fastMode ? 'haiku' : undefined }),
         });
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const data = await res.json();
         conversationId = data.conversationId;
-        await streamResponse(data.streamUrl, onChunk, onDone, onError);
+        await streamResponse(data.streamUrl, onChunk, onDone, onError, onProgress);
     } catch (err) {
         onError(err.message);
     }
 }
 
-function streamResponse(streamUrl, onChunk, onDone, onError) {
+function streamResponse(streamUrl, onChunk, onDone, onError, onProgress) {
     let fullText = '';
     const myGeneration = cancelGeneration;
 
@@ -526,6 +599,8 @@ function streamResponse(streamUrl, onChunk, onDone, onError) {
                     activeSource = null;
                     onError(data.message || 'Unknown error');
                     resolve();
+                } else if (data.type === 'progress') {
+                    if (onProgress) onProgress(data.stage, data.detail);
                 } else if (data.type === 'content') {
                     fullText += data.text;
                     onChunk(data.text, fullText);
