@@ -229,11 +229,6 @@ function createNodeEl(node) {
             <span class="mcpui-node-time">${formatTimeAgo(node.timestamp)}</span>
             <button class="mcpui-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
         </div>
-        ${node._hasExplicitLabel ? `
-        <div class="mcpui-node-prompt-bubble">
-            <div class="mcpui-prompt-avatar">You</div>
-            <div class="mcpui-prompt-text">${escapeHtml(node.promptDisplay)}</div>
-        </div>` : ''}
         <div class="mcpui-node-content"></div>
     `;
 
