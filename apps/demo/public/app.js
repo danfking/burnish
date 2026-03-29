@@ -674,6 +674,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
             }
+            // Branch from the node containing this card
+            const nodeEl = e.target.closest('.mcpui-node');
+            if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
             promptInput.value = getDrillDownPrompt(title, status, itemId);
             handleSubmit(title);
         }
@@ -683,6 +686,9 @@ document.addEventListener('DOMContentLoaded', () => {
     container.addEventListener('mcpui-form-submit', (e) => {
         const { toolId, values } = e.detail || {};
         if (!toolId) return;
+        // Branch from the node containing this form
+        const nodeEl = e.target.closest('.mcpui-node');
+        if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
         const params = Object.entries(values)
             .filter(([, v]) => v && String(v).trim())
             .map(([k, v]) => `${k}="${v}"`)
@@ -697,10 +703,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const { label, action, prompt } = e.detail || {};
         if (!prompt) return;
         promptInput.value = prompt + '. Use ONLY mcpui-* web components.';
-        // Build a contextual display label from the prompt
-        // Extract key context: take the first sentence up to ~60 chars
         const contextSummary = prompt.split(/[.!]/)[0].substring(0, 60);
         const displayLabel = contextSummary.length > label.length ? contextSummary : label;
+
+        // Set branch point to the node containing this action bar
+        const nodeEl = e.target.closest('.mcpui-node');
+        if (nodeEl?.dataset?.nodeId) {
+            branchFromNodeId = nodeEl.dataset.nodeId;
+        }
+
         handleSubmit(displayLabel);
     });
 
