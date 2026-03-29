@@ -689,37 +689,12 @@ body {
 .mcpui-tree-branches {
     display: flex;
     gap: 12px;
-    position: relative;
-    padding-top: 12px;
-}
-/* Horizontal connector line — spans from first to last column center */
-.mcpui-tree-branches::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--mcpui-border, #d1d5db);
 }
 .mcpui-tree-branch-col {
     min-width: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
-    position: relative;
-    overflow: visible;
-}
-/* Vertical drop from horizontal line down to first node in branch */
-.mcpui-tree-branch-col::before {
-    content: '';
-    position: absolute;
-    top: -12px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 1px;
-    height: 12px;
-    background: var(--mcpui-border, #d1d5db);
 }
 .mcpui-tree-branch-col:not(.active) {
     opacity: 0.5;
