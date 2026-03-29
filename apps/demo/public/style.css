@@ -553,6 +553,11 @@ body {
     border-radius: var(--mcpui-radius-md, 8px);
     transition: all var(--mcpui-transition-normal);
 }
+.mcpui-node[data-collapsed="false"] {
+    border-left: 3px solid var(--mcpui-accent, #4f6df5);
+    border-radius: var(--mcpui-radius-md, 8px);
+    box-shadow: var(--mcpui-shadow-sm);
+}
 .mcpui-node + .mcpui-node {
     margin-top: var(--mcpui-space-sm, 8px);
 }
@@ -573,12 +578,13 @@ body {
     border-color: var(--mcpui-border, #e5e7eb);
 }
 .mcpui-node[data-collapsed="false"] .mcpui-node-header {
-    background: var(--mcpui-surface-alt, #f5f6f8);
-    border-color: var(--mcpui-accent, #4f6df5);
-    border-left: 3px solid var(--mcpui-accent, #4f6df5);
+    background: white;
+    border-color: var(--mcpui-border, #e5e7eb);
+    border-left: none;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     border-bottom: none;
+    padding-left: 13px;
 }
 .mcpui-node-chevron {
     font-size: 12px;
@@ -646,14 +652,14 @@ body {
     background: var(--mcpui-border-error, #fee2e2);
 }
 .mcpui-node-content {
-    padding: 16px;
+    padding: 16px 16px 16px 13px;
     display: flex;
     flex-direction: column;
     gap: var(--mcpui-space-lg, 16px);
     border: 1px solid var(--mcpui-border, #e5e7eb);
-    border-left: 3px solid var(--mcpui-accent, #4f6df5);
+    border-left: none;
     border-top: none;
-    border-radius: 0 0 var(--mcpui-radius-md, 8px) var(--mcpui-radius-md, 8px);
+    border-radius: 0 0 var(--mcpui-radius-md, 8px) 0;
     background: var(--mcpui-surface-alt, #f5f6f8);
 }
 .mcpui-node[data-collapsed="true"] .mcpui-node-content {
