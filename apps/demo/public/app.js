@@ -6,11 +6,11 @@
 // ── DOMPurify Config ──
 const PURIFY_CONFIG = {
     ADD_TAGS: ['mcpui-card', 'mcpui-stat-bar', 'mcpui-table', 'mcpui-chart',
-               'mcpui-section', 'mcpui-metric', 'mcpui-message', 'mcpui-form'],
+               'mcpui-section', 'mcpui-metric', 'mcpui-message', 'mcpui-form', 'mcpui-actions'],
     ADD_ATTR: ['items', 'title', 'status', 'body', 'meta', 'columns', 'rows',
                'status-field', 'type', 'config', 'role', 'content', 'class',
                'label', 'count', 'collapsed', 'item-id', 'value', 'unit', 'trend',
-               'streaming', 'tool-id', 'fields'],
+               'streaming', 'tool-id', 'fields', 'actions'],
 };
 
 const CONTAINER_TAGS = new Set(['mcpui-section']);
@@ -536,6 +536,16 @@ document.addEventListener('DOMContentLoaded', () => {
         promptInput.value = `Call the tool ${toolId} with these exact parameters: ${params}. Show the result using mcpui-* components.`;
         const toolName = toolId.split('__').pop() || toolId;
         handleSubmit(toolName);
+    });
+
+    // ── Action bar clicks ──
+    container.addEventListener('mcpui-action', (e) => {
+        const { label, action, prompt } = e.detail || {};
+        if (!prompt) return;
+        // Write actions will be handled by getDrillDownPrompt's write detection
+        // Read actions are sent directly as prompts
+        promptInput.value = prompt + '. Use ONLY mcpui-* web components.';
+        handleSubmit(label);
     });
 
     // ── Form field lookups ──

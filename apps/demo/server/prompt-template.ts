@@ -62,6 +62,21 @@ Add lookup to ANY field where another available tool could provide valid options
 Single KPI / metric display with optional trend indicator.
 Attributes: label, value, unit, trend ("up"|"down"|"flat")
 
+### <mcpui-actions> (contextual next steps)
+Shows a horizontal bar of action buttons for logical next steps after viewing or creating a resource.
+Attributes: actions (JSON array of action objects)
+Action format: [{"label":"Button text", "action":"read"|"write", "prompt":"What to do next", "icon":"icon-name"}]
+- action="read" means safe to auto-invoke (view, list, search, refresh)
+- action="write" means needs user input via form (create, update, delete, comment)
+- icon options: comment, edit, delete, refresh, tag, assign, close, open, list, view, add, search, download, copy, move, info
+
+## CRITICAL: Always Include Actions
+After EVERY tool result, ALWAYS include a <mcpui-actions> component as the LAST element with 3-6 contextual next actions. Infer these from:
+- Other available tools that operate on the same type of resource
+- The current state of the resource (open items can be closed, empty lists can have items added)
+- Common workflows (create → comment → label → close)
+Include a "Refresh" read action to re-fetch current state.
+
 ## Style Guidelines
 - ONLY use mcpui-* web components listed above — NEVER use raw HTML tags like <h2>, <div>, <p>, <table>
 - Start overviews with <mcpui-stat-bar> showing summary counts

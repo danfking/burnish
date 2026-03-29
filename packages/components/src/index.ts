@@ -8,3 +8,4 @@ export { McpuiSection } from './section.js';
 export { McpuiMetric } from './metric.js';
 export { McpuiMessage } from './message.js';
 export { McpuiForm } from './form.js';
+export { McpuiActions } from './actions.js';
