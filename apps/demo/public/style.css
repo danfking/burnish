@@ -266,29 +266,30 @@ body {
     100% { background-position: -200% 0; }
 }
 
-/* ── Live Progress Indicator ── */
+/* ── Progress Audit Trail ── */
 .mcpui-progress {
-    padding: 32px 24px;
+    padding: 20px 16px;
     max-width: 600px;
 }
-.mcpui-progress-stages {
+.mcpui-progress-trail {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 6px;
+    max-height: 300px;
+    overflow-y: auto;
 }
-.mcpui-progress-stage {
+.mcpui-progress-entry {
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 13px;
     color: var(--mcpui-text-muted, #9ca3af);
-    transition: all 0.3s ease;
+    animation: fadeSlideIn 0.2s ease-out;
 }
-.mcpui-progress-stage.done {
+.mcpui-progress-entry.done {
     color: var(--mcpui-success, #22c55e);
 }
-.mcpui-progress-stage.active {
+.mcpui-progress-entry.active {
     color: var(--mcpui-text, #1f2937);
     font-weight: 500;
 }
@@ -296,14 +297,12 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--mcpui-border, #e5e7eb);
     flex-shrink: 0;
-    transition: all 0.3s ease;
 }
-.mcpui-progress-stage.done .mcpui-progress-dot {
+.mcpui-progress-entry.done .mcpui-progress-dot {
     background: var(--mcpui-success, #22c55e);
 }
-.mcpui-progress-stage.active .mcpui-progress-dot {
+.mcpui-progress-entry.active .mcpui-progress-dot {
     background: var(--mcpui-accent, #4f6df5);
     animation: pulse-dot 1.2s ease-in-out infinite;
 }
@@ -311,30 +310,19 @@ body {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.6); opacity: 0.6; }
 }
-.mcpui-progress-bar {
-    height: 3px;
-    background: var(--mcpui-border-light, #f3f4f6);
-    border-radius: 2px;
-    overflow: hidden;
-}
-.mcpui-progress-fill {
-    height: 100%;
-    background: var(--mcpui-accent, #4f6df5);
-    border-radius: 2px;
-    transition: width 0.5s ease;
-}
+.mcpui-progress-label { flex: 1; }
 .mcpui-progress-time {
     font-size: 11px;
     color: var(--mcpui-text-muted, #9ca3af);
-    margin-left: auto;
     font-variant-numeric: tabular-nums;
     min-width: 36px;
     text-align: right;
+    flex-shrink: 0;
 }
-.mcpui-progress-stage.active .mcpui-progress-time {
+.mcpui-progress-entry.active .mcpui-progress-time {
     color: var(--mcpui-accent, #4f6df5);
 }
-.mcpui-progress-stage.done .mcpui-progress-time {
+.mcpui-progress-entry.done .mcpui-progress-time {
     color: var(--mcpui-success, #22c55e);
 }
 

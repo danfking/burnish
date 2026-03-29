@@ -339,34 +339,13 @@ function renderMainContent() {
     }
 }
 
-// ── Progress Indicator ──
-const PROGRESS_STAGES = ['connecting', 'thinking', 'tool_call', 'tool_result', 'generating'];
-const STAGE_LABELS = {
-    connecting: 'Connecting to data sources',
-    thinking: 'Analyzing request',
-    tool_call: 'Fetching data',
-    tool_result: 'Processing results',
-    generating: 'Generating view',
-};
-
+// ── Progress Indicator (audit trail) ──
 let _progressTimer = null;
-let _progressStageStart = null;
 
 function getProgressHtml() {
     return `
         <div class="mcpui-progress" data-start="${Date.now()}">
-            <div class="mcpui-progress-stages">
-                ${PROGRESS_STAGES.map(s => `
-                    <div class="mcpui-progress-stage pending" data-stage="${s}" data-started="">
-                        <span class="mcpui-progress-dot"></span>
-                        <span class="mcpui-progress-label">${STAGE_LABELS[s]}</span>
-                        <span class="mcpui-progress-time"></span>
-                    </div>
-                `).join('')}
-            </div>
-            <div class="mcpui-progress-bar">
-                <div class="mcpui-progress-fill" style="width: 5%"></div>
-            </div>
+            <div class="mcpui-progress-trail"></div>
         </div>
     `;
 }
@@ -378,53 +357,42 @@ function stopProgressTimer() {
 function updateProgress(contentEl, stage, detail) {
     const progressEl = contentEl.querySelector('.mcpui-progress');
     if (!progressEl) return;
-    const stageIdx = PROGRESS_STAGES.indexOf(stage);
-    if (stageIdx === -1) return;
+    const trail = progressEl.querySelector('.mcpui-progress-trail');
+    if (!trail) return;
     const now = Date.now();
 
-    const stageEls = progressEl.querySelectorAll('.mcpui-progress-stage');
-    stageEls.forEach((el, i) => {
-        const timeEl = el.querySelector('.mcpui-progress-time');
-        if (i < stageIdx) {
-            // Done — freeze the elapsed time
-            el.classList.remove('active', 'pending');
-            el.classList.add('done');
-            if (timeEl && el.dataset.started && !el.dataset.finished) {
-                const elapsed = ((now - Number(el.dataset.started)) / 1000).toFixed(1);
-                timeEl.textContent = `${elapsed}s`;
-                el.dataset.finished = now;
-            }
-        } else if (i === stageIdx) {
-            // Active — start ticking
-            el.classList.remove('done', 'pending');
-            el.classList.add('active');
-            if (!el.dataset.started || el.dataset.started === '') {
-                el.dataset.started = now;
-            }
-            _progressStageStart = Number(el.dataset.started);
-        } else {
-            el.classList.remove('done', 'active');
-            el.classList.add('pending');
+    // Finalize the previous active entry (freeze its timer)
+    const prevActive = trail.querySelector('.mcpui-progress-entry.active');
+    if (prevActive) {
+        prevActive.classList.remove('active');
+        prevActive.classList.add('done');
+        const timeEl = prevActive.querySelector('.mcpui-progress-time');
+        if (timeEl && prevActive.dataset.started) {
+            const elapsed = ((now - Number(prevActive.dataset.started)) / 1000).toFixed(1);
+            timeEl.textContent = elapsed + 's';
         }
-    });
-
-    if (detail) {
-        const activeLabel = progressEl.querySelector(`.mcpui-progress-stage[data-stage="${stage}"] .mcpui-progress-label`);
-        if (activeLabel) activeLabel.textContent = detail;
     }
 
-    const fill = progressEl.querySelector('.mcpui-progress-fill');
-    if (fill) fill.style.width = `${Math.min(95, ((stageIdx + 1) / PROGRESS_STAGES.length) * 100)}%`;
+    // Append a new entry
+    const label = detail || stage;
+    const entry = document.createElement('div');
+    entry.className = 'mcpui-progress-entry active';
+    entry.dataset.started = String(now);
+    entry.innerHTML = `<span class="mcpui-progress-dot"></span><span class="mcpui-progress-label">${escapeHtml(label)}</span><span class="mcpui-progress-time"></span>`;
+    trail.appendChild(entry);
 
-    // Start/restart the tick timer for the active stage
+    // Scroll trail to bottom if overflow
+    trail.scrollTop = trail.scrollHeight;
+
+    // Start tick timer for the new active entry
     stopProgressTimer();
     _progressTimer = setInterval(() => {
-        const activeEl = progressEl.querySelector('.mcpui-progress-stage.active');
-        if (!activeEl) { stopProgressTimer(); return; }
-        const timeEl = activeEl.querySelector('.mcpui-progress-time');
-        if (timeEl && activeEl.dataset.started) {
-            const elapsed = ((Date.now() - Number(activeEl.dataset.started)) / 1000).toFixed(1);
-            timeEl.textContent = `${elapsed}s`;
+        const active = trail.querySelector('.mcpui-progress-entry.active');
+        if (!active) { stopProgressTimer(); return; }
+        const timeEl = active.querySelector('.mcpui-progress-time');
+        if (timeEl && active.dataset.started) {
+            const elapsed = ((Date.now() - Number(active.dataset.started)) / 1000).toFixed(1);
+            timeEl.textContent = elapsed + 's';
         }
     }, 100);
 }
