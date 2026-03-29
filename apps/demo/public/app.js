@@ -228,10 +228,11 @@ function createNodeEl(node) {
             </span>
             <span class="mcpui-node-time">${formatTimeAgo(node.timestamp)}</span>
         </div>
+        ${node._hasExplicitLabel ? `
         <div class="mcpui-node-prompt-bubble">
             <div class="mcpui-prompt-avatar">You</div>
-            <div class="mcpui-prompt-text">${escapeHtml(node.promptDisplay || node.prompt)}</div>
-        </div>
+            <div class="mcpui-prompt-text">${escapeHtml(node.promptDisplay)}</div>
+        </div>` : ''}
         <div class="mcpui-node-content"></div>
     `;
 
@@ -506,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = e.target.closest('.mcpui-suggestion');
         if (btn?.dataset.prompt) {
             promptInput.value = btn.dataset.prompt;
-            handleSubmit();
+            handleSubmit(btn.dataset.label || undefined);
         }
     });
 
@@ -606,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
             parentId: session.nodes.length > 0 ? session.nodes[session.nodes.length - 1].id : null,
             prompt,
             promptDisplay: displayLabel || (prompt.length > 60 ? prompt.substring(0, 60) + '...' : prompt),
+            _hasExplicitLabel: !!displayLabel,
             response: '',
             type: 'text',
             summary: '',
@@ -932,7 +934,7 @@ function getEmptyState(suggestions) {
             <p>Explore your connected data sources.</p>
             <div class="mcpui-suggestions">
                 ${items.map(s => `
-                    <button class="mcpui-suggestion" data-prompt="${escapeAttr(s.prompt)}">
+                    <button class="mcpui-suggestion" data-prompt="${escapeAttr(s.prompt)}" data-label="${escapeAttr(s.label)}">
                         ${escapeHtml(s.label)}
                         ${s.sublabel ? `<span class="mcpui-suggestion-sub">${escapeHtml(s.sublabel)}</span>` : ''}
                     </button>
