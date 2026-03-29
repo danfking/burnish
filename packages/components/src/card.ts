@@ -108,6 +108,12 @@ export class McpuiCard extends LitElement {
     }
 
     render() {
+        // Layer 3: Component-level validation — normalize status to valid values
+        const VALID_STATUSES = new Set(['success', 'warning', 'error', 'muted', 'healthy', 'failing', 'no-data']);
+        if (this.status && !VALID_STATUSES.has(this.status)) {
+            this.status = 'muted';
+        }
+
         if (this._parseError) {
             return html`<div class="card" data-status="muted"><div class="error-state" role="alert">Unable to display data</div></div>`;
         }

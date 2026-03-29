@@ -323,7 +323,7 @@ function renderMainContent() {
         if (node.response) {
             const contentEl = nodeEl.querySelector('.mcpui-node-content');
             if (node.type === 'components') {
-                const clean = DOMPurify.sanitize(extractHtmlContent(node.response), PURIFY_CONFIG);
+                const clean = transformOutput(DOMPurify.sanitize(extractHtmlContent(node.response), PURIFY_CONFIG));
                 const temp = document.createElement('template');
                 temp.innerHTML = clean;
                 contentEl.appendChild(temp.content);
@@ -701,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const totalElements = findStreamElements(trimmed).length;
                     if (!(streamingStarted && renderedCount > 0 && renderedCount >= totalElements)) {
                         contentEl.innerHTML = '';
-                        const clean = DOMPurify.sanitize(extractHtmlContent(trimmed), PURIFY_CONFIG);
+                        const clean = transformOutput(DOMPurify.sanitize(extractHtmlContent(trimmed), PURIFY_CONFIG));
                         const temp = document.createElement('template');
                         temp.innerHTML = clean;
                         contentEl.appendChild(temp.content);
@@ -857,6 +857,48 @@ function extractHtmlContent(text) {
     if (preamble) result += `<div class="mcpui-text-preamble">${renderMarkdown(preamble)}</div>`;
     result += htmlContent;
     return result;
+}
+
+/**
+ * Layer 2: Deterministic output transformation.
+ * Runs AFTER DOMPurify sanitization, BEFORE DOM injection.
+ * Enforces rules the LLM might ignore from the system prompt.
+ */
+function transformOutput(html) {
+    const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+    const root = doc.body.firstElementChild;
+    if (!root) return html;
+
+    // Rule 1: Force status="success" on all tool cards (identified by item-id containing '__')
+    root.querySelectorAll('mcpui-card').forEach(card => {
+        const itemId = card.getAttribute('item-id') || '';
+        if (itemId.includes('__')) {
+            card.setAttribute('status', 'success');
+        }
+    });
+
+    // Rule 2: Sanitize lookup prompts — strip any specific tool/server name references
+    root.querySelectorAll('mcpui-form').forEach(form => {
+        const fieldsAttr = form.getAttribute('fields');
+        if (!fieldsAttr) return;
+        try {
+            const fields = JSON.parse(fieldsAttr);
+            let changed = false;
+            for (const field of fields) {
+                if (field.lookup?.prompt) {
+                    // Remove references to specific MCP tool names (mcp__xxx__yyy patterns)
+                    const cleaned = field.lookup.prompt.replace(/mcp__\w+__\w+/g, '').replace(/\s{2,}/g, ' ').trim();
+                    if (cleaned !== field.lookup.prompt) {
+                        field.lookup.prompt = cleaned || `Find valid values for ${field.label || field.key}`;
+                        changed = true;
+                    }
+                }
+            }
+            if (changed) form.setAttribute('fields', JSON.stringify(fields));
+        } catch { /* ignore parse errors */ }
+    });
+
+    return root.innerHTML;
 }
 
 // ── Drill-Down ──

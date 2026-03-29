@@ -146,7 +146,18 @@ export function getServerInfo(): Array<{ name: string; toolCount: number; tools:
 export async function executeTool(
     toolName: string,
     args: Record<string, unknown>,
+    options?: { skipGuard?: boolean },
 ): Promise<string> {
+    // Layer 1: Pre-execution guard — blocks write tools unless authorized
+    if (!options?.skipGuard) {
+        const { guardToolExecution } = await import('./guards.js');
+        const guard = guardToolExecution(toolName, args);
+        if (!guard.allowed) {
+            console.warn(`[mcp-hub] Guard blocked: ${guard.reason}`);
+            return JSON.stringify({ blocked: true, reason: guard.reason });
+        }
+    }
+
     for (const server of servers) {
         const tool = server.tools.find(t => t.name === toolName);
         if (tool) {
