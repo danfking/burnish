@@ -259,7 +259,6 @@ function createNodeEl(node) {
             <span class="mcpui-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
             <span class="mcpui-node-summary">${escapeHtml(summaryText)}</span>
             <span class="mcpui-node-time">${formatTimeAgo(node.timestamp)}</span>
-            <button class="mcpui-node-branch" data-branch-node="${node.id}" title="Branch from here">\u2387</button>
             <button class="mcpui-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
         </div>
         <div class="mcpui-node-content"></div>
@@ -277,16 +276,6 @@ function createNodeEl(node) {
         e.stopPropagation();
         deleteNode(node.id);
     });
-    header.querySelector('.mcpui-node-branch')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        branchFromNodeId = node.id;
-        const promptInput = document.getElementById('prompt-input');
-        if (promptInput) {
-            promptInput.focus();
-            promptInput.placeholder = `Branch from "${(node.promptDisplay || node.prompt).substring(0, 30)}..."`;
-        }
-    });
-
     return div;
 }
 

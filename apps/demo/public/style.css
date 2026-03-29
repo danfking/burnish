@@ -684,7 +684,7 @@ body {
 }
 
 /* ── Node Action Buttons ── */
-.mcpui-node-branch, .mcpui-node-delete {
+.mcpui-node-delete {
     background: none;
     border: none;
     color: var(--mcpui-text-muted, #9ca3af);
@@ -697,12 +697,7 @@ body {
     flex-shrink: 0;
     line-height: 1;
 }
-.mcpui-node-header:hover .mcpui-node-branch,
 .mcpui-node-header:hover .mcpui-node-delete { opacity: 1; }
-.mcpui-node-branch:hover {
-    color: var(--mcpui-accent, #4f6df5);
-    background: rgba(79, 109, 245, 0.08);
-}
 .mcpui-node-delete:hover {
     color: var(--mcpui-error, #ef4444);
     background: var(--mcpui-border-error, #fee2e2);
