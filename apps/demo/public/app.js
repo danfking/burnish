@@ -1175,20 +1175,25 @@ async function loadDynamicSuggestions(container) {
             }
         }
 
-        // Generate tool shortcuts from read-only tools
-        const readPattern = /^(list|search|get|read|find|query|browse|fetch|describe|directory)/;
+        // Generate tool shortcuts — max 2 per server, prefer diverse verbs
+        const readPattern = /^(list|search|get|find|query|browse|fetch|describe|directory)/;
         const shortcuts = [];
         for (const s of servers) {
+            let countForServer = 0;
+            const usedVerbs = new Set();
             for (const tool of s.tools) {
-                if (readPattern.test(tool.name) && shortcuts.length < 6) {
-                    const label = tool.description
-                        ? tool.description.split(/[.!]/)[0].substring(0, 40)
-                        : tool.name.replace(/_/g, ' ');
-                    shortcuts.push({
-                        label,
-                        prompt: `${tool.description || tool.name}. Show results using mcpui-* components.`,
-                    });
-                }
+                if (countForServer >= 2 || shortcuts.length >= 6) break;
+                const verb = (tool.name.match(/^(\w+?)_/) || [])[1] || tool.name;
+                if (!readPattern.test(tool.name) || usedVerbs.has(verb)) continue;
+                usedVerbs.add(verb);
+                const label = tool.description
+                    ? tool.description.split(/[.!]/)[0].substring(0, 40)
+                    : tool.name.replace(/_/g, ' ');
+                shortcuts.push({
+                    label,
+                    prompt: `${tool.description || tool.name}. Show results using mcpui-* components.`,
+                });
+                countForServer++;
             }
         }
 
