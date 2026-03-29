@@ -1154,11 +1154,28 @@ function transformOutput(html) {
     const root = doc.body.firstElementChild;
     if (!root) return html;
 
-    // Rule 1: Tool listing cards use "info" status (blue), not RAG colors
+    // Rule 1: Normalize card statuses
+    // "success" should only appear on cards showing a completed action result
+    // (e.g. "Issue created", "File written"). For data listing cards, use "info".
     root.querySelectorAll('mcpui-card').forEach(card => {
+        const status = card.getAttribute('status');
         const itemId = card.getAttribute('item-id') || '';
+        const body = card.getAttribute('body') || '';
+
+        // Tool cards always get info
         if (itemId.includes('__')) {
             card.setAttribute('status', 'info');
+            return;
+        }
+
+        // Cards in a listing context (inside sections with counts) should be info
+        // unless they have explicit warning/error meaning
+        if (status === 'success') {
+            const parentSection = card.closest('mcpui-section');
+            if (parentSection) {
+                // Cards inside a section are data items, not action results
+                card.setAttribute('status', 'info');
+            }
         }
     });
 
