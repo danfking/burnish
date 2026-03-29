@@ -24,7 +24,6 @@ export class McpuiCard extends LitElement {
             overflow: hidden;
             box-shadow: var(--mcpui-shadow-sm);
             transition: transform var(--mcpui-transition-fast), box-shadow var(--mcpui-transition-fast);
-            cursor: pointer;
         }
         .card:hover, .card:focus {
             transform: translateY(-1px);
@@ -74,8 +73,16 @@ export class McpuiCard extends LitElement {
             border-top: 1px solid var(--mcpui-border-light);
             font-size: var(--mcpui-font-size-sm, 12px); color: var(--mcpui-link, #3b82f6);
             opacity: 0; transition: opacity var(--mcpui-transition-fast);
+            cursor: pointer;
         }
+        .card-action:hover { background: rgba(59, 130, 246, 0.04); }
         .card:hover .card-action { opacity: 1; }
+        .card-link {
+            color: var(--mcpui-link, #3b82f6);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .card-link:hover { text-decoration: underline; }
         .error-state {
             display: flex; align-items: center; justify-content: center; gap: 8px;
             min-height: 60px; padding: var(--mcpui-space-lg);
@@ -95,7 +102,12 @@ export class McpuiCard extends LitElement {
         this._parseError = false;
     }
 
-    private _handleClick() {
+    private _handleClick(e: MouseEvent) {
+        // Don't trigger drill-down if clicking a link or the explore button area
+        const target = e.target as HTMLElement;
+        if (target.closest('a') || target.closest('.card-link')) return;
+        // Only trigger drill-down from the explore button
+        if (!target.closest('.card-action')) return;
         this.dispatchEvent(new CustomEvent('mcpui-card-action', {
             detail: { title: this.title, status: this.status, itemId: this['item-id'] },
             bubbles: true,
@@ -104,7 +116,18 @@ export class McpuiCard extends LitElement {
     }
 
     private _handleKeydown(e: KeyboardEvent) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._handleClick(); }
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.dispatchEvent(new CustomEvent('mcpui-card-action', {
+                detail: { title: this.title, status: this.status, itemId: this['item-id'] },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+    }
+
+    private _isUrl(text: string): boolean {
+        return /^https?:\/\//.test(text) || /^[\w.-]+\.\w+\//.test(text);
     }
 
     render() {
@@ -125,7 +148,7 @@ export class McpuiCard extends LitElement {
         const s = this.status || 'muted';
         return html`
             <div class="card" data-status="${s}" role="article" aria-label="${this.title || ''}"
-                 tabindex="0" @click=${this._handleClick} @keydown=${this._handleKeydown}>
+                 @click=${this._handleClick} @keydown=${this._handleKeydown}>
                 <div class="card-header">
                     <span class="card-title">${this.title}</span>
                     <span class="card-badge" data-status="${s}">${s}</span>
@@ -136,12 +159,15 @@ export class McpuiCard extends LitElement {
                         ${metaData.map(m => html`
                             <span class="meta-item">
                                 <span class="meta-label">${m.label}:</span>
-                                <span class="meta-value">${m.value}</span>
+                                ${this._isUrl(m.value)
+                                    ? html`<a class="card-link" href="${m.value.startsWith('http') ? m.value : 'https://' + m.value}" target="_blank" rel="noopener">${m.value}</a>`
+                                    : html`<span class="meta-value">${m.value}</span>`
+                                }
                             </span>
                         `)}
                     </div>
                 ` : ''}
-                <div class="card-action">View details \u2192</div>
+                <div class="card-action" role="button" tabindex="0">Explore \u2192</div>
             </div>
         `;
     }
