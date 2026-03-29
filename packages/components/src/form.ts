@@ -273,9 +273,14 @@ export class McpuiForm extends LitElement {
 
         if (!hasLookup) return input;
 
+        // For lookup fields, use an input with Enter key support
+        const lookupInput = html`<input class="form-input" type="${f.type === 'number' ? 'number' : 'text'}"
+            data-key="${f.key}" placeholder="${f.placeholder || ''}" ?required=${f.required}
+            @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); this._handleLookup(f); } }} />`;
+
         return html`
             <div class="form-input-row">
-                ${input}
+                ${lookupInput}
                 <button class="form-lookup-btn ${this._lookupLoading && isLookupActive ? 'loading' : ''}"
                         @click=${() => this._handleLookup(f)}
                         title="${f.lookup!.placeholder || 'Search'}" type="button">
