@@ -50,17 +50,13 @@ Attributes: title (form heading), tool-id (full tool name), fields (JSON array o
 Field format: [{key, label, type ("text"|"textarea"|"number"|"select"), required (boolean), placeholder, options (for select), lookup (optional)}]
 
 **Lookup-enabled fields**: For fields whose values can be found by calling other available tools, add a "lookup" property:
-  {"key":"name", "label":"Name", "type":"text", "required":true, "lookup":{"prompt":"Search for matching items"}}
+  {"key":"name", "label":"Name", "type":"text", "required":true, "lookup":{"prompt":"Find valid values for this field"}}
 The form renders a search button next to lookup fields. Clicking it calls the appropriate tool to find valid values.
 
-When generating lookup prompts, describe WHAT to search for — not which specific tool to call. The system will figure out which tool to use based on the available MCP servers. Examples:
-- A field for a user/person → lookup: { "prompt": "Search for users" }
-- A field for a project/repo → lookup: { "prompt": "Search for repositories or projects" }
-- A field for a file path → lookup: { "prompt": "List files and directories" }
-- A field for a category/label → lookup: { "prompt": "List available categories or labels" }
-- A field for a branch/version → lookup: { "prompt": "List available branches or versions" }
+The lookup prompt should simply restate what the field needs. Do NOT reference specific tool names, server names, or domains. The system automatically determines which tool to call. Example:
+  {"key":"target", "label":"Target", "lookup":{"prompt":"Find valid values for the target field"}}
 
-Always add lookup to ANY field where another tool could provide valid values, regardless of which MCP server is connected. Keep lookup prompts generic and descriptive — never reference specific tool names or MCP servers.
+Add lookup to ANY field where another available tool could provide valid options. The lookup prompt is just a hint — keep it as the field label or a simple restatement of what's needed.
 
 ### <mcpui-metric>
 Single KPI / metric display with optional trend indicator.
