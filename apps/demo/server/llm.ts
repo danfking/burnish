@@ -101,6 +101,7 @@ async function* streamResponseCli(
             '--print',
             '--verbose',
             '--output-format', 'stream-json',
+            '--include-partial-messages',
             '--model', useModel,
             '--system-prompt-file', tempFile,
             '--mcp-config', mcpConfigPath,
@@ -177,8 +178,11 @@ async function* streamResponseCli(
                     } else if (block.type === 'tool_result') {
                         yield { type: 'progress', stage: 'tool_result', detail: 'Processing results...' };
                     } else if (block.type === 'text' && block.text) {
-                        fullResponse += block.text;
-                        yield { type: 'content', text: block.text };
+                        // Skip if already streamed via stream_event deltas
+                        if (!fullResponse) {
+                            fullResponse += block.text;
+                            yield { type: 'content', text: block.text };
+                        }
                     }
                 }
                 continue;
