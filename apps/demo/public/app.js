@@ -110,6 +110,10 @@ function switchSession(sessionId) {
 }
 
 function deleteSession(sessionId) {
+    const session = sessions.find(s => s.id === sessionId);
+    const name = session?.title || 'this session';
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+
     sessions = sessions.filter(s => s.id !== sessionId);
     if (activeSessionId === sessionId) {
         activeSessionId = sessions[0]?.id || null;
