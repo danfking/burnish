@@ -97,9 +97,10 @@ body {
 .mcpui-session-item.active::before {
     content: '';
     position: absolute;
-    top: 8px; bottom: 8px; left: 6px;
-    width: 3px; border-radius: 2px;
+    top: 0; bottom: 0; left: 0;
+    width: 3px;
     background: var(--mcpui-accent, #4f6df5);
+    border-radius: var(--mcpui-radius-md, 4px) 0 0 var(--mcpui-radius-md, 4px);
 }
 .mcpui-session-title {
     font-size: 13px; font-weight: 500; color: var(--mcpui-text);
@@ -569,13 +570,13 @@ body {
 .mcpui-node[data-collapsed="false"]::before {
     content: '';
     position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: 6px;
+    top: 0;
+    bottom: 0;
+    left: 0;
     width: 3px;
-    border-radius: 2px;
     background: var(--mcpui-accent, #4f6df5);
     z-index: 1;
+    border-radius: var(--mcpui-radius-md, 4px) 0 0 var(--mcpui-radius-md, 4px);
 }
 .mcpui-node + .mcpui-node {
     margin-top: var(--mcpui-space-sm, 8px);
