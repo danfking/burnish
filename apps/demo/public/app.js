@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const trimmed = fullText.trim();
                 if (containsMcpuiTags(trimmed)) {
                     const totalElements = findStreamElements(trimmed).length;
-                    if (streamingStarted && renderedCount >= totalElements) {
+                    if (streamingStarted && renderedCount > 0 && renderedCount >= totalElements) {
                         finalizeChatMessage(streamingMsg, 'Dashboard view generated');
                         return;
                     }

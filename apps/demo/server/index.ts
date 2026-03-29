@@ -5,7 +5,6 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { streamText } from 'hono/streaming';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,22 +29,32 @@ app.post('/api/chat', async (c) => {
 
 app.get('/api/chat/:id/stream', async (c) => {
     const id = c.req.param('id');
-    c.header('Content-Type', 'text/event-stream');
-    c.header('Cache-Control', 'no-cache');
-    c.header('Connection', 'keep-alive');
 
-    return streamText(c, async (stream) => {
-        try {
-            for await (const chunk of llm.streamResponse(id)) {
-                const data = JSON.stringify({ type: 'content', text: chunk });
-                await stream.write(`data: ${data}\n\n`);
+    const stream = new ReadableStream({
+        async start(controller) {
+            const encoder = new TextEncoder();
+            try {
+                for await (const chunk of llm.streamResponse(id)) {
+                    const data = JSON.stringify({ type: 'content', text: chunk });
+                    controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                }
+                controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : 'Unknown error';
+                const data = JSON.stringify({ type: 'error', message: msg });
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            } finally {
+                controller.close();
             }
-            await stream.write('data: {"type":"done"}\n\n');
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Unknown error';
-            const data = JSON.stringify({ type: 'error', message: msg });
-            await stream.write(`data: ${data}\n\n`);
-        }
+        },
+    });
+
+    return new Response(stream, {
+        headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+        },
     });
 });
 
@@ -60,17 +69,28 @@ app.get('/api/servers', (c) => {
 
 // --- Static Files ---
 
+// Resolve paths relative to the repo root (apps/demo/server -> ../../..)
+const repoRoot = resolve(__dirname, '../../..');
+const demoRoot = resolve(__dirname, '..');
+
 // Serve built component JS files at /components/*
-app.use('/components/*', serveStatic({
-    root: resolve(__dirname, '../../packages/components/dist'),
-    rewriteRequestPath: (path) => path.replace('/components', ''),
-}));
+app.get('/components/:file', async (c) => {
+    const { readFile } = await import('node:fs/promises');
+    const filePath = resolve(repoRoot, 'packages/components/dist', c.req.param('file'));
+    try {
+        const content = await readFile(filePath, 'utf-8');
+        c.header('Content-Type', 'application/javascript');
+        return c.body(content);
+    } catch {
+        return c.text('Not found', 404);
+    }
+});
 
 // Serve tokens.css from components package
 app.get('/tokens.css', async (c) => {
     const { readFile } = await import('node:fs/promises');
     const css = await readFile(
-        resolve(__dirname, '../../packages/components/src/tokens.css'),
+        resolve(repoRoot, 'packages/components/src/tokens.css'),
         'utf-8',
     );
     c.header('Content-Type', 'text/css');
@@ -78,7 +98,7 @@ app.get('/tokens.css', async (c) => {
 });
 
 // Serve public directory
-app.use('/*', serveStatic({ root: resolve(__dirname, '../public') }));
+app.use('/*', serveStatic({ root: resolve(demoRoot, 'public') }));
 
 // --- Startup ---
 
