@@ -218,18 +218,23 @@ function createNodeEl(node) {
     div.dataset.nodeId = node.id;
     div.dataset.collapsed = String(node.collapsed);
 
-    const tagsHtml = (node.tags || [])
-        .map(t => `<span class="mcpui-node-tag">${t}</span>`)
-        .join('');
+    // Build summary: stats (duration, tokens, cost) + content summary
+    const summaryParts = [];
+    if (node.stats) {
+        const dur = (node.stats.durationMs / 1000).toFixed(1);
+        const tokens = (node.stats.inputTokens || 0) + (node.stats.outputTokens || 0);
+        summaryParts.push(`${dur}s`);
+        if (tokens > 0) summaryParts.push(`${tokens.toLocaleString()} tokens`);
+        if (node.stats.costUsd) summaryParts.push(`$${node.stats.costUsd.toFixed(4)}`);
+    }
+    if (node.summary) summaryParts.push(node.summary);
+    const summaryText = summaryParts.join(' \u2022 ');
 
     div.innerHTML = `
         <div class="mcpui-node-header" role="button" tabindex="0">
             <span class="mcpui-node-chevron">\u25bc</span>
             <span class="mcpui-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
-            <span class="mcpui-node-summary">
-                <span class="mcpui-node-tags">${tagsHtml}</span>
-                ${node.summary ? ' \u2022 ' + escapeHtml(node.summary) : ''}
-            </span>
+            <span class="mcpui-node-summary">${escapeHtml(summaryText)}</span>
             <span class="mcpui-node-time">${formatTimeAgo(node.timestamp)}</span>
             <button class="mcpui-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
         </div>
@@ -343,11 +348,30 @@ function updateNodeSummary(nodeId) {
     const { tags, summary } = generateSummary(contentEl);
     node.tags = tags;
     node.summary = summary;
-    const tagsHtml = tags.map(t => `<span class="mcpui-node-tag">${t}</span>`).join('');
+    updateNodeHeader(nodeId);
+}
+
+function updateNodeHeader(nodeId) {
+    const session = getActiveSession();
+    if (!session) return;
+    const node = session.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+    if (!el) return;
     const summaryEl = el.querySelector('.mcpui-node-summary');
-    if (summaryEl) {
-        summaryEl.innerHTML = `<span class="mcpui-node-tags">${tagsHtml}</span>${summary ? ' \u2022 ' + escapeHtml(summary) : ''}`;
+    if (!summaryEl) return;
+
+    const parts = [];
+    if (node.stats) {
+        const dur = (node.stats.durationMs / 1000).toFixed(1);
+        const tokens = (node.stats.inputTokens || 0) + (node.stats.outputTokens || 0);
+        parts.push(`${dur}s`);
+        if (tokens > 0) parts.push(`${tokens.toLocaleString()} tokens`);
+        if (node.stats.costUsd) parts.push(`$${node.stats.costUsd.toFixed(4)}`);
     }
+    if (node.summary) parts.push(node.summary);
+
+    summaryEl.textContent = parts.length > 0 ? parts.join(' \u2022 ') : '';
 }
 
 // ── Main Content Rendering ──
@@ -764,6 +788,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // onProgress
             (stage, detail) => {
                 updateProgress(contentEl, stage, detail);
+            },
+            // onStats
+            (stats) => {
+                node.stats = stats;
+                updateNodeHeader(nodeId);
+                saveState();
             }
         );
 
@@ -774,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── SSE Streaming ──
 
-async function submitPrompt(prompt, existingConversationId, onChunk, onDone, onError, onProgress) {
+async function submitPrompt(prompt, existingConversationId, onChunk, onDone, onError, onProgress, onStats) {
     try {
         const res = await fetch('/api/chat', {
             method: 'POST',
@@ -784,13 +814,13 @@ async function submitPrompt(prompt, existingConversationId, onChunk, onDone, onE
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const data = await res.json();
         const conversationId = data.conversationId;
-        await streamResponse(data.streamUrl, onChunk, (fullText) => onDone(fullText, conversationId), onError, onProgress);
+        await streamResponse(data.streamUrl, onChunk, (fullText) => onDone(fullText, conversationId), onError, onProgress, onStats);
     } catch (err) {
         onError(err.message);
     }
 }
 
-function streamResponse(streamUrl, onChunk, onDone, onError, onProgress) {
+function streamResponse(streamUrl, onChunk, onDone, onError, onProgress, onStats) {
     let fullText = '';
     const myGeneration = cancelGeneration;
 
@@ -811,6 +841,8 @@ function streamResponse(streamUrl, onChunk, onDone, onError, onProgress) {
                 } else if (data.type === 'content') {
                     fullText += data.text;
                     onChunk(data.text, fullText);
+                } else if (data.type === 'stats') {
+                    if (onStats) onStats(data);
                 } else if (data.type === 'done') {
                     source.close(); activeSource = null;
                     onDone(fullText);

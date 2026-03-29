@@ -20,7 +20,8 @@ import { buildSystemPrompt } from './prompt-template.js';
 
 export type StreamChunk =
     | { type: 'content'; text: string }
-    | { type: 'progress'; stage: string; detail?: string };
+    | { type: 'progress'; stage: string; detail?: string }
+    | { type: 'stats'; durationMs: number; inputTokens: number; outputTokens: number; costUsd?: number };
 
 const MAX_TOOL_ROUNDS = 5;
 
@@ -184,9 +185,20 @@ async function* streamResponseCli(
             }
 
             // Handle result message (final)
-            if (doc.type === 'result' && doc.result && !fullResponse) {
-                fullResponse = doc.result;
-                yield { type: 'content', text: doc.result };
+            if (doc.type === 'result') {
+                if (doc.result && !fullResponse) {
+                    fullResponse = doc.result;
+                    yield { type: 'content', text: doc.result };
+                }
+                // Emit stats from the result event (LLM-agnostic: all providers report usage)
+                const usage = doc.usage || {};
+                yield {
+                    type: 'stats',
+                    durationMs: doc.duration_ms || 0,
+                    inputTokens: usage.input_tokens || 0,
+                    outputTokens: usage.output_tokens || 0,
+                    costUsd: doc.total_cost_usd,
+                };
             }
         }
 
@@ -261,6 +273,9 @@ async function* streamResponseApi(
 
     const systemPrompt = buildSystemPrompt();
     let fullResponse = '';
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    const apiStartTime = Date.now();
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         const params: Anthropic.MessageCreateParams = {
@@ -296,6 +311,8 @@ async function* streamResponseApi(
         }
 
         const finalMessage = await stream.finalMessage();
+        totalInputTokens += finalMessage.usage?.input_tokens || 0;
+        totalOutputTokens += finalMessage.usage?.output_tokens || 0;
         for (const block of finalMessage.content) {
             if (block.type === 'tool_use') {
                 pendingToolCalls.push({
@@ -346,6 +363,14 @@ async function* streamResponseApi(
         messages.push({ role: 'user', content: toolResults });
         textAccumulator = '';
     }
+
+    // Emit stats (LLM-agnostic: all providers report token usage)
+    yield {
+        type: 'stats',
+        durationMs: Date.now() - apiStartTime,
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+    };
 
     if (fullResponse) {
         conversations.addMessage(conversationId, 'assistant', fullResponse);
