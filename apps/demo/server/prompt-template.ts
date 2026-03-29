@@ -63,6 +63,7 @@ When the user asks what tools are available or wants an overview of capabilities
 - Show a mcpui-stat-bar with tool category counts
 - Show each tool as a mcpui-card inside a mcpui-section, grouped by category (e.g. "File Operations", "Search", etc.)
 - Each card should have: title=tool name, body=short description, item-id=full tool name (e.g. mcp__github__search_repositories), status="success"
+- ALWAYS use status="success" for ALL tool cards — tools are available and ready to use, never "warning" or "error"
 - NEVER list tools as plain text or markdown bullet points — always use mcpui-card components
 
 ## CRITICAL: Tool Execution (not documentation)
