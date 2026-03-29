@@ -5,7 +5,7 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 export interface McpServerConfig {
     command: string;
@@ -29,14 +29,17 @@ interface ConnectedServer {
     client: Client;
     transport: StdioClientTransport;
     tools: ToolDef[];
+    config: McpServerConfig;
 }
 
 const servers: ConnectedServer[] = [];
+let configFilePath: string | undefined;
 
 /**
  * Load MCP server config and connect to all servers.
  */
 export async function initialize(configPath: string): Promise<void> {
+    configFilePath = configPath;
     const raw = await readFile(configPath, 'utf-8');
     const config: McpServersConfig = JSON.parse(raw);
 
@@ -72,7 +75,51 @@ async function connectServer(
         serverName: name,
     }));
 
-    servers.push({ name, client, transport, tools });
+    servers.push({ name, client, transport, tools, config });
+}
+
+/**
+ * Add a new MCP server at runtime, connect to it, and persist config.
+ */
+export async function addServer(
+    name: string,
+    config: McpServerConfig,
+): Promise<void> {
+    // Disconnect existing server with same name if present
+    const idx = servers.findIndex(s => s.name === name);
+    if (idx !== -1) {
+        try { await servers[idx].client.close(); } catch { /* ignore */ }
+        servers.splice(idx, 1);
+    }
+    await connectServer(name, config);
+    console.log(`[mcp-hub] Connected to "${name}"`);
+    await persistConfig();
+}
+
+/**
+ * Remove an MCP server by name, disconnect, and persist config.
+ */
+export async function removeServer(name: string): Promise<void> {
+    const idx = servers.findIndex(s => s.name === name);
+    if (idx === -1) {
+        throw new Error(`Server "${name}" not found`);
+    }
+    try { await servers[idx].client.close(); } catch { /* ignore */ }
+    servers.splice(idx, 1);
+    await persistConfig();
+}
+
+/**
+ * Write current server configs back to the config file.
+ */
+async function persistConfig(): Promise<void> {
+    if (!configFilePath) return;
+    const mcpServers: Record<string, McpServerConfig> = {};
+    for (const s of servers) {
+        mcpServers[s.name] = s.config;
+    }
+    const data: McpServersConfig = { mcpServers };
+    await writeFile(configFilePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 /**

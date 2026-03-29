@@ -9,6 +9,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import * as mcpHub from './mcp-hub.js';
+import { getCatalog } from './catalog.js';
 import * as llm from './llm.js';
 import * as conversations from './conversation.js';
 
@@ -67,6 +68,32 @@ app.get('/api/chat/:id', (c) => {
 
 app.get('/api/servers', (c) => {
     return c.json({ servers: mcpHub.getServerInfo() });
+});
+
+app.get('/api/servers/catalog', (c) => {
+    return c.json({ catalog: getCatalog() });
+});
+
+app.post('/api/servers', async (c) => {
+    const body = await c.req.json<{ name: string; config: mcpHub.McpServerConfig }>();
+    try {
+        await mcpHub.addServer(body.name, body.config);
+        return c.json({ ok: true, servers: mcpHub.getServerInfo() });
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        return c.json({ error: msg }, 500);
+    }
+});
+
+app.delete('/api/servers/:name', async (c) => {
+    const name = c.req.param('name');
+    try {
+        await mcpHub.removeServer(name);
+        return c.json({ ok: true, servers: mcpHub.getServerInfo() });
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        return c.json({ error: msg }, 404);
+    }
 });
 
 // --- Static Files ---
