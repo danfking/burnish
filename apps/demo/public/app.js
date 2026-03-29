@@ -230,7 +230,7 @@ function createNodeEl(node) {
         </div>
         <div class="mcpui-node-prompt-bubble">
             <div class="mcpui-prompt-avatar">You</div>
-            <div class="mcpui-prompt-text">${escapeHtml(node.prompt)}</div>
+            <div class="mcpui-prompt-text">${escapeHtml(node.promptDisplay || node.prompt)}</div>
         </div>
         <div class="mcpui-node-content"></div>
     `;

@@ -128,7 +128,12 @@ body {
 
 /* ── Inline Prompt Bubble ── */
 .mcpui-node-prompt-bubble {
-    display: flex; align-items: flex-start; gap: 10px; padding: 0 4px;
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 16px 0;
+    border: 1px solid var(--mcpui-border, #e5e7eb);
+    border-top: none;
+    border-bottom: none;
+    background: white;
 }
 .mcpui-prompt-avatar {
     width: 28px; height: 28px; border-radius: var(--mcpui-radius-round, 50%);
@@ -604,10 +609,14 @@ body {
     flex-shrink: 0;
 }
 .mcpui-node-content {
-    padding: 16px 0 0;
+    padding: 16px 16px 16px;
     display: flex;
     flex-direction: column;
     gap: var(--mcpui-space-lg, 16px);
+    border: 1px solid var(--mcpui-border, #e5e7eb);
+    border-top: none;
+    border-radius: 0 0 var(--mcpui-radius-md, 8px) var(--mcpui-radius-md, 8px);
+    background: white;
 }
 .mcpui-node[data-collapsed="true"] .mcpui-node-content {
     display: none;
