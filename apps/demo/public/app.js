@@ -21,7 +21,7 @@ const ICON_STOP = `<svg width="20" height="20" viewBox="0 0 20 20" fill="current
 // ── State ──
 let activeSource = null;
 let cancelGeneration = 0;
-let fastMode = false;
+let fastMode = localStorage.getItem('mcpui:fastMode') === 'true';
 
 // Multi-session state
 let sessions = [];
@@ -554,9 +554,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Fast mode toggle ──
     const fastToggle = document.getElementById('fast-toggle');
     if (fastToggle) {
+        if (fastMode) fastToggle.classList.add('active');
         fastToggle.addEventListener('click', () => {
             fastMode = !fastMode;
             fastToggle.classList.toggle('active', fastMode);
+            localStorage.setItem('mcpui:fastMode', String(fastMode));
         });
     }
 
