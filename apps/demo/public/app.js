@@ -349,14 +349,18 @@ const STAGE_LABELS = {
     generating: 'Generating view',
 };
 
+let _progressTimer = null;
+let _progressStageStart = null;
+
 function getProgressHtml() {
     return `
-        <div class="mcpui-progress">
+        <div class="mcpui-progress" data-start="${Date.now()}">
             <div class="mcpui-progress-stages">
                 ${PROGRESS_STAGES.map(s => `
-                    <div class="mcpui-progress-stage pending" data-stage="${s}">
+                    <div class="mcpui-progress-stage pending" data-stage="${s}" data-started="">
                         <span class="mcpui-progress-dot"></span>
                         <span class="mcpui-progress-label">${STAGE_LABELS[s]}</span>
+                        <span class="mcpui-progress-time"></span>
                     </div>
                 `).join('')}
             </div>
@@ -367,24 +371,62 @@ function getProgressHtml() {
     `;
 }
 
+function stopProgressTimer() {
+    if (_progressTimer) { clearInterval(_progressTimer); _progressTimer = null; }
+}
+
 function updateProgress(contentEl, stage, detail) {
     const progressEl = contentEl.querySelector('.mcpui-progress');
     if (!progressEl) return;
     const stageIdx = PROGRESS_STAGES.indexOf(stage);
     if (stageIdx === -1) return;
+    const now = Date.now();
+
     const stageEls = progressEl.querySelectorAll('.mcpui-progress-stage');
     stageEls.forEach((el, i) => {
-        el.classList.remove('done', 'active', 'pending');
-        if (i < stageIdx) el.classList.add('done');
-        else if (i === stageIdx) el.classList.add('active');
-        else el.classList.add('pending');
+        const timeEl = el.querySelector('.mcpui-progress-time');
+        if (i < stageIdx) {
+            // Done — freeze the elapsed time
+            el.classList.remove('active', 'pending');
+            el.classList.add('done');
+            if (timeEl && el.dataset.started && !el.dataset.finished) {
+                const elapsed = ((now - Number(el.dataset.started)) / 1000).toFixed(1);
+                timeEl.textContent = `${elapsed}s`;
+                el.dataset.finished = now;
+            }
+        } else if (i === stageIdx) {
+            // Active — start ticking
+            el.classList.remove('done', 'pending');
+            el.classList.add('active');
+            if (!el.dataset.started || el.dataset.started === '') {
+                el.dataset.started = now;
+            }
+            _progressStageStart = Number(el.dataset.started);
+        } else {
+            el.classList.remove('done', 'active');
+            el.classList.add('pending');
+        }
     });
+
     if (detail) {
         const activeLabel = progressEl.querySelector(`.mcpui-progress-stage[data-stage="${stage}"] .mcpui-progress-label`);
         if (activeLabel) activeLabel.textContent = detail;
     }
+
     const fill = progressEl.querySelector('.mcpui-progress-fill');
     if (fill) fill.style.width = `${Math.min(95, ((stageIdx + 1) / PROGRESS_STAGES.length) * 100)}%`;
+
+    // Start/restart the tick timer for the active stage
+    stopProgressTimer();
+    _progressTimer = setInterval(() => {
+        const activeEl = progressEl.querySelector('.mcpui-progress-stage.active');
+        if (!activeEl) { stopProgressTimer(); return; }
+        const timeEl = activeEl.querySelector('.mcpui-progress-time');
+        if (timeEl && activeEl.dataset.started) {
+            const elapsed = ((Date.now() - Number(activeEl.dataset.started)) / 1000).toFixed(1);
+            timeEl.textContent = `${elapsed}s`;
+        }
+    }, 100);
 }
 
 // ── Main ──
@@ -584,6 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (containsMcpuiTags(trimmed)) {
                     if (!streamingStarted) {
                         streamingStarted = true;
+                        stopProgressTimer();
                         contentEl.innerHTML = '';
                         node.type = 'components';
                     }
@@ -598,6 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             // onDone
             (fullText, newConversationId) => {
+                stopProgressTimer();
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
                 promptInput.disabled = false;
@@ -629,6 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             // onError
             (error) => {
+                stopProgressTimer();
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
                 promptInput.disabled = false;
