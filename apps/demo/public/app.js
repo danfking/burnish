@@ -1,6 +1,7 @@
 /**
  * MCPUI Demo App — main orchestration.
- * Wires up prompt submission, SSE streaming, progressive rendering, and drill-down.
+ * Infinite scroll navigation: each response appends as a collapsible section.
+ * Supports browser back/forward, sidebar linking, and localStorage persistence.
  */
 
 // ── DOMPurify Config ──
@@ -13,7 +14,6 @@ const PURIFY_CONFIG = {
                'streaming'],
 };
 
-// ── Container tags that nest children ──
 const CONTAINER_TAGS = new Set(['mcpui-section']);
 
 const ICON_SEND = `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10l7-7v4h9v6H9v4z" transform="rotate(-90 10 10)"/></svg>`;
@@ -24,6 +24,231 @@ let conversationId = null;
 let activeSource = null;
 let cancelGeneration = 0;
 
+// Node tree — each prompt/response pair is a node
+let nodes = [];
+let activeNodeId = null;
+
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// ── Persistence ──
+function saveState() {
+    try {
+        const data = JSON.stringify({ conversationId, nodes });
+        if (data.length > 4_000_000) {
+            // Prune oldest nodes if approaching localStorage limit
+            while (nodes.length > 2 && JSON.stringify(nodes).length > 3_500_000) {
+                nodes.shift();
+            }
+        }
+        localStorage.setItem('mcpui:state', JSON.stringify({ conversationId, nodes }));
+    } catch { /* storage full — silently fail */ }
+}
+
+function loadState() {
+    try {
+        const raw = localStorage.getItem('mcpui:state');
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch { return null; }
+}
+
+function clearState() {
+    localStorage.removeItem('mcpui:state');
+}
+
+// ── Summary Generation ──
+function generateSummary(contentEl) {
+    const tagEls = contentEl.querySelectorAll(
+        'mcpui-stat-bar, mcpui-table, mcpui-card, mcpui-chart, mcpui-metric, mcpui-section'
+    );
+    const tags = [...new Set([...tagEls].map(el => el.tagName.toLowerCase().replace('mcpui-', '')))];
+
+    // Try to extract key values from first stat-bar
+    const statBar = contentEl.querySelector('mcpui-stat-bar');
+    let keyValues = '';
+    if (statBar) {
+        try {
+            const items = JSON.parse(statBar.getAttribute('items') || '[]');
+            keyValues = items.slice(0, 3).map(i => `${i.value} ${i.label}`).join(', ');
+        } catch { /* ignore */ }
+    }
+
+    // For text responses, use first 60 chars
+    if (tags.length === 0) {
+        const text = contentEl.textContent?.trim() || '';
+        return { tags: ['text'], summary: text.substring(0, 60) + (text.length > 60 ? '...' : '') };
+    }
+
+    return { tags, summary: keyValues || tags.join(' + ') };
+}
+
+function formatTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+// ── DOM Helpers ──
+function createNodeEl(node) {
+    const div = document.createElement('div');
+    div.className = 'mcpui-node';
+    div.dataset.nodeId = node.id;
+    div.dataset.collapsed = String(node.collapsed);
+
+    const tagsHtml = (node.tags || [])
+        .map(t => `<span class="mcpui-node-tag">${t}</span>`)
+        .join('');
+
+    div.innerHTML = `
+        <div class="mcpui-node-header" role="button" tabindex="0">
+            <span class="mcpui-node-chevron">▼</span>
+            <span class="mcpui-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
+            <span class="mcpui-node-summary">
+                <span class="mcpui-node-tags">${tagsHtml}</span>
+                ${node.summary ? ' • ' + escapeHtml(node.summary) : ''}
+            </span>
+            <span class="mcpui-node-time">${formatTimeAgo(node.timestamp)}</span>
+        </div>
+        <div class="mcpui-node-content"></div>
+    `;
+
+    // Click header to toggle collapse
+    const header = div.querySelector('.mcpui-node-header');
+    header.addEventListener('click', () => toggleNode(node.id));
+    header.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNode(node.id); }
+    });
+
+    return div;
+}
+
+function toggleNode(nodeId) {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    node.collapsed = !node.collapsed;
+    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+    if (el) el.dataset.collapsed = String(node.collapsed);
+    saveState();
+}
+
+function scrollToNode(nodeId, highlight = true) {
+    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+    if (!el) return;
+
+    // Expand if collapsed
+    const node = nodes.find(n => n.id === nodeId);
+    if (node?.collapsed) {
+        node.collapsed = false;
+        el.dataset.collapsed = 'false';
+    }
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (highlight) {
+        el.classList.remove('mcpui-node-highlight');
+        void el.offsetWidth; // force reflow
+        el.classList.add('mcpui-node-highlight');
+    }
+
+    saveState();
+}
+
+function collapseAllExcept(exceptNodeId) {
+    for (const node of nodes) {
+        if (node.id !== exceptNodeId && !node.collapsed) {
+            node.collapsed = true;
+            const el = document.querySelector(`.mcpui-node[data-node-id="${node.id}"]`);
+            if (el) el.dataset.collapsed = 'true';
+        }
+    }
+}
+
+function updateNodeSummary(nodeId) {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+    if (!el) return;
+
+    const contentEl = el.querySelector('.mcpui-node-content');
+    const { tags, summary } = generateSummary(contentEl);
+    node.tags = tags;
+    node.summary = summary;
+
+    // Update header display
+    const tagsHtml = tags.map(t => `<span class="mcpui-node-tag">${t}</span>`).join('');
+    const summaryEl = el.querySelector('.mcpui-node-summary');
+    if (summaryEl) {
+        summaryEl.innerHTML = `<span class="mcpui-node-tags">${tagsHtml}</span>${summary ? ' • ' + escapeHtml(summary) : ''}`;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ── Restore from persistence ──
+function restoreFromStorage(container) {
+    const state = loadState();
+    if (!state || !state.nodes || state.nodes.length === 0) return false;
+
+    conversationId = state.conversationId;
+    nodes = state.nodes;
+
+    // Render all nodes as collapsed sections, expand the last one
+    container.innerHTML = '';
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (i < nodes.length - 1) node.collapsed = true;
+        else node.collapsed = false;
+
+        const nodeEl = createNodeEl(node);
+        container.appendChild(nodeEl);
+
+        // Re-render content from stored response
+        if (node.response) {
+            const contentEl = nodeEl.querySelector('.mcpui-node-content');
+            if (node.type === 'components') {
+                const clean = DOMPurify.sanitize(extractHtmlContent(node.response), PURIFY_CONFIG);
+                const temp = document.createElement('template');
+                temp.innerHTML = clean;
+                contentEl.appendChild(temp.content);
+            } else {
+                contentEl.innerHTML = `<div class="mcpui-text-response">${renderMarkdown(node.response)}</div>`;
+            }
+        }
+    }
+
+    // Restore chat sidebar messages
+    const messagesEl = document.getElementById('chat-messages');
+    if (messagesEl) {
+        messagesEl.innerHTML = '';
+        for (const node of nodes) {
+            addChatMessage('user', node.promptDisplay || node.prompt, false, node.id);
+            const assistantLabel = node.type === 'components' ? 'Dashboard view generated' : (node.summary || 'Response');
+            addChatMessage('assistant', assistantLabel, false, node.id);
+        }
+    }
+
+    // Scroll to last node
+    const lastNode = nodes[nodes.length - 1];
+    if (lastNode) {
+        activeNodeId = lastNode.id;
+        setTimeout(() => scrollToNode(lastNode.id, false), 100);
+    }
+
+    return true;
+}
+
+// ── Main ──
 document.addEventListener('DOMContentLoaded', () => {
     const promptInput = document.getElementById('prompt-input');
     const submitBtn = document.getElementById('btn-submit');
@@ -34,11 +259,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('dashboard-container');
     const breadcrumb = document.getElementById('breadcrumb');
 
-    // ── Breadcrumb trail for drill-down ──
-    const breadcrumbTrail = ['Dashboard'];
+    // ── Try to restore from localStorage ──
+    const restored = restoreFromStorage(container);
+    if (restored) {
+        updateBreadcrumb();
+    }
 
     function updateBreadcrumb() {
-        breadcrumb.textContent = breadcrumbTrail.join(' > ');
+        const trail = ['Dashboard'];
+        // Build trail from node prompts
+        for (const node of nodes) {
+            const label = node.promptDisplay || node.prompt;
+            trail.push(label.length > 30 ? label.substring(0, 30) + '...' : label);
+        }
+        // Show last 3 items
+        const visible = trail.length > 3 ? ['...', ...trail.slice(-2)] : trail;
+        breadcrumb.textContent = visible.join(' > ');
     }
 
     // ── Submit on Enter or button click ──
@@ -85,11 +321,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // New conversation
     newChatBtn.addEventListener('click', () => {
         conversationId = null;
-        breadcrumbTrail.length = 0;
-        breadcrumbTrail.push('Dashboard');
+        nodes = [];
+        activeNodeId = null;
+        clearState();
         updateBreadcrumb();
         container.innerHTML = getEmptyState();
         document.getElementById('chat-messages').innerHTML = '';
+    });
+
+    // ── Sidebar message click → scroll to node ──
+    document.getElementById('chat-messages')?.addEventListener('click', (e) => {
+        const msg = e.target.closest('mcpui-message');
+        if (!msg) return;
+        const nodeId = msg.dataset.nodeId;
+        if (nodeId) scrollToNode(nodeId);
     });
 
     // ── Card drill-down ──
@@ -103,10 +348,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
             }
-            breadcrumbTrail.push(title);
-            updateBreadcrumb();
             promptInput.value = getDrillDownPrompt(title, status, itemId);
             handleSubmit(title);
+        }
+    });
+
+    // ── Browser history (back/forward) ──
+    window.addEventListener('popstate', (e) => {
+        if (e.state?.nodeId) {
+            scrollToNode(e.state.nodeId);
         }
     });
 
@@ -117,7 +367,43 @@ document.addEventListener('DOMContentLoaded', () => {
         promptInput.value = '';
         promptInput.style.height = '';
 
-        container.innerHTML = getSkeletonState();
+        // Remove empty state if present
+        const emptyState = container.querySelector('.mcpui-empty-state');
+        if (emptyState) emptyState.remove();
+
+        // Create new node
+        const nodeId = generateId();
+        const node = {
+            id: nodeId,
+            parentId: activeNodeId,
+            prompt,
+            promptDisplay: displayLabel || (prompt.length > 60 ? prompt.substring(0, 60) + '...' : prompt),
+            response: '',
+            type: 'text',
+            summary: '',
+            tags: [],
+            timestamp: Date.now(),
+            collapsed: false,
+        };
+        nodes.push(node);
+        activeNodeId = nodeId;
+
+        // Auto-collapse previous nodes
+        collapseAllExcept(nodeId);
+
+        // Create the section DOM element
+        const nodeEl = createNodeEl(node);
+        container.appendChild(nodeEl);
+
+        // Get the content area for this node
+        const contentEl = nodeEl.querySelector('.mcpui-node-content');
+
+        // Show skeleton in the content area
+        contentEl.innerHTML = getSkeletonState();
+
+        // Scroll to new node
+        nodeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
         submitBtn.classList.add('cancel');
         submitBtn.innerHTML = ICON_STOP;
 
@@ -125,8 +411,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let streamingStarted = false;
         const containerStack = [];
 
-        addChatMessage('user', displayLabel || prompt);
-        const streamingMsg = addChatMessage('assistant', 'Thinking...', true);
+        addChatMessage('user', displayLabel || prompt, false, nodeId);
+        const streamingMsg = addChatMessage('assistant', 'Thinking...', true, nodeId);
+
+        // Push browser history
+        history.pushState({ nodeId }, '');
 
         submitPrompt(
             prompt,
@@ -136,16 +425,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (containsMcpuiTags(trimmed)) {
                     if (!streamingStarted) {
                         streamingStarted = true;
-                        container.innerHTML = '';
+                        contentEl.innerHTML = '';
+                        node.type = 'components';
                     }
                     const elements = findStreamElements(trimmed);
                     while (renderedCount < elements.length) {
-                        appendStreamElement(container, containerStack, elements[renderedCount]);
+                        appendStreamElement(contentEl, containerStack, elements[renderedCount]);
                         renderedCount++;
                     }
                     updateChatMessage(streamingMsg, 'Building dashboard...');
                 } else {
-                    container.innerHTML = `<div class="mcpui-text-response mcpui-streaming">${renderMarkdown(trimmed)}</div>`;
+                    contentEl.innerHTML = `<div class="mcpui-text-response mcpui-streaming">${renderMarkdown(trimmed)}</div>`;
                     updateChatMessage(streamingMsg, trimmed.substring(0, 120));
                 }
             },
@@ -157,34 +447,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 promptInput.focus();
 
                 const trimmed = fullText.trim();
+                node.response = trimmed;
+                node.type = containsMcpuiTags(trimmed) ? 'components' : 'text';
+
                 if (containsMcpuiTags(trimmed)) {
                     const totalElements = findStreamElements(trimmed).length;
-                    if (streamingStarted && renderedCount > 0 && renderedCount >= totalElements) {
-                        finalizeChatMessage(streamingMsg, 'Dashboard view generated');
-                        return;
+                    if (!(streamingStarted && renderedCount > 0 && renderedCount >= totalElements)) {
+                        contentEl.innerHTML = '';
+                        const clean = DOMPurify.sanitize(extractHtmlContent(trimmed), PURIFY_CONFIG);
+                        const temp = document.createElement('template');
+                        temp.innerHTML = clean;
+                        contentEl.appendChild(temp.content);
                     }
-                    container.innerHTML = '';
-                    const clean = DOMPurify.sanitize(extractHtmlContent(trimmed), PURIFY_CONFIG);
-                    const temp = document.createElement('template');
-                    temp.innerHTML = clean;
-                    container.appendChild(temp.content);
                     finalizeChatMessage(streamingMsg, 'Dashboard view generated');
                 } else {
-                    container.innerHTML = `<div class="mcpui-text-response">${renderMarkdown(trimmed)}</div>`;
+                    contentEl.innerHTML = `<div class="mcpui-text-response">${renderMarkdown(trimmed)}</div>`;
                     finalizeChatMessage(streamingMsg, trimmed.substring(0, 120));
                 }
+
+                // Generate summary and update header
+                updateNodeSummary(nodeId);
+                updateBreadcrumb();
+                saveState();
             },
             // onError
             (error) => {
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
                 promptInput.disabled = false;
-                container.innerHTML = `<div class="mcpui-text-response">Error: ${error}</div>`;
+                contentEl.innerHTML = `<div class="mcpui-text-response">Error: ${escapeHtml(error)}</div>`;
+                node.response = error;
+                node.type = 'text';
+                node.summary = 'Error';
+                node.tags = ['error'];
+                updateNodeSummary(nodeId);
                 finalizeChatMessage(streamingMsg, `Error: ${error}`);
+                saveState();
             }
         );
 
         promptInput.disabled = true;
+        updateBreadcrumb();
     }
 });
 
@@ -253,7 +556,7 @@ function streamResponse(streamUrl, onChunk, onDone, onError) {
     });
 }
 
-// ── Stream Parser (inline — same logic as @mcpui/renderer) ──
+// ── Stream Parser ──
 
 function containsMcpuiTags(text) {
     return /<mcpui-[a-z]/.test(text);
@@ -355,13 +658,15 @@ function getDrillDownPrompt(title, status, itemId) {
 
 // ── Chat Sidebar ──
 
-function addChatMessage(role, content, isStreaming = false) {
+function addChatMessage(role, content, isStreaming = false, nodeId = null) {
     const messagesEl = document.getElementById('chat-messages');
     if (!messagesEl) return null;
     const msg = document.createElement('mcpui-message');
     msg.setAttribute('role', role);
     msg.setAttribute('content', content);
     if (isStreaming) msg.setAttribute('streaming', '');
+    if (nodeId) msg.dataset.nodeId = nodeId;
+    msg.style.cursor = 'pointer';
     messagesEl.appendChild(msg);
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
