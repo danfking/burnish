@@ -624,6 +624,96 @@ body {
     animation: node-highlight 1s ease-out;
 }
 
+/* ── Server Config Modal ── */
+.mcpui-modal {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+}
+.mcpui-modal[hidden] { display: none; }
+.mcpui-modal-backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+}
+.mcpui-modal-content {
+    position: relative; z-index: 1;
+    background: white; border-radius: 12px;
+    width: 90%; max-width: 640px; max-height: 80vh;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    display: flex; flex-direction: column; overflow: hidden;
+}
+.mcpui-modal-header {
+    padding: 16px 20px; border-bottom: 1px solid #f3f4f6;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.mcpui-modal-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
+.mcpui-modal-close {
+    background: none; border: none; font-size: 24px;
+    color: #9ca3af; cursor: pointer; padding: 0 4px; line-height: 1;
+}
+.mcpui-modal-close:hover { color: #1f2937; }
+.mcpui-modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.mcpui-modal-body h4 {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #9ca3af; margin: 0 0 12px 0;
+}
+.mcpui-connected-servers { margin-bottom: 24px; }
+.mcpui-connected-server {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    border: 1px solid #f3f4f6; margin-bottom: 8px;
+}
+.mcpui-connected-server-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex-shrink: 0;
+}
+.mcpui-connected-server-info { flex: 1; }
+.mcpui-connected-server-name { font-size: 14px; font-weight: 500; }
+.mcpui-connected-server-tools { font-size: 12px; color: #9ca3af; }
+.mcpui-connected-server-disconnect {
+    background: none; border: 1px solid #fee2e2; color: #ef4444;
+    padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;
+}
+.mcpui-connected-server-disconnect:hover { background: #fee2e2; }
+.mcpui-no-servers { color: #9ca3af; font-size: 13px; padding: 12px 0; }
+.mcpui-catalog-category { margin-bottom: 16px; }
+.mcpui-catalog-category-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: #6b7280; margin-bottom: 8px; letter-spacing: 0.5px;
+}
+.mcpui-catalog-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;
+}
+.mcpui-catalog-item {
+    padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb;
+    cursor: pointer; transition: all 0.15s ease;
+}
+.mcpui-catalog-item:hover { border-color: #4f6df5; background: rgba(79,109,245,0.04); }
+.mcpui-catalog-item.connected { opacity: 0.5; pointer-events: none; }
+.mcpui-catalog-item-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.mcpui-catalog-item-desc { font-size: 11px; color: #6b7280; line-height: 1.3; }
+.mcpui-setup-form {
+    padding: 16px; background: #f9fafb; border-radius: 8px; margin-top: 12px;
+}
+.mcpui-setup-form h4 { color: #1f2937; text-transform: none; letter-spacing: 0; font-size: 14px; }
+.mcpui-setup-field { margin-bottom: 12px; }
+.mcpui-setup-field label {
+    display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #374151;
+}
+.mcpui-setup-field input {
+    width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px;
+    font-size: 13px; font-family: inherit; box-sizing: border-box;
+}
+.mcpui-setup-field input:focus { outline: none; border-color: #4f6df5; }
+.mcpui-setup-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.mcpui-setup-btn {
+    padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; border: none;
+}
+.mcpui-setup-btn-primary { background: #4f6df5; color: white; }
+.mcpui-setup-btn-primary:hover { filter: brightness(1.1); }
+.mcpui-setup-btn-cancel { background: #f3f4f6; color: #374151; }
+.mcpui-setup-btn-cancel:hover { background: #e5e7eb; }
+.mcpui-setup-status { font-size: 12px; padding: 8px 0; }
+.mcpui-setup-status.error { color: #ef4444; }
+.mcpui-setup-status.success { color: #22c55e; }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .mcpui-session-panel { left: -260px; transition: left var(--mcpui-transition-normal); }

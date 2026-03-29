@@ -424,6 +424,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('session-panel')?.classList.toggle('open');
     });
 
+    // ── Server modal ──
+    document.getElementById('btn-servers')?.addEventListener('click', () => openServerModal());
+    document.getElementById('btn-close-modal')?.addEventListener('click', () => closeServerModal());
+    document.querySelector('.mcpui-modal-backdrop')?.addEventListener('click', () => closeServerModal());
+
+    document.getElementById('catalog-grid')?.addEventListener('click', (e) => {
+        const item = e.target.closest('.mcpui-catalog-item');
+        if (item && !item.classList.contains('connected')) showSetupForm(item.dataset.presetId);
+    });
+
+    document.getElementById('connected-server-list')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.mcpui-connected-server-disconnect');
+        if (btn) disconnectServer(btn.dataset.server);
+    });
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeServerModal(); });
+
     // ── Restore from localStorage ──
     const state = loadState();
     if (state?.sessions?.length > 0) {
@@ -788,4 +805,151 @@ function getEmptyState() {
             </div>
         </div>
     `;
+}
+
+// ── Server Config Modal ──
+async function openServerModal() {
+    const modal = document.getElementById('server-modal');
+    if (!modal) return;
+    modal.hidden = false;
+    await refreshServerModal();
+}
+
+function closeServerModal() {
+    const modal = document.getElementById('server-modal');
+    if (modal) modal.hidden = true;
+    document.querySelector('.mcpui-setup-form')?.remove();
+}
+
+async function refreshServerModal() {
+    const [serversRes, catalogRes] = await Promise.all([
+        fetch('/api/servers'),
+        fetch('/api/servers/catalog'),
+    ]);
+    const { servers } = await serversRes.json();
+    const { catalog } = await catalogRes.json();
+
+    const connectedList = document.getElementById('connected-server-list');
+    if (connectedList) {
+        if (servers.length === 0) {
+            connectedList.innerHTML = '<div class="mcpui-no-servers">No servers connected</div>';
+        } else {
+            connectedList.innerHTML = servers.map(s => `
+                <div class="mcpui-connected-server">
+                    <span class="mcpui-connected-server-dot"></span>
+                    <div class="mcpui-connected-server-info">
+                        <div class="mcpui-connected-server-name">${escapeHtml(s.name)}</div>
+                        <div class="mcpui-connected-server-tools">${s.toolCount} tools</div>
+                    </div>
+                    <button class="mcpui-connected-server-disconnect" data-server="${escapeHtml(s.name)}">Disconnect</button>
+                </div>
+            `).join('');
+        }
+    }
+
+    const connectedNames = new Set(servers.map(s => s.name));
+    const categories = { databases: 'Databases', devtools: 'Developer Tools', observability: 'Observability', saas: 'SaaS & APIs' };
+    const catalogGrid = document.getElementById('catalog-grid');
+    if (catalogGrid) {
+        let html = '';
+        for (const [cat, label] of Object.entries(categories)) {
+            const items = catalog.filter(s => s.category === cat);
+            if (items.length === 0) continue;
+            html += `<div class="mcpui-catalog-category">`;
+            html += `<div class="mcpui-catalog-category-label">${label}</div>`;
+            html += `<div class="mcpui-catalog-grid">`;
+            for (const item of items) {
+                const isConnected = connectedNames.has(item.id);
+                html += `<div class="mcpui-catalog-item${isConnected ? ' connected' : ''}" data-preset-id="${item.id}">
+                    <div class="mcpui-catalog-item-name">${escapeHtml(item.name)}</div>
+                    <div class="mcpui-catalog-item-desc">${escapeHtml(item.description)}</div>
+                </div>`;
+            }
+            html += `</div></div>`;
+        }
+        catalogGrid.innerHTML = html;
+    }
+}
+
+async function showSetupForm(presetId) {
+    const catalogRes = await fetch('/api/servers/catalog');
+    const { catalog } = await catalogRes.json();
+    const preset = catalog.find(s => s.id === presetId);
+    if (!preset) return;
+
+    document.querySelector('.mcpui-setup-form')?.remove();
+
+    if (!preset.requiredFields || preset.requiredFields.length === 0) {
+        await connectPresetServer(preset, {});
+        return;
+    }
+
+    const form = document.createElement('div');
+    form.className = 'mcpui-setup-form';
+    form.innerHTML = `
+        <h4>Configure ${escapeHtml(preset.name)}</h4>
+        ${preset.requiredFields.map(f => `
+            <div class="mcpui-setup-field">
+                <label>${escapeHtml(f.label)}</label>
+                <input type="${f.key.toLowerCase().includes('token') || f.key.toLowerCase().includes('key') ? 'password' : 'text'}"
+                       data-field-key="${f.key}" placeholder="${escapeHtml(f.placeholder || '')}" />
+            </div>
+        `).join('')}
+        <div class="mcpui-setup-status" id="setup-status"></div>
+        <div class="mcpui-setup-actions">
+            <button class="mcpui-setup-btn mcpui-setup-btn-cancel" id="btn-setup-cancel">Cancel</button>
+            <button class="mcpui-setup-btn mcpui-setup-btn-primary" id="btn-setup-connect">Connect</button>
+        </div>
+    `;
+
+    document.querySelector('.mcpui-modal-body')?.appendChild(form);
+    form.scrollIntoView({ behavior: 'smooth' });
+
+    form.querySelector('#btn-setup-cancel')?.addEventListener('click', () => form.remove());
+    form.querySelector('#btn-setup-connect')?.addEventListener('click', async () => {
+        const fields = {};
+        form.querySelectorAll('input[data-field-key]').forEach(input => {
+            fields[input.dataset.fieldKey] = input.value;
+        });
+        await connectPresetServer(preset, fields);
+    });
+}
+
+async function connectPresetServer(preset, fieldValues) {
+    const statusEl = document.getElementById('setup-status');
+    const config = JSON.parse(JSON.stringify(preset.config));
+    config.args = config.args.map(a => {
+        for (const [key, val] of Object.entries(fieldValues)) a = a.replace(`{${key}}`, val);
+        return a;
+    });
+    if (config.env) {
+        for (const envKey of Object.keys(config.env)) {
+            for (const [key, val] of Object.entries(fieldValues)) config.env[envKey] = config.env[envKey].replace(`{${key}}`, val);
+        }
+    }
+
+    if (statusEl) { statusEl.textContent = 'Connecting...'; statusEl.className = 'mcpui-setup-status'; }
+
+    try {
+        const res = await fetch('/api/servers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: preset.id, config }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to connect');
+        if (statusEl) { statusEl.textContent = 'Connected!'; statusEl.className = 'mcpui-setup-status success'; }
+        setTimeout(async () => { document.querySelector('.mcpui-setup-form')?.remove(); await refreshServerModal(); }, 1000);
+    } catch (err) {
+        if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.className = 'mcpui-setup-status error'; }
+    }
+}
+
+async function disconnectServer(name) {
+    try {
+        await fetch(`/api/servers/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        await refreshServerModal();
+    } catch (err) {
+        console.error('Failed to disconnect:', err);
+    }
 }
