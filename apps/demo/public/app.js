@@ -284,9 +284,18 @@ function toggleNode(nodeId) {
     if (!session) return;
     const node = session.nodes.find(n => n.id === nodeId);
     if (!node) return;
+
     node.collapsed = !node.collapsed;
-    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
-    if (el) el.dataset.collapsed = String(node.collapsed);
+
+    // When expanding a node, make it the active node so its branch highlights
+    if (!node.collapsed) {
+        session.activeNodeId = nodeId;
+        renderMainContent();  // Re-render to update active path dimming
+    } else {
+        const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+        if (el) el.dataset.collapsed = 'true';
+    }
+
     saveState();
 }
 
