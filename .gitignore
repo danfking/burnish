@@ -4,3 +4,5 @@ dist/
 *.tsbuildinfo
 .env
 .env.local
+# MCP server config may contain API keys/tokens added via the UI
+apps/demo/mcp-servers.local.json
