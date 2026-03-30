@@ -178,3 +178,54 @@ customElements.define('xm-card', class extends BurnishCard {});
 
 Consumer keeps: their own backend, system prompt, tool definitions, branding.
 Consumer imports: component library + optionally the renderer.
+
+## Autonomous Agent Workflow
+
+An optional daemon-based workflow that processes GitHub issues through a label-driven state machine using `claude -p` CLI invocations.
+
+### State Machine
+
+```
+agent:queue → agent:planning → agent:plan-review → (human approves) →
+agent:approved → agent:implementing → agent:reviewing →
+agent:verify → (human tests) → agent:ship → agent:done
+```
+
+Human gates: `agent:plan-review` (read plan, apply `agent:approved`) and `agent:verify` (test locally, apply `agent:ship`). Any phase can fail to `agent:failed`.
+
+### Setup & Usage
+
+```bash
+# One-time: create labels on the repo
+bash scripts/setup-labels.sh
+
+# Start the daemon (polls every 30s, max 2 concurrent agents)
+bash scripts/agent-daemon.sh
+
+# Override defaults via env vars
+POLL_INTERVAL=60 MAX_CONCURRENT=1 bash scripts/agent-daemon.sh
+```
+
+### How It Works
+
+1. Label an issue `agent:queue` (or create one and add the label)
+2. Daemon picks it up, runs plan phase (read-only), posts plan as comment
+3. Review the plan on the issue, apply `agent:approved` label
+4. Daemon runs implement (worktree + branch), then self-review
+5. If review passes → `agent:verify`; test locally, apply `agent:ship`
+6. Daemon creates PR with `Closes #N` — you merge manually
+
+### Files
+
+```
+scripts/
+├── agent-daemon.sh       # Main polling daemon
+├── setup-labels.sh       # One-time label setup
+├── prompts/
+│   ├── plan.md           # Plan phase (read-only)
+│   ├── implement.md      # Implement phase (worktree, code, push)
+│   ├── review.md         # Review phase (read-only)
+│   └── ship.md           # Ship phase (create PR)
+├── .locks/               # Runtime lock files (gitignored)
+└── logs/                 # Runtime logs (gitignored)
+```
