@@ -78,17 +78,17 @@ mcpui/
 
 ## Component Reference
 
-| Component | Tag | Key Attributes | Purpose |
-|-----------|-----|---------------|---------|
-| Card | `<mcpui-card>` | `title`, `status`, `body`, `meta` (JSON), `item-id` | Individual items with drill-down |
-| Stat Bar | `<mcpui-stat-bar>` | `items` (JSON: `[{label, value, color?}]`) | Summary metrics / filter pills |
-| Table | `<mcpui-table>` | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring |
-| Chart | `<mcpui-chart>` | `type` (`line`\|`bar`\|`doughnut`), `config` (JSON) | Chart.js visualizations |
-| Section | `<mcpui-section>` | `label`, `count`, `status`, `collapsed`, `palette` | Collapsible grouping container |
-| Metric | `<mcpui-metric>` | `label`, `value`, `unit`, `trend` (`up`\|`down`\|`flat`) | Single KPI display |
-| Message | `<mcpui-message>` | `role` (`user`\|`assistant`), `content`, `streaming` | Chat bubbles |
-| Form | `<mcpui-form>` | `title`, `tool-id`, `fields` (JSON) | User input for write operations |
-| Actions | `<mcpui-actions>` | `actions` (JSON: `[{label, action, prompt, icon?}]`) | Contextual next-step buttons |
+| Component | Tag                | Key Attributes                                           | Purpose                           |
+|-----------|--------------------|----------------------------------------------------------|-----------------------------------|
+| Card      | `<mcpui-card>`     | `title`, `status`, `body`, `meta` (JSON), `item-id`      | Individual items with drill-down  |
+| Stat Bar  | `<mcpui-stat-bar>` | `items` (JSON: `[{label, value, color?}]`)               | Summary metrics / filter pills    |
+| Table     | `<mcpui-table>`    | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring |
+| Chart     | `<mcpui-chart>`    | `type` (line/bar/doughnut), `config` (JSON)              | Chart.js visualizations           |
+| Section   | `<mcpui-section>`  | `label`, `count`, `status`, `collapsed`, `palette`       | Collapsible grouping container    |
+| Metric    | `<mcpui-metric>`   | `label`, `value`, `unit`, `trend` (up/down/flat)         | Single KPI display                |
+| Message   | `<mcpui-message>`  | `role` (user/assistant), `content`, `streaming`          | Chat bubbles                      |
+| Form      | `<mcpui-form>`     | `title`, `tool-id`, `fields` (JSON)                      | User input for write operations   |
+| Actions   | `<mcpui-actions>`  | `actions` (JSON: `[{label, action, prompt, icon?}]`)     | Contextual next-step buttons      |
 
 **Status values:** `success`, `warning`, `error`, `muted`, `info`, `read`, `write` -- mapped to semantic colors via CSS custom properties.
 
@@ -96,35 +96,35 @@ mcpui/
 
 ```
 User prompt
-    │
-    ▼
-┌──────────────────────────────────┐
-│  LLM (with system prompt that    │
-│  documents all mcpui-* components)│
-│                                  │
-│  1. Calls MCP tools to get data  │
-│  2. Generates HTML using         │
-│     mcpui-* web components       │
-│  3. Streams the response via SSE │
-└──────────┬───────────────────────┘
-           │
-           ▼
-┌──────────────────────────────────┐
-│  Streaming Renderer              │
-│                                  │
-│  • Parses tags as they arrive    │
-│  • Sanitizes via DOMPurify       │
-│  • Appends to DOM progressively  │
-└──────────┬───────────────────────┘
-           │
-           ▼
-┌──────────────────────────────────┐
-│  Web Components                  │
-│                                  │
-│  • Parse JSON attributes         │
-│  • Render with shadow DOM        │
-│  • Emit events for drill-down    │
-└──────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────┐
+│  LLM (with system prompt that       │
+│  documents all mcpui-* components)  │
+│                                     │
+│  1. Calls MCP tools to get data     │
+│  2. Generates HTML using            │
+│     mcpui-* web components          │
+│  3. Streams the response via SSE    │
+└─────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────┐
+│  Streaming Renderer                 │
+│                                     │
+│  • Parses tags as they arrive       │
+│  • Sanitizes via DOMPurify          │
+│  • Appends to DOM progressively     │
+└─────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────┐
+│  Web Components                     │
+│                                     │
+│  • Parse JSON attributes            │
+│  • Render with shadow DOM           │
+│  • Emit events for drill-down       │
+└─────────────────────────────────────┘
 ```
 
 The system prompt is the key integration point. It teaches the LLM the component vocabulary -- which tags exist, what attributes they accept, and when to use each one. The LLM then generates the right HTML for whatever data it retrieves from MCP tools. This approach is more robust than rule-based mapping because the LLM can make contextual decisions about layout and grouping.
@@ -193,11 +193,11 @@ const prompt = buildSystemPrompt('Your additional domain-specific instructions h
 
 ### LLM Backend
 
-| Mode | Env Var | Description |
-|------|---------|-------------|
-| API | `ANTHROPIC_API_KEY=sk-ant-...` | Direct Anthropic SDK with streaming tool-call loop (5 rounds max) |
-| CLI | `LLM_BACKEND=cli` | Spawns Claude CLI subprocess; uses your Claude Code subscription auth |
-| Auto | *(none)* | Defaults to CLI if no API key is set |
+| Mode | Env Var                        | Description                                                           |
+|------|--------------------------------|-----------------------------------------------------------------------|
+| API  | `ANTHROPIC_API_KEY=sk-ant-...` | Direct Anthropic SDK with streaming tool-call loop (5 rounds max)     |
+| CLI  | `LLM_BACKEND=cli`              | Spawns Claude CLI subprocess; uses your Claude Code subscription auth |
+| Auto | *(none)*                       | Defaults to CLI if no API key is set                                  |
 
 ### MCP Servers
 
