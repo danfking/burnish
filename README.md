@@ -12,7 +12,7 @@
 
 ## What is this?
 
-MCPUI is a component library, streaming renderer, and demo application that turns any [Model Context Protocol](https://modelcontextprotocol.io/) server into a navigable visual dashboard. Point it at an MCP server, ask a question in natural language, and get back a live, interactive UI -- not a wall of JSON.
+MCPUI is a component library, streaming renderer, and demo application that turns any [Model Context Protocol](https://modelcontextprotocol.io/) server into a navigable, interactive UI. Point it at an MCP server, ask a question in natural language, and get back dashboards, forms, data tables, charts, and action buttons -- not a wall of JSON. Read and write operations are both supported: view data with cards and tables, mutate it with forms.
 
 The core idea is simple: instead of teaching an LLM to generate complex framework-specific code, you give it a small vocabulary of web components via a system prompt. The LLM writes HTML using those components, and the renderer streams the output progressively into the browser. The components handle all styling, interaction, and drill-down navigation. This works with **any** MCP server -- filesystem, GitHub, databases, custom internal tools -- without writing a single line of server-specific UI code.
 
@@ -22,7 +22,7 @@ MCPUI ships as two independently publishable npm packages (`@mcpui/components` a
 
 - **9 web components** built with [Lit 3](https://lit.dev/) -- cards, tables, charts, forms, action bars, metrics, and more
 - **Progressive streaming** -- components render as the LLM generates them, not after it finishes
-- **Drill-down navigation** -- click any card to trigger a contextual follow-up query; results append below with full browser history support
+- **Drill-down navigation** -- click any card to trigger a contextual follow-up query; results append below with collapsible sections
 - **Works with any MCP server** -- filesystem, GitHub, SQLite, or your own custom tools
 - **Framework-agnostic** -- standard web components that work in React, Vue, Angular, Svelte, or vanilla HTML
 - **No build step required** -- import from CDN as ES modules, or install via npm
@@ -84,13 +84,15 @@ mcpui/
 | Stat Bar  | `<mcpui-stat-bar>` | `items` (JSON: `[{label, value, color?}]`)               | Summary metrics / filter pills    |
 | Table     | `<mcpui-table>`    | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring |
 | Chart     | `<mcpui-chart>`    | `type` (line/bar/doughnut), `config` (JSON)              | Chart.js visualizations           |
-| Section   | `<mcpui-section>`  | `label`, `count`, `status`, `collapsed`, `palette`       | Collapsible grouping container    |
+| Section   | `<mcpui-section>`  | `label`, `count`, `status`, `collapsed`                  | Collapsible grouping container    |
 | Metric    | `<mcpui-metric>`   | `label`, `value`, `unit`, `trend` (up/down/flat)         | Single KPI display                |
 | Message   | `<mcpui-message>`  | `role` (user/assistant), `content`, `streaming`          | Chat bubbles                      |
 | Form      | `<mcpui-form>`     | `title`, `tool-id`, `fields` (JSON)                      | User input for write operations   |
 | Actions   | `<mcpui-actions>`  | `actions` (JSON: `[{label, action, prompt, icon?}]`)     | Contextual next-step buttons      |
 
-**Status values:** `success`, `warning`, `error`, `muted`, `info`, `read`, `write` -- mapped to semantic colors via CSS custom properties.
+**Status values:** `success`, `warning`, `error`, `muted`, `info` -- mapped to semantic colors via CSS custom properties.
+
+**Action types** (on `mcpui-actions`): `read` (auto-invoke, safe) and `write` (shows form, needs user input).
 
 ## How It Works
 
@@ -137,7 +139,7 @@ When a user clicks a card's "Explore" button, the frontend dispatches a follow-u
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/npm/@mcpui/components/dist/index.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mcpui/components/src/tokens.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mcpui/components/dist/tokens.css" />
 
 <mcpui-card
   title="API Gateway"
@@ -181,10 +183,11 @@ for (const el of elements) {
 
 ### System Prompt
 
-The demo app exports its system prompt template so you can reuse or extend it:
+The demo app includes an exportable system prompt template you can reuse or extend:
 
 ```javascript
-import { buildSystemPrompt } from './apps/demo/server/prompt-template.js';
+// From within the repo or after copying prompt-template.ts to your project
+import { buildSystemPrompt } from './prompt-template.js';
 
 const prompt = buildSystemPrompt('Your additional domain-specific instructions here.');
 ```
