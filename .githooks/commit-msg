@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Conventional Commits validator
+# Format: type(scope): description
+# Types: feat, fix, refactor, docs, test, chore, style, perf, ci, build
+
+commit_msg_file="$1"
+commit_msg=$(head -1 "$commit_msg_file")
+
+# Allow merge commits
+if echo "$commit_msg" | grep -qE '^Merge '; then
+  exit 0
+fi
+
+# Validate conventional commit format
+if ! echo "$commit_msg" | grep -qE '^(feat|fix|refactor|docs|test|chore|style|perf|ci|build)(\(.+\))?: .+'; then
+  echo "ERROR: Commit message does not follow Conventional Commits format."
+  echo ""
+  echo "  Format: type(scope): description"
+  echo "  Types:  feat, fix, refactor, docs, test, chore, style, perf, ci, build"
+  echo ""
+  echo "  Examples:"
+  echo "    feat(components): add tooltip component"
+  echo "    fix: resolve streaming parser race condition"
+  echo "    chore: update dependencies"
+  echo ""
+  echo "  Your message: $commit_msg"
+  exit 1
+fi

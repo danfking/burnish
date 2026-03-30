@@ -20,6 +20,38 @@ ANTHROPIC_API_KEY=sk-... pnpm dev
 - `LLM_BACKEND=api` (default when ANTHROPIC_API_KEY is set) — Direct Anthropic SDK with streaming tool-call loop (5 rounds max).
 - If no API key and no explicit backend, defaults to `cli`.
 
+## Development Workflow
+
+Every change follows: **Issue → Branch → PR → Squash Merge**
+
+### Issue-Driven Development
+Every change starts as a GitHub issue. Use `/dev <issue>` to begin work or `/dev "title"` to create an issue and start.
+
+### Branch Naming
+```
+feat/<issue>-<slug>    # New features
+fix/<issue>-<slug>     # Bug fixes
+chore/<issue>-<slug>   # Maintenance, CI, docs
+```
+Example: `feat/42-add-tooltip-component`
+
+### Conventional Commits
+All commit messages must follow `type(scope): description`:
+- **Types:** `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `style`, `perf`, `ci`, `build`
+- **Scope** is optional: `feat(components): add tooltip`, `fix: resolve race condition`
+- Enforced by `.githooks/commit-msg` — never use `--no-verify`
+
+### Workflow Commands
+- `/dev 42` or `/dev "add tooltip"` — start work on an issue (branch + worktree)
+- `/review` — run pre-ship checks (build, secrets, conventions)
+- `/ship` — push branch, create PR, output merge command (does NOT auto-merge)
+
+### PR Process
+1. Work in a feature branch (created by `/dev`)
+2. Run `/review` to check for issues
+3. Run `/ship` to create the PR
+4. Review the PR, then merge with: `gh pr merge <N> --squash --delete-branch`
+
 ## Architecture
 
 ```

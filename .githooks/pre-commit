@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Pre-commit hook: run build to catch TypeScript errors
+
+echo "Running pnpm build..."
+pnpm build
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "ERROR: Build failed. Fix TypeScript errors before committing."
+  exit 1
+fi
