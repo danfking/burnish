@@ -118,7 +118,7 @@ Status values: `success`, `warning`, `error`, `muted` (maps to semantic colors)
 - [x] **N.3** Browser history (pushState/popstate for back/forward)
 - [x] **N.4** Persistence (localStorage save/restore)
 - [x] **N.5** Sidebar ↔ section linking (click message → scroll to section)
-- [ ] **N.6** Branching (fork from previous node) — see `docs/NAVIGATION-UX-PLAN.md`
+- [ ] **N.6** Branching (fork from previous node)
 
 ## Verification Checklist
 
