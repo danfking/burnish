@@ -1,19 +1,19 @@
 /**
- * MCPUI Demo App — main orchestration.
+ * Burnish Demo App — main orchestration.
  * Multi-session management with inline conversation and infinite scroll navigation.
  */
 
 // ── DOMPurify Config ──
 const PURIFY_CONFIG = {
-    ADD_TAGS: ['mcpui-card', 'mcpui-stat-bar', 'mcpui-table', 'mcpui-chart',
-               'mcpui-section', 'mcpui-metric', 'mcpui-message', 'mcpui-form', 'mcpui-actions'],
+    ADD_TAGS: ['burnish-card', 'burnish-stat-bar', 'burnish-table', 'burnish-chart',
+               'burnish-section', 'burnish-metric', 'burnish-message', 'burnish-form', 'burnish-actions'],
     ADD_ATTR: ['items', 'title', 'status', 'body', 'meta', 'columns', 'rows',
                'status-field', 'type', 'config', 'role', 'content', 'class',
                'label', 'count', 'collapsed', 'item-id', 'value', 'unit', 'trend',
                'streaming', 'tool-id', 'fields', 'actions'],
 };
 
-const CONTAINER_TAGS = new Set(['mcpui-section']);
+const CONTAINER_TAGS = new Set(['burnish-section']);
 
 const ICON_SEND = `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10l7-7v4h9v6H9v4z" transform="rotate(-90 10 10)"/></svg>`;
 const ICON_STOP = `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><rect x="4" y="4" width="12" height="12" rx="2"/></svg>`;
@@ -21,7 +21,7 @@ const ICON_STOP = `<svg width="20" height="20" viewBox="0 0 20 20" fill="current
 // ── State ──
 let activeSource = null;
 let cancelGeneration = 0;
-let fastMode = localStorage.getItem('mcpui:fastMode') === 'true';
+let fastMode = localStorage.getItem('burnish:fastMode') === 'true';
 
 // Multi-session state
 let sessions = [];
@@ -70,18 +70,18 @@ function saveState() {
                 if (s.nodes.length > 2) s.nodes = s.nodes.slice(-2);
             }
         }
-        localStorage.setItem('mcpui:sessions', JSON.stringify({ activeSessionId, sessions }));
+        localStorage.setItem('burnish:sessions', JSON.stringify({ activeSessionId, sessions }));
     } catch { /* storage full */ }
 }
 
 function loadState() {
     try {
         // Try new multi-session format
-        const raw = localStorage.getItem('mcpui:sessions');
+        const raw = localStorage.getItem('burnish:sessions');
         if (raw) return JSON.parse(raw);
 
         // Migrate old single-session format
-        const oldRaw = localStorage.getItem('mcpui:state');
+        const oldRaw = localStorage.getItem('burnish:state');
         if (oldRaw) {
             const old = JSON.parse(oldRaw);
             if (old.nodes?.length > 0) {
@@ -93,18 +93,18 @@ function loadState() {
                     conversationId: old.conversationId,
                     nodes: old.nodes,
                 };
-                localStorage.removeItem('mcpui:state');
+                localStorage.removeItem('burnish:state');
                 return { activeSessionId: session.id, sessions: [session] };
             }
-            localStorage.removeItem('mcpui:state');
+            localStorage.removeItem('burnish:state');
         }
         return null;
     } catch { return null; }
 }
 
 function clearState() {
-    localStorage.removeItem('mcpui:sessions');
-    localStorage.removeItem('mcpui:state');
+    localStorage.removeItem('burnish:sessions');
+    localStorage.removeItem('burnish:state');
 }
 
 // ── Session CRUD ──
@@ -150,11 +150,11 @@ function deleteSession(sessionId) {
 // ── Summary & Helpers ──
 function generateSummary(contentEl) {
     const tagEls = contentEl.querySelectorAll(
-        'mcpui-stat-bar, mcpui-table, mcpui-card, mcpui-chart, mcpui-metric, mcpui-section'
+        'burnish-stat-bar, burnish-table, burnish-card, burnish-chart, burnish-metric, burnish-section'
     );
-    const tags = [...new Set([...tagEls].map(el => el.tagName.toLowerCase().replace('mcpui-', '')))];
+    const tags = [...new Set([...tagEls].map(el => el.tagName.toLowerCase().replace('burnish-', '')))];
 
-    const statBar = contentEl.querySelector('mcpui-stat-bar');
+    const statBar = contentEl.querySelector('burnish-stat-bar');
     let keyValues = '';
     if (statBar) {
         try {
@@ -208,15 +208,15 @@ function renderSessionList() {
     let html = '';
     const renderGroup = (label, items) => {
         if (items.length === 0) return;
-        html += `<div class="mcpui-session-group-label">${label}</div>`;
+        html += `<div class="burnish-session-group-label">${label}</div>`;
         for (const s of items) {
             const active = s.id === activeSessionId ? ' active' : '';
             const stepCount = s.nodes?.length || 0;
             html += `
-                <div class="mcpui-session-item${active}" data-session-id="${s.id}">
-                    <div class="mcpui-session-title">${escapeHtml(s.title)}</div>
-                    <div class="mcpui-session-meta">${stepCount} step${stepCount !== 1 ? 's' : ''} \u2022 ${formatTimeAgo(s.updatedAt || s.createdAt)}</div>
-                    <button class="mcpui-session-delete" data-delete-id="${s.id}" title="Delete">\u00d7</button>
+                <div class="burnish-session-item${active}" data-session-id="${s.id}">
+                    <div class="burnish-session-title">${escapeHtml(s.title)}</div>
+                    <div class="burnish-session-meta">${stepCount} step${stepCount !== 1 ? 's' : ''} \u2022 ${formatTimeAgo(s.updatedAt || s.createdAt)}</div>
+                    <button class="burnish-session-delete" data-delete-id="${s.id}" title="Delete">\u00d7</button>
                 </div>
             `;
         }
@@ -228,7 +228,7 @@ function renderSessionList() {
     renderGroup('Older', groups.older);
 
     if (sessions.length === 0) {
-        html = '<div style="padding: 16px; color: var(--mcpui-text-muted); font-size: 13px; text-align: center;">No sessions yet</div>';
+        html = '<div style="padding: 16px; color: var(--burnish-text-muted); font-size: 13px; text-align: center;">No sessions yet</div>';
     }
 
     listEl.innerHTML = html;
@@ -237,7 +237,7 @@ function renderSessionList() {
 // ── Node DOM Creation ──
 function createNodeEl(node) {
     const div = document.createElement('div');
-    div.className = 'mcpui-node';
+    div.className = 'burnish-node';
     div.dataset.nodeId = node.id;
     div.dataset.collapsed = String(node.collapsed);
 
@@ -254,37 +254,37 @@ function createNodeEl(node) {
     const statsTooltip = statsParts.join(' \u2022 ');
 
     div.innerHTML = `
-        <div class="mcpui-node-header" role="button" tabindex="0">
-            <span class="mcpui-node-chevron">\u25bc</span>
-            <span class="mcpui-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
-            <span class="mcpui-node-time">${formatTimeAgo(node.timestamp)}</span>
-            ${statsTooltip ? `<button class="mcpui-node-info" title="${escapeAttr(statsTooltip)}">
+        <div class="burnish-node-header" role="button" tabindex="0">
+            <span class="burnish-node-chevron">\u25bc</span>
+            <span class="burnish-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
+            <span class="burnish-node-time">${formatTimeAgo(node.timestamp)}</span>
+            ${statsTooltip ? `<button class="burnish-node-info" title="${escapeAttr(statsTooltip)}">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor">i</text></svg>
             </button>` : ''}
-            <button class="mcpui-node-maximize" title="Maximize">
+            <button class="burnish-node-maximize" title="Maximize">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/></svg>
             </button>
-            <button class="mcpui-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
+            <button class="burnish-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
         </div>
-        <div class="mcpui-node-content"></div>
+        <div class="burnish-node-content"></div>
     `;
 
-    const header = div.querySelector('.mcpui-node-header');
+    const header = div.querySelector('.burnish-node-header');
     header.addEventListener('click', (e) => {
-        if (e.target.closest('.mcpui-node-delete') || e.target.closest('.mcpui-node-maximize') || e.target.closest('.mcpui-node-info')) return;
+        if (e.target.closest('.burnish-node-delete') || e.target.closest('.burnish-node-maximize') || e.target.closest('.burnish-node-info')) return;
         toggleNode(node.id);
     });
     header.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNode(node.id); }
     });
-    header.querySelector('.mcpui-node-delete')?.addEventListener('click', (e) => {
+    header.querySelector('.burnish-node-delete')?.addEventListener('click', (e) => {
         e.stopPropagation();
         deleteNode(node.id);
     });
-    header.querySelector('.mcpui-node-maximize')?.addEventListener('click', (e) => {
+    header.querySelector('.burnish-node-maximize')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isMaximized = div.classList.toggle('mcpui-node-maximized');
-        const btn = header.querySelector('.mcpui-node-maximize');
+        const isMaximized = div.classList.toggle('burnish-node-maximized');
+        const btn = header.querySelector('.burnish-node-maximize');
         if (btn) {
             btn.title = isMaximized ? 'Restore' : 'Maximize';
             btn.innerHTML = isMaximized
@@ -308,7 +308,7 @@ function toggleNode(nodeId) {
         session.activeNodeId = nodeId;
         renderMainContent();  // Re-render to update active path dimming
     } else {
-        const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+        const el = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
         if (el) el.dataset.collapsed = 'true';
     }
 
@@ -316,16 +316,16 @@ function toggleNode(nodeId) {
 }
 
 function scrollToNode(nodeId, highlight = true) {
-    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+    const el = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
     if (!el) return;
     const session = getActiveSession();
     const node = session?.nodes.find(n => n.id === nodeId);
     if (node?.collapsed) { node.collapsed = false; el.dataset.collapsed = 'false'; }
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (highlight) {
-        el.classList.remove('mcpui-node-highlight');
+        el.classList.remove('burnish-node-highlight');
         void el.offsetWidth;
-        el.classList.add('mcpui-node-highlight');
+        el.classList.add('burnish-node-highlight');
     }
     saveState();
 }
@@ -381,7 +381,7 @@ function collapseAllExcept(exceptNodeId) {
     for (const node of session.nodes) {
         if (node.id !== exceptNodeId && !node.collapsed) {
             node.collapsed = true;
-            const el = document.querySelector(`.mcpui-node[data-node-id="${node.id}"]`);
+            const el = document.querySelector(`.burnish-node[data-node-id="${node.id}"]`);
             if (el) el.dataset.collapsed = 'true';
         }
     }
@@ -392,9 +392,9 @@ function updateNodeSummary(nodeId) {
     if (!session) return;
     const node = session.nodes.find(n => n.id === nodeId);
     if (!node) return;
-    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+    const el = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
     if (!el) return;
-    const contentEl = el.querySelector('.mcpui-node-content');
+    const contentEl = el.querySelector('.burnish-node-content');
     const { tags, summary } = generateSummary(contentEl);
     node.tags = tags;
     node.summary = summary;
@@ -406,7 +406,7 @@ function updateNodeHeader(nodeId) {
     if (!session) return;
     const node = session.nodes.find(n => n.id === nodeId);
     if (!node) return;
-    const el = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
+    const el = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
     if (!el) return;
 
     const parts = [];
@@ -419,15 +419,15 @@ function updateNodeHeader(nodeId) {
     }
     if (node.summary) parts.push(node.summary);
 
-    const infoBtn = el.querySelector('.mcpui-node-info');
+    const infoBtn = el.querySelector('.burnish-node-info');
     if (infoBtn) {
         infoBtn.title = parts.join(' \u2022 ');
     } else if (parts.length > 0) {
         // Insert info button if it doesn't exist yet
-        const deleteBtn = el.querySelector('.mcpui-node-delete');
+        const deleteBtn = el.querySelector('.burnish-node-delete');
         if (deleteBtn) {
             const btn = document.createElement('button');
-            btn.className = 'mcpui-node-info';
+            btn.className = 'burnish-node-info';
             btn.title = parts.join(' \u2022 ');
             btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor">i</text></svg>';
             deleteBtn.parentNode.insertBefore(btn, deleteBtn);
@@ -452,7 +452,7 @@ function renderMainContent() {
     const roots = getRootNodes(session);
 
     const treeWrapper = document.createElement('div');
-    treeWrapper.className = 'mcpui-tree';
+    treeWrapper.className = 'burnish-tree';
     container.appendChild(treeWrapper);
 
     for (const root of roots) {
@@ -473,23 +473,23 @@ function renderTreeNode(container, session, node, activePath) {
     node.collapsed = !isActiveLeaf;
 
     const nodeEl = createNodeEl(node);
-    if (!isActive) nodeEl.classList.add('mcpui-node-dimmed');
+    if (!isActive) nodeEl.classList.add('burnish-node-dimmed');
     container.appendChild(nodeEl);
 
     // Populate content
     if (node.response) {
-        const contentEl = nodeEl.querySelector('.mcpui-node-content');
+        const contentEl = nodeEl.querySelector('.burnish-node-content');
         if (node.type === 'components') {
             const clean = transformOutput(DOMPurify.sanitize(extractHtmlContent(node.response), PURIFY_CONFIG));
             const temp = document.createElement('template');
             temp.innerHTML = clean;
             contentEl.appendChild(temp.content);
         } else {
-            contentEl.innerHTML = `<div class="mcpui-text-response">${renderMarkdown(node.response)}</div>`;
+            contentEl.innerHTML = `<div class="burnish-text-response">${renderMarkdown(node.response)}</div>`;
         }
     } else if (isActiveLeaf && !node.collapsed) {
         // Show progress indicator for active nodes with no response yet
-        const contentEl = nodeEl.querySelector('.mcpui-node-content');
+        const contentEl = nodeEl.querySelector('.burnish-node-content');
         if (contentEl) contentEl.innerHTML = getProgressHtml();
     }
 
@@ -499,24 +499,24 @@ function renderTreeNode(container, session, node, activePath) {
     if (children.length === 1) {
         // Single child — continue vertically
         const connector = document.createElement('div');
-        connector.className = 'mcpui-tree-connector';
+        connector.className = 'burnish-tree-connector';
         container.appendChild(connector);
         renderTreeNode(container, session, children[0], activePath);
     } else {
         // Multiple children — branch horizontally, each with its own connector
         const branchContainer = document.createElement('div');
-        branchContainer.className = 'mcpui-tree-branches';
+        branchContainer.className = 'burnish-tree-branches';
         container.appendChild(branchContainer);
 
         for (const child of children) {
             const branchCol = document.createElement('div');
-            branchCol.className = 'mcpui-tree-branch-col';
+            branchCol.className = 'burnish-tree-branch-col';
             if (activePath.has(child.id)) branchCol.classList.add('active');
             branchContainer.appendChild(branchCol);
 
             // Each branch gets its own connector line
             const branchConnector = document.createElement('div');
-            branchConnector.className = 'mcpui-tree-connector';
+            branchConnector.className = 'burnish-tree-connector';
             branchCol.appendChild(branchConnector);
 
             renderTreeNode(branchCol, session, child, activePath);
@@ -529,8 +529,8 @@ let _progressTimer = null;
 
 function getProgressHtml() {
     return `
-        <div class="mcpui-progress" data-start="${Date.now()}">
-            <div class="mcpui-progress-trail"></div>
+        <div class="burnish-progress" data-start="${Date.now()}">
+            <div class="burnish-progress-trail"></div>
         </div>
     `;
 }
@@ -540,18 +540,18 @@ function stopProgressTimer() {
 }
 
 function updateProgress(contentEl, stage, detail) {
-    const progressEl = contentEl.querySelector('.mcpui-progress');
+    const progressEl = contentEl.querySelector('.burnish-progress');
     if (!progressEl) return;
-    const trail = progressEl.querySelector('.mcpui-progress-trail');
+    const trail = progressEl.querySelector('.burnish-progress-trail');
     if (!trail) return;
     const now = Date.now();
 
     // Finalize the previous active entry (freeze its timer)
-    const prevActive = trail.querySelector('.mcpui-progress-entry.active');
+    const prevActive = trail.querySelector('.burnish-progress-entry.active');
     if (prevActive) {
         prevActive.classList.remove('active');
         prevActive.classList.add('done');
-        const timeEl = prevActive.querySelector('.mcpui-progress-time');
+        const timeEl = prevActive.querySelector('.burnish-progress-time');
         if (timeEl && prevActive.dataset.started) {
             const elapsed = ((now - Number(prevActive.dataset.started)) / 1000).toFixed(1);
             timeEl.textContent = elapsed + 's';
@@ -561,9 +561,9 @@ function updateProgress(contentEl, stage, detail) {
     // Append a new entry
     const label = detail || stage;
     const entry = document.createElement('div');
-    entry.className = 'mcpui-progress-entry active';
+    entry.className = 'burnish-progress-entry active';
     entry.dataset.started = String(now);
-    entry.innerHTML = `<span class="mcpui-progress-dot"></span><span class="mcpui-progress-label">${escapeHtml(label)}</span><span class="mcpui-progress-time"></span>`;
+    entry.innerHTML = `<span class="burnish-progress-dot"></span><span class="burnish-progress-label">${escapeHtml(label)}</span><span class="burnish-progress-time"></span>`;
     trail.appendChild(entry);
 
     // Scroll trail to bottom if overflow
@@ -572,9 +572,9 @@ function updateProgress(contentEl, stage, detail) {
     // Start tick timer for the new active entry
     stopProgressTimer();
     _progressTimer = setInterval(() => {
-        const active = trail.querySelector('.mcpui-progress-entry.active');
+        const active = trail.querySelector('.burnish-progress-entry.active');
         if (!active) { stopProgressTimer(); return; }
-        const timeEl = active.querySelector('.mcpui-progress-time');
+        const timeEl = active.querySelector('.burnish-progress-time');
         if (timeEl && active.dataset.started) {
             const elapsed = ((Date.now() - Number(active.dataset.started)) / 1000).toFixed(1);
             timeEl.textContent = elapsed + 's';
@@ -596,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fastToggle.addEventListener('click', () => {
             fastMode = !fastMode;
             fastToggle.classList.toggle('active', fastMode);
-            localStorage.setItem('mcpui:fastMode', String(fastMode));
+            localStorage.setItem('burnish:fastMode', String(fastMode));
         });
     }
 
@@ -605,14 +605,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('session-list')?.addEventListener('click', (e) => {
         // Delete button
-        const deleteBtn = e.target.closest('.mcpui-session-delete');
+        const deleteBtn = e.target.closest('.burnish-session-delete');
         if (deleteBtn) {
             e.stopPropagation();
             deleteSession(deleteBtn.dataset.deleteId);
             return;
         }
         // Session item click
-        const item = e.target.closest('.mcpui-session-item');
+        const item = e.target.closest('.burnish-session-item');
         if (item) switchSession(item.dataset.sessionId);
     });
 
@@ -624,15 +624,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Server modal ──
     document.getElementById('btn-servers')?.addEventListener('click', () => openServerModal());
     document.getElementById('btn-close-modal')?.addEventListener('click', () => closeServerModal());
-    document.querySelector('.mcpui-modal-backdrop')?.addEventListener('click', () => closeServerModal());
+    document.querySelector('.burnish-modal-backdrop')?.addEventListener('click', () => closeServerModal());
 
     document.getElementById('catalog-grid')?.addEventListener('click', (e) => {
-        const item = e.target.closest('.mcpui-catalog-item');
+        const item = e.target.closest('.burnish-catalog-item');
         if (item && !item.classList.contains('connected')) showSetupForm(item.dataset.presetId);
     });
 
     document.getElementById('connected-server-list')?.addEventListener('click', (e) => {
-        const btn = e.target.closest('.mcpui-connected-server-disconnect');
+        const btn = e.target.closest('.burnish-connected-server-disconnect');
         if (btn) disconnectServer(btn.dataset.server);
     });
 
@@ -689,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Suggestion buttons
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.mcpui-suggestion');
+        const btn = e.target.closest('.burnish-suggestion');
         if (btn?.dataset.prompt) {
             promptInput.value = btn.dataset.prompt;
             handleSubmit(btn.dataset.label || undefined);
@@ -698,16 +698,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Card drill-down ──
     // ── Stat-bar filter — click chip to show/hide sections ──
-    container.addEventListener('mcpui-filter', (e) => {
+    container.addEventListener('burnish-filter', (e) => {
         const { filter } = e.detail || {};
         // Find the node content area containing this stat-bar
-        const nodeContent = e.target.closest('.mcpui-node-content');
+        const nodeContent = e.target.closest('.burnish-node-content');
         if (!nodeContent) return;
 
         // Show/hide sibling sections and cards based on filter
-        const sections = nodeContent.querySelectorAll('mcpui-section');
-        const cards = nodeContent.querySelectorAll('mcpui-card');
-        const tables = nodeContent.querySelectorAll('mcpui-table');
+        const sections = nodeContent.querySelectorAll('burnish-section');
+        const cards = nodeContent.querySelectorAll('burnish-card');
+        const tables = nodeContent.querySelectorAll('burnish-table');
 
         if (!filter) {
             // No filter — show everything
@@ -748,7 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    container.addEventListener('mcpui-card-action', (e) => {
+    container.addEventListener('burnish-card-action', (e) => {
         const { title, status, itemId } = e.detail || {};
         if (title) {
             if (activeSource) {
@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.innerHTML = ICON_SEND;
             }
             // Branch from the node containing this card
-            const nodeEl = e.target.closest('.mcpui-node');
+            const nodeEl = e.target.closest('.burnish-node');
             if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
             promptInput.value = getDrillDownPrompt(title, status, itemId);
             handleSubmit(title);
@@ -767,17 +767,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Form submission (write tools) ──
-    container.addEventListener('mcpui-form-submit', (e) => {
+    container.addEventListener('burnish-form-submit', (e) => {
         const { toolId, values } = e.detail || {};
         if (!toolId) return;
         // Branch from the node containing this form
-        const nodeEl = e.target.closest('.mcpui-node');
+        const nodeEl = e.target.closest('.burnish-node');
         if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
         const params = Object.entries(values)
             .filter(([, v]) => v && String(v).trim())
             .map(([k, v]) => `${k}="${v}"`)
             .join(', ');
-        promptInput.value = `Call the tool ${toolId} with these exact parameters: ${params}. Show the result using mcpui-* components.`;
+        promptInput.value = `Call the tool ${toolId} with these exact parameters: ${params}. Show the result using burnish-* components.`;
         // Build a readable display label from the submitted values
         const keyValues = Object.entries(values)
             .filter(([, v]) => v && String(v).trim())
@@ -790,15 +790,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Action bar clicks ──
-    container.addEventListener('mcpui-action', (e) => {
+    container.addEventListener('burnish-action', (e) => {
         const { label, action, prompt } = e.detail || {};
         if (!prompt) return;
-        promptInput.value = prompt + '. Use ONLY mcpui-* web components.';
+        promptInput.value = prompt + '. Use ONLY burnish-* web components.';
         const contextSummary = prompt.split(/[.!]/)[0].substring(0, 60);
         const displayLabel = contextSummary.length > label.length ? contextSummary : label;
 
         // Set branch point to the node containing this action bar
-        const nodeEl = e.target.closest('.mcpui-node');
+        const nodeEl = e.target.closest('.burnish-node');
         if (nodeEl?.dataset?.nodeId) {
             branchFromNodeId = nodeEl.dataset.nodeId;
         }
@@ -807,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Form field lookups ──
-    container.addEventListener('mcpui-form-lookup', async (e) => {
+    container.addEventListener('burnish-form-lookup', async (e) => {
         const { fieldKey, prompt, query, context } = e.detail || {};
         const formEl = e.target;
         if (!formEl || !fieldKey) return;
@@ -853,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!session) { createSession(); session = getActiveSession(); }
 
         // Remove empty state
-        const emptyState = container.querySelector('.mcpui-empty-state');
+        const emptyState = container.querySelector('.burnish-empty-state');
         if (emptyState) emptyState.remove();
 
         // Create new node — attach to branch point or last leaf
@@ -910,8 +910,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMainContent();
 
         // Get the newly created node's content area
-        const nodeEl = document.querySelector(`.mcpui-node[data-node-id="${nodeId}"]`);
-        const contentEl = nodeEl?.querySelector('.mcpui-node-content');
+        const nodeEl = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
+        const contentEl = nodeEl?.querySelector('.burnish-node-content');
         if (contentEl) contentEl.innerHTML = getProgressHtml();
         if (nodeEl) nodeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -944,7 +944,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // onChunk
             (chunk, fullText) => {
                 const trimmed = fullText.trim();
-                if (containsMcpuiTags(trimmed)) {
+                if (containsBurnishTags(trimmed)) {
                     if (!streamingStarted) {
                         streamingStarted = true;
                         stopProgressTimer();
@@ -957,7 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         renderedCount++;
                     }
                 } else {
-                    contentEl.innerHTML = `<div class="mcpui-text-response mcpui-streaming">${renderMarkdown(trimmed)}</div>`;
+                    contentEl.innerHTML = `<div class="burnish-text-response burnish-streaming">${renderMarkdown(trimmed)}</div>`;
                 }
             },
             // onDone
@@ -972,9 +972,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const trimmed = fullText.trim();
                 node.response = trimmed;
-                node.type = containsMcpuiTags(trimmed) ? 'components' : 'text';
+                node.type = containsBurnishTags(trimmed) ? 'components' : 'text';
 
-                if (containsMcpuiTags(trimmed)) {
+                if (containsBurnishTags(trimmed)) {
                     const totalElements = findStreamElements(trimmed).length;
                     if (!(streamingStarted && renderedCount > 0 && renderedCount >= totalElements)) {
                         contentEl.innerHTML = '';
@@ -984,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         contentEl.appendChild(temp.content);
                     }
                 } else {
-                    contentEl.innerHTML = `<div class="mcpui-text-response">${renderMarkdown(trimmed)}</div>`;
+                    contentEl.innerHTML = `<div class="burnish-text-response">${renderMarkdown(trimmed)}</div>`;
                 }
 
                 updateNodeSummary(nodeId);
@@ -998,7 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
                 promptInput.disabled = false;
-                contentEl.innerHTML = `<div class="mcpui-text-response">Error: ${escapeHtml(error)}</div>`;
+                contentEl.innerHTML = `<div class="burnish-text-response">Error: ${escapeHtml(error)}</div>`;
                 node.response = error;
                 node.type = 'text';
                 node.summary = 'Error';
@@ -1083,12 +1083,12 @@ function streamResponse(streamUrl, onChunk, onDone, onError, onProgress, onStats
 
 // ── Stream Parser ──
 
-function containsMcpuiTags(text) { return /<mcpui-[a-z]/.test(text); }
+function containsBurnishTags(text) { return /<burnish-[a-z]/.test(text); }
 
 function findStreamElements(text) {
     const elements = [];
     const cleaned = text.replace(/<use_mcp_tool[\s\S]*?<\/use_mcp_tool>/g, '');
-    const re = /<(\/?)((mcpui-[a-z-]+)|div|h[1-6]|p|section|ul|ol|table)(\s[^>]*)?>/g;
+    const re = /<(\/?)((burnish-[a-z-]+)|div|h[1-6]|p|section|ul|ol|table)(\s[^>]*)?>/g;
     let m;
     while ((m = re.exec(cleaned)) !== null) {
         const isClose = m[1] === '/';
@@ -1134,12 +1134,12 @@ function appendStreamElement(root, stack, element) {
 
 function extractHtmlContent(text) {
     let cleaned = text.replace(/<use_mcp_tool[\s\S]*?<\/use_mcp_tool>/g, '');
-    const htmlStart = cleaned.search(/<(?:mcpui-[a-z]|div)/);
+    const htmlStart = cleaned.search(/<(?:burnish-[a-z]|div)/);
     if (htmlStart === -1) return cleaned.trim();
     const preamble = cleaned.substring(0, htmlStart).trim();
     const htmlContent = cleaned.substring(htmlStart).trim();
     let result = '';
-    if (preamble) result += `<div class="mcpui-text-preamble">${renderMarkdown(preamble)}</div>`;
+    if (preamble) result += `<div class="burnish-text-preamble">${renderMarkdown(preamble)}</div>`;
     result += htmlContent;
     return result;
 }
@@ -1157,7 +1157,7 @@ function transformOutput(html) {
     // Rule 1: Normalize card statuses
     // "success" should only appear on cards showing a completed action result
     // (e.g. "Issue created", "File written"). For data listing cards, use "info".
-    root.querySelectorAll('mcpui-card').forEach(card => {
+    root.querySelectorAll('burnish-card').forEach(card => {
         const status = card.getAttribute('status');
         const itemId = card.getAttribute('item-id') || '';
         const body = card.getAttribute('body') || '';
@@ -1171,7 +1171,7 @@ function transformOutput(html) {
         // Cards in listing context: only override "success" → "info"
         // Let meaningful statuses pass through (open, closed, bug, etc.)
         if (status === 'success') {
-            const parentSection = card.closest('mcpui-section');
+            const parentSection = card.closest('burnish-section');
             if (parentSection) {
                 card.setAttribute('status', 'info');
             }
@@ -1179,8 +1179,8 @@ function transformOutput(html) {
     });
 
     // Rule 1b: Sections containing info cards should also use "info"
-    root.querySelectorAll('mcpui-section').forEach(section => {
-        const hasInfoCards = section.querySelector('mcpui-card[status="info"]');
+    root.querySelectorAll('burnish-section').forEach(section => {
+        const hasInfoCards = section.querySelector('burnish-card[status="info"]');
         const status = section.getAttribute('status');
         if (hasInfoCards || status === 'success') {
             section.setAttribute('status', 'info');
@@ -1188,9 +1188,9 @@ function transformOutput(html) {
     });
 
     // Rule 1c: Stat-bar chips should use "info" when sibling content is informational
-    root.querySelectorAll('mcpui-stat-bar').forEach(bar => {
+    root.querySelectorAll('burnish-stat-bar').forEach(bar => {
         const parent = bar.parentElement;
-        const hasSections = parent?.querySelector('mcpui-section');
+        const hasSections = parent?.querySelector('burnish-section');
         if (hasSections) {
             try {
                 const items = JSON.parse(bar.getAttribute('items') || '[]');
@@ -1208,7 +1208,7 @@ function transformOutput(html) {
     });
 
     // Rule 2: Sanitize lookup prompts — strip any specific tool/server name references
-    root.querySelectorAll('mcpui-form').forEach(form => {
+    root.querySelectorAll('burnish-form').forEach(form => {
         const fieldsAttr = form.getAttribute('fields');
         if (!fieldsAttr) return;
         try {
@@ -1250,13 +1250,13 @@ function getDrillDownPrompt(title, status, itemId) {
 ${isWrite ? 'This is a WRITE operation — do NOT call it. Show a form.' : 'Check if this tool has required parameters.'}
 
 RULES:
-- If the tool has required parameters that need user input → show a mcpui-form with the parameters as fields. Add lookup to fields where values can be searched. Do NOT guess parameter values.
+- If the tool has required parameters that need user input → show a burnish-form with the parameters as fields. Add lookup to fields where values can be searched. Do NOT guess parameter values.
 - If the tool can run with NO parameters or has obvious defaults (like listing the current directory) → call it and show results.
 ${isWrite ? '- This is a write tool — ALWAYS show a form, never auto-invoke.' : '- Only auto-invoke if truly no user input is needed.'}
 
-Use ONLY mcpui-* web components. Include mcpui-actions with next steps after results.`;
+Use ONLY burnish-* web components. Include burnish-actions with next steps after results.`;
     }
-    return `Explore "${title}"${idClause} in more detail. Call the appropriate tools to get real data and show the results using mcpui-* web components. If a tool requires parameters, show a mcpui-form instead of guessing. Include mcpui-actions with next steps.`;
+    return `Explore "${title}"${idClause} in more detail. Call the appropriate tools to get real data and show the results using burnish-* web components. If a tool requires parameters, show a burnish-form instead of guessing. Include burnish-actions with next steps.`;
 }
 
 // ── Helpers ──
@@ -1276,17 +1276,17 @@ function escapeAttr(text) {
 
 function getEmptyState() {
     return `
-        <div class="mcpui-empty-state">
-            <h2>Welcome to MCPUI</h2>
+        <div class="burnish-empty-state">
+            <h2>Welcome to Burnish</h2>
             <p>Explore your connected data sources.</p>
-            <div class="mcpui-server-buttons" id="server-buttons">
-                <div class="mcpui-suggestion-skeleton-pill"></div>
-                <div class="mcpui-suggestion-skeleton-pill"></div>
+            <div class="burnish-server-buttons" id="server-buttons">
+                <div class="burnish-suggestion-skeleton-pill"></div>
+                <div class="burnish-suggestion-skeleton-pill"></div>
             </div>
-            <div class="mcpui-tool-shortcuts" id="tool-shortcuts">
-                <div class="mcpui-suggestion-skeleton-pill"></div>
-                <div class="mcpui-suggestion-skeleton-pill"></div>
-                <div class="mcpui-suggestion-skeleton-pill"></div>
+            <div class="burnish-tool-shortcuts" id="tool-shortcuts">
+                <div class="burnish-suggestion-skeleton-pill"></div>
+                <div class="burnish-suggestion-skeleton-pill"></div>
+                <div class="burnish-suggestion-skeleton-pill"></div>
             </div>
         </div>
     `;
@@ -1301,12 +1301,12 @@ async function loadDynamicSuggestions(container) {
         const serverBtns = container.querySelector('#server-buttons');
         if (serverBtns) {
             if (servers.length === 0) {
-                serverBtns.innerHTML = `<button class="mcpui-suggestion" data-prompt="What tools are available?" data-label="Available tools">Available tools</button>`;
+                serverBtns.innerHTML = `<button class="burnish-suggestion" data-prompt="What tools are available?" data-label="Available tools">Available tools</button>`;
             } else {
                 serverBtns.innerHTML = servers.map(s => `
-                    <button class="mcpui-suggestion mcpui-suggestion-server" data-prompt="${escapeAttr(`Show me what I can do with the connected ${s.name} tools. List the available operations as cards.`)}" data-label="${escapeAttr(s.name)}">
+                    <button class="burnish-suggestion burnish-suggestion-server" data-prompt="${escapeAttr(`Show me what I can do with the connected ${s.name} tools. List the available operations as cards.`)}" data-label="${escapeAttr(s.name)}">
                         ${escapeHtml(s.name)}
-                        <span class="mcpui-suggestion-sub">${s.toolCount} tools</span>
+                        <span class="burnish-suggestion-sub">${s.toolCount} tools</span>
                     </button>
                 `).join('');
             }
@@ -1328,7 +1328,7 @@ async function loadDynamicSuggestions(container) {
                     : tool.name.replace(/_/g, ' ');
                 shortcuts.push({
                     label,
-                    prompt: `${tool.description || tool.name}. Show results using mcpui-* components.`,
+                    prompt: `${tool.description || tool.name}. Show results using burnish-* components.`,
                 });
                 countForServer++;
             }
@@ -1340,7 +1340,7 @@ async function loadDynamicSuggestions(container) {
                 toolSection.innerHTML = '';
             } else {
                 toolSection.innerHTML = shortcuts.map(s => `
-                    <button class="mcpui-suggestion" data-prompt="${escapeAttr(s.prompt)}" data-label="${escapeAttr(s.label)}">
+                    <button class="burnish-suggestion" data-prompt="${escapeAttr(s.prompt)}" data-label="${escapeAttr(s.label)}">
                         ${escapeHtml(s.label)}
                     </button>
                 `).join('');
@@ -1349,7 +1349,7 @@ async function loadDynamicSuggestions(container) {
     } catch {
         const serverBtns = container.querySelector('#server-buttons');
         if (serverBtns) {
-            serverBtns.innerHTML = `<button class="mcpui-suggestion" data-prompt="What tools are available?" data-label="Available tools">Available tools</button>`;
+            serverBtns.innerHTML = `<button class="burnish-suggestion" data-prompt="What tools are available?" data-label="Available tools">Available tools</button>`;
         }
         const toolSection = container.querySelector('#tool-shortcuts');
         if (toolSection) toolSection.innerHTML = '';
@@ -1367,7 +1367,7 @@ async function openServerModal() {
 function closeServerModal() {
     const modal = document.getElementById('server-modal');
     if (modal) modal.hidden = true;
-    document.querySelector('.mcpui-setup-form')?.remove();
+    document.querySelector('.burnish-setup-form')?.remove();
 }
 
 async function refreshServerModal() {
@@ -1381,16 +1381,16 @@ async function refreshServerModal() {
     const connectedList = document.getElementById('connected-server-list');
     if (connectedList) {
         if (servers.length === 0) {
-            connectedList.innerHTML = '<div class="mcpui-no-servers">No servers connected</div>';
+            connectedList.innerHTML = '<div class="burnish-no-servers">No servers connected</div>';
         } else {
             connectedList.innerHTML = servers.map(s => `
-                <div class="mcpui-connected-server">
-                    <span class="mcpui-connected-server-dot"></span>
-                    <div class="mcpui-connected-server-info">
-                        <div class="mcpui-connected-server-name">${escapeHtml(s.name)}</div>
-                        <div class="mcpui-connected-server-tools">${s.toolCount} tools</div>
+                <div class="burnish-connected-server">
+                    <span class="burnish-connected-server-dot"></span>
+                    <div class="burnish-connected-server-info">
+                        <div class="burnish-connected-server-name">${escapeHtml(s.name)}</div>
+                        <div class="burnish-connected-server-tools">${s.toolCount} tools</div>
                     </div>
-                    <button class="mcpui-connected-server-disconnect" data-server="${escapeHtml(s.name)}">Disconnect</button>
+                    <button class="burnish-connected-server-disconnect" data-server="${escapeHtml(s.name)}">Disconnect</button>
                 </div>
             `).join('');
         }
@@ -1404,14 +1404,14 @@ async function refreshServerModal() {
         for (const [cat, label] of Object.entries(categories)) {
             const items = catalog.filter(s => s.category === cat);
             if (items.length === 0) continue;
-            html += `<div class="mcpui-catalog-category">`;
-            html += `<div class="mcpui-catalog-category-label">${label}</div>`;
-            html += `<div class="mcpui-catalog-grid">`;
+            html += `<div class="burnish-catalog-category">`;
+            html += `<div class="burnish-catalog-category-label">${label}</div>`;
+            html += `<div class="burnish-catalog-grid">`;
             for (const item of items) {
                 const isConnected = connectedNames.has(item.id);
-                html += `<div class="mcpui-catalog-item${isConnected ? ' connected' : ''}" data-preset-id="${item.id}">
-                    <div class="mcpui-catalog-item-name">${escapeHtml(item.name)}</div>
-                    <div class="mcpui-catalog-item-desc">${escapeHtml(item.description)}</div>
+                html += `<div class="burnish-catalog-item${isConnected ? ' connected' : ''}" data-preset-id="${item.id}">
+                    <div class="burnish-catalog-item-name">${escapeHtml(item.name)}</div>
+                    <div class="burnish-catalog-item-desc">${escapeHtml(item.description)}</div>
                 </div>`;
             }
             html += `</div></div>`;
@@ -1426,7 +1426,7 @@ async function showSetupForm(presetId) {
     const preset = catalog.find(s => s.id === presetId);
     if (!preset) return;
 
-    document.querySelector('.mcpui-setup-form')?.remove();
+    document.querySelector('.burnish-setup-form')?.remove();
 
     if (!preset.requiredFields || preset.requiredFields.length === 0) {
         await connectPresetServer(preset, {});
@@ -1434,24 +1434,24 @@ async function showSetupForm(presetId) {
     }
 
     const form = document.createElement('div');
-    form.className = 'mcpui-setup-form';
+    form.className = 'burnish-setup-form';
     form.innerHTML = `
         <h4>Configure ${escapeHtml(preset.name)}</h4>
         ${preset.requiredFields.map(f => `
-            <div class="mcpui-setup-field">
+            <div class="burnish-setup-field">
                 <label>${escapeHtml(f.label)}</label>
                 <input type="${f.key.toLowerCase().includes('token') || f.key.toLowerCase().includes('key') ? 'password' : 'text'}"
                        data-field-key="${f.key}" placeholder="${escapeHtml(f.placeholder || '')}" />
             </div>
         `).join('')}
-        <div class="mcpui-setup-status" id="setup-status"></div>
-        <div class="mcpui-setup-actions">
-            <button class="mcpui-setup-btn mcpui-setup-btn-cancel" id="btn-setup-cancel">Cancel</button>
-            <button class="mcpui-setup-btn mcpui-setup-btn-primary" id="btn-setup-connect">Connect</button>
+        <div class="burnish-setup-status" id="setup-status"></div>
+        <div class="burnish-setup-actions">
+            <button class="burnish-setup-btn burnish-setup-btn-cancel" id="btn-setup-cancel">Cancel</button>
+            <button class="burnish-setup-btn burnish-setup-btn-primary" id="btn-setup-connect">Connect</button>
         </div>
     `;
 
-    document.querySelector('.mcpui-modal-body')?.appendChild(form);
+    document.querySelector('.burnish-modal-body')?.appendChild(form);
     form.scrollIntoView({ behavior: 'smooth' });
 
     form.querySelector('#btn-setup-cancel')?.addEventListener('click', () => form.remove());
@@ -1477,7 +1477,7 @@ async function connectPresetServer(preset, fieldValues) {
         }
     }
 
-    if (statusEl) { statusEl.textContent = 'Connecting...'; statusEl.className = 'mcpui-setup-status'; }
+    if (statusEl) { statusEl.textContent = 'Connecting...'; statusEl.className = 'burnish-setup-status'; }
 
     try {
         const res = await fetch('/api/servers', {
@@ -1487,10 +1487,10 @@ async function connectPresetServer(preset, fieldValues) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to connect');
-        if (statusEl) { statusEl.textContent = 'Connected!'; statusEl.className = 'mcpui-setup-status success'; }
-        setTimeout(async () => { document.querySelector('.mcpui-setup-form')?.remove(); await refreshServerModal(); }, 1000);
+        if (statusEl) { statusEl.textContent = 'Connected!'; statusEl.className = 'burnish-setup-status success'; }
+        setTimeout(async () => { document.querySelector('.burnish-setup-form')?.remove(); await refreshServerModal(); }, 1000);
     } catch (err) {
-        if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.className = 'mcpui-setup-status error'; }
+        if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.className = 'burnish-setup-status error'; }
     }
 }
 

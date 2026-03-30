@@ -1,5 +1,5 @@
 /**
- * DOMPurify configuration generator for MCPUI components.
+ * DOMPurify configuration generator for Burnish components.
  *
  * Auto-generates ADD_TAGS and ADD_ATTR from a component registry,
  * so consumers don't need to manually maintain sanitizer config.
@@ -15,15 +15,15 @@ export interface SanitizerConfig {
     ADD_ATTR: string[];
 }
 
-/** Default MCPUI component definitions */
-export const MCPUI_COMPONENTS: ComponentDef[] = [
-    { tag: 'mcpui-card', attrs: ['title', 'status', 'body', 'meta', 'item-id'] },
-    { tag: 'mcpui-stat-bar', attrs: ['items'] },
-    { tag: 'mcpui-table', attrs: ['title', 'columns', 'rows', 'status-field'] },
-    { tag: 'mcpui-chart', attrs: ['type', 'config'] },
-    { tag: 'mcpui-section', attrs: ['label', 'count', 'status', 'collapsed'] },
-    { tag: 'mcpui-metric', attrs: ['label', 'value', 'unit', 'trend'] },
-    { tag: 'mcpui-message', attrs: ['role', 'content', 'streaming'] },
+/** Default Burnish component definitions */
+export const BURNISH_COMPONENTS: ComponentDef[] = [
+    { tag: 'burnish-card', attrs: ['title', 'status', 'body', 'meta', 'item-id'] },
+    { tag: 'burnish-stat-bar', attrs: ['items'] },
+    { tag: 'burnish-table', attrs: ['title', 'columns', 'rows', 'status-field'] },
+    { tag: 'burnish-chart', attrs: ['type', 'config'] },
+    { tag: 'burnish-section', attrs: ['label', 'count', 'status', 'collapsed'] },
+    { tag: 'burnish-metric', attrs: ['label', 'value', 'unit', 'trend'] },
+    { tag: 'burnish-message', attrs: ['role', 'content', 'streaming'] },
 ];
 
 /**
@@ -31,7 +31,7 @@ export const MCPUI_COMPONENTS: ComponentDef[] = [
  * Merges all component tags and their attributes into a single config.
  */
 export function buildSanitizerConfig(
-    components: ComponentDef[] = MCPUI_COMPONENTS,
+    components: ComponentDef[] = BURNISH_COMPONENTS,
     extraAttrs: string[] = ['class'],
 ): SanitizerConfig {
     const tags = new Set<string>();
@@ -60,8 +60,8 @@ export function buildSanitizerConfigWithPrefix(
     extraAttrs: string[] = ['class'],
 ): SanitizerConfig {
     // Remap default components to new prefix
-    const remapped = MCPUI_COMPONENTS.map(c => ({
-        tag: c.tag.replace('mcpui-', prefix),
+    const remapped = BURNISH_COMPONENTS.map(c => ({
+        tag: c.tag.replace('burnish-', prefix),
         attrs: c.attrs,
     }));
 

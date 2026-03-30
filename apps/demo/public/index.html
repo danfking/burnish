@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCPUI — Universal MCP Dashboard</title>
+    <title>Burnish — Universal MCP Dashboard</title>
     <link rel="stylesheet" href="/tokens.css">
     <link rel="stylesheet" href="/style.css">
 
@@ -22,7 +22,7 @@
     }
     </script>
 
-    <!-- Chart.js for mcpui-chart -->
+    <!-- Chart.js for burnish-chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
     <!-- DOMPurify for HTML sanitization -->
@@ -31,13 +31,14 @@
     <!-- Marked.js for markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 
-    <!-- MCPUI Components (CDN-style from local build) -->
+    <!-- Burnish Components (CDN-style from local build) -->
     <script type="module" src="/components/card.js"></script>
     <script type="module" src="/components/stat-bar.js"></script>
     <script type="module" src="/components/table.js"></script>
     <script type="module" src="/components/chart.js"></script>
     <script type="module" src="/components/section.js"></script>
     <script type="module" src="/components/metric.js"></script>
+    <script type="module" src="/components/message.js"></script>
     <script type="module" src="/components/form.js"></script>
     <script type="module" src="/components/actions.js"></script>
 
@@ -46,37 +47,37 @@
 </head>
 <body>
     <!-- Session Panel (left) -->
-    <aside id="session-panel" class="mcpui-session-panel">
-        <div class="mcpui-session-panel-header">
-            <span class="mcpui-session-panel-title">Sessions</span>
-            <button id="btn-new-session" class="mcpui-session-new-btn" title="New conversation">
+    <aside id="session-panel" class="burnish-session-panel">
+        <div class="burnish-session-panel-header">
+            <span class="burnish-session-panel-title">Sessions</span>
+            <button id="btn-new-session" class="burnish-session-new-btn" title="New conversation">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </button>
         </div>
-        <div id="session-list" class="mcpui-session-list">
+        <div id="session-list" class="burnish-session-list">
             <!-- Session items rendered by JS -->
         </div>
     </aside>
 
     <!-- Header -->
-    <header class="mcpui-header">
-        <div class="mcpui-header-left">
-            <button id="btn-toggle-sessions" class="mcpui-header-btn mcpui-mobile-only" title="Sessions">
+    <header class="burnish-header">
+        <div class="burnish-header-left">
+            <button id="btn-toggle-sessions" class="burnish-header-btn burnish-mobile-only" title="Sessions">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
                     <path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
                 </svg>
             </button>
-            <span class="mcpui-logo">MCPUI</span>
-            <span class="mcpui-breadcrumb" id="breadcrumb">Dashboard</span>
+            <span class="burnish-logo">Burnish</span>
+            <span class="burnish-breadcrumb" id="breadcrumb">Dashboard</span>
         </div>
-        <div class="mcpui-header-right">
-            <div id="fast-toggle" class="mcpui-fast-toggle" title="Use faster model (Haiku)">
+        <div class="burnish-header-right">
+            <div id="fast-toggle" class="burnish-fast-toggle" title="Use faster model (Haiku)">
                 <span>Fast</span>
-                <div class="mcpui-fast-toggle-switch"></div>
+                <div class="burnish-fast-toggle-switch"></div>
             </div>
-            <button id="btn-servers" class="mcpui-header-btn" title="Connected servers">
+            <button id="btn-servers" class="burnish-header-btn" title="Connected servers">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
                     <path d="M2 4c0-1 3.6-2 8-2s8 1 8 2v2c0 1-3.6 2-8 2S2 7 2 6V4zm0 5c1.6 1 4.6 1.5 8 1.5S16.4 10 18 9v3c0 1-3.6 2-8 2S2 13 2 12V9zm0 5c1.6 1 4.6 1.5 8 1.5S16.4 15 18 14v2c0 1-3.6 2-8 2S2 17 2 16v-2z"/>
                 </svg>
@@ -85,22 +86,22 @@
     </header>
 
     <!-- Main layout -->
-    <div class="mcpui-layout">
-        <main id="content-area" class="mcpui-content">
-            <div id="dashboard-container" class="mcpui-dashboard">
-                <div class="mcpui-empty-state">
-                    <div class="mcpui-empty-icon">
+    <div class="burnish-layout">
+        <main id="content-area" class="burnish-content">
+            <div id="dashboard-container" class="burnish-dashboard">
+                <div class="burnish-empty-state">
+                    <div class="burnish-empty-icon">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
                             <circle cx="24" cy="24" r="20" stroke="#d1d5db" stroke-width="2" fill="none"/>
                             <path d="M16 24h16M24 16v16" stroke="#d1d5db" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </div>
-                    <h2>Welcome to MCPUI</h2>
+                    <h2>Welcome to Burnish</h2>
                     <p>Connect to any MCP server and explore your data visually.</p>
-                    <div class="mcpui-suggestions">
-                        <button class="mcpui-suggestion" data-prompt="What tools are available?">Available tools</button>
-                        <button class="mcpui-suggestion" data-prompt="Show me an overview of the data">Data overview</button>
-                        <button class="mcpui-suggestion" data-prompt="List everything you can access">List resources</button>
+                    <div class="burnish-suggestions">
+                        <button class="burnish-suggestion" data-prompt="What tools are available?">Available tools</button>
+                        <button class="burnish-suggestion" data-prompt="Show me an overview of the data">Data overview</button>
+                        <button class="burnish-suggestion" data-prompt="List everything you can access">List resources</button>
                     </div>
                 </div>
             </div>
@@ -108,16 +109,16 @@
     </div>
 
     <!-- Prompt bar -->
-    <footer class="mcpui-prompt-bar">
-        <div class="mcpui-prompt-container">
+    <footer class="burnish-prompt-bar">
+        <div class="burnish-prompt-container">
             <textarea
                 id="prompt-input"
-                class="mcpui-prompt-input"
+                class="burnish-prompt-input"
                 placeholder="Ask about your data..."
                 rows="1"
                 autocomplete="off"
             ></textarea>
-            <button id="btn-submit" class="mcpui-prompt-submit" title="Send">
+            <button id="btn-submit" class="burnish-prompt-submit" title="Send">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2 10l7-7v4h9v6H9v4z" transform="rotate(-90 10 10)"/>
                 </svg>
@@ -126,19 +127,19 @@
     </footer>
 
     <!-- Server Config Modal -->
-    <div id="server-modal" class="mcpui-modal" hidden>
-        <div class="mcpui-modal-backdrop"></div>
-        <div class="mcpui-modal-content">
-            <div class="mcpui-modal-header">
+    <div id="server-modal" class="burnish-modal" hidden>
+        <div class="burnish-modal-backdrop"></div>
+        <div class="burnish-modal-content">
+            <div class="burnish-modal-header">
                 <h3>MCP Servers</h3>
-                <button class="mcpui-modal-close" id="btn-close-modal">&times;</button>
+                <button class="burnish-modal-close" id="btn-close-modal">&times;</button>
             </div>
-            <div class="mcpui-modal-body">
-                <div class="mcpui-connected-servers">
+            <div class="burnish-modal-body">
+                <div class="burnish-connected-servers">
                     <h4>Connected</h4>
                     <div id="connected-server-list"></div>
                 </div>
-                <div class="mcpui-server-catalog">
+                <div class="burnish-server-catalog">
                     <h4>Add Server</h4>
                     <div id="catalog-grid"></div>
                 </div>

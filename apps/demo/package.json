@@ -2,24 +2,25 @@
   "name": "demo",
   "version": "0.1.0",
   "private": true,
-  "description": "MCPUI demo app — connects to MCP servers and renders visual dashboards",
+  "description": "Burnish demo app — connects to MCP servers and renders visual dashboards",
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
-    "dev:cli": "LLM_BACKEND=cli tsx watch server/index.ts",
+    "dev:cli": "cross-env LLM_BACKEND=cli tsx watch server/index.ts",
     "build": "echo 'demo app - no build step'",
     "clean": "echo 'nothing to clean'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@burnish/components": "workspace:*",
+    "@burnish/renderer": "workspace:*",
     "@hono/node-server": "^1.14.0",
-    "@mcpui/components": "workspace:*",
-    "@mcpui/renderer": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "hono": "^4.7.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "cross-env": "^10.1.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }

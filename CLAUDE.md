@@ -1,4 +1,4 @@
-# MCPUI — Universal UI Layer for MCP Servers
+# Burnish — Universal UI Layer for MCP Servers
 
 A component library + streaming renderer + demo app that connects to any MCP server and renders navigable visual dashboards from LLM tool call results.
 
@@ -55,10 +55,10 @@ All commit messages must follow `type(scope): description`:
 ## Architecture
 
 ```
-mcpui/
+burnish/
 ├── packages/
-│   ├── components/     # @mcpui/components — Lit web components (card, table, chart, etc.)
-│   └── renderer/       # @mcpui/renderer — streaming HTML parser, sanitizer, component mapper
+│   ├── components/     # @burnish/components — Lit web components (card, table, chart, etc.)
+│   └── renderer/       # @burnish/renderer — streaming HTML parser, sanitizer, component mapper
 ├── apps/
 │   └── demo/           # Demo app — Hono backend + vanilla HTML frontend
 │       ├── server/     # LLM orchestrator, MCP client hub, API endpoints
@@ -71,52 +71,52 @@ mcpui/
 
 - **TypeScript** for all packages and server code
 - **Lit 3** for web components (extends LitElement)
-- **CSS custom properties** with `--mcpui-*` prefix for theming
+- **CSS custom properties** with `--burnish-*` prefix for theming
 - **JSON string attributes** on components (parsed internally, graceful degradation)
 - **pnpm workspaces** — `packages/` for publishable libs, `apps/` for demo
-- **Tag prefix `mcpui-`** — generic, not branded
-- Components emit `CustomEvent` for interactions (e.g. `mcpui-card-action`)
+- **Tag prefix `burnish-`** — generic, not branded
+- Components emit `CustomEvent` for interactions (e.g. `burnish-card-action`)
 - No framework dependency — works in React, Vue, Angular, vanilla
 
 ## Key Design Decisions
 
 1. **System prompt as the mapper** — the LLM is instructed which components to use via system prompt. Component-mapper is supplementary auto-inference for raw JSON
-2. **Configurable tag prefix** in renderer — default `mcpui-`, but consumers can set e.g. `xm-` for their own branding
+2. **Configurable tag prefix** in renderer — default `burnish-`, but consumers can set e.g. `xm-` for their own branding
 3. **No build step for consumers** — CDN-importable ES modules, optional npm install
-4. **Container tags** (like `mcpui-section`) nest children and stream progressively; leaf tags render as complete units
+4. **Container tags** (like `burnish-section`) nest children and stream progressively; leaf tags render as complete units
 
 ## Component Reference
 
 | Component | Tag | Key Attributes |
 |-----------|-----|---------------|
-| Status Card | `<mcpui-card>` | title, status, body, meta (JSON), item-id |
-| Stat Bar | `<mcpui-stat-bar>` | items (JSON: [{label, value, color?}]) |
-| Data Table | `<mcpui-table>` | title, columns (JSON), rows (JSON), status-field |
-| Chart | `<mcpui-chart>` | type (line\|bar\|doughnut), config (JSON Chart.js config) |
-| Section | `<mcpui-section>` | label, count, status, collapsed |
-| Metric | `<mcpui-metric>` | label, value, unit, trend (up\|down\|flat) |
-| Message | `<mcpui-message>` | role (user\|assistant), content, streaming |
+| Status Card | `<burnish-card>` | title, status, body, meta (JSON), item-id |
+| Stat Bar | `<burnish-stat-bar>` | items (JSON: [{label, value, color?}]) |
+| Data Table | `<burnish-table>` | title, columns (JSON), rows (JSON), status-field |
+| Chart | `<burnish-chart>` | type (line\|bar\|doughnut), config (JSON Chart.js config) |
+| Section | `<burnish-section>` | label, count, status, collapsed |
+| Metric | `<burnish-metric>` | label, value, unit, trend (up\|down\|flat) |
+| Message | `<burnish-message>` | role (user\|assistant), content, streaming |
 
 Status values: `success`, `warning`, `error`, `muted` (maps to semantic colors)
 
 ## Implementation Plan & Progress
 
 ### Day 0: Repo + Plan
-- [x] Create GitHub repo (danfking/mcpui)
+- [x] Create GitHub repo (danfking/burnish)
 - [x] Write CLAUDE.md with full plan
 - [x] Initial commit with project structure
 
 ### Day 1: Project Scaffold + Core Components
 - [x] **1.1** pnpm workspace, tsconfig base, package.json files
-- [x] **1.2** Design tokens (`packages/components/src/tokens.css`) — `--mcpui-*` CSS custom props
+- [x] **1.2** Design tokens (`packages/components/src/tokens.css`) — `--burnish-*` CSS custom props
 - [x] **1.3** Core components (TypeScript Lit):
-  - [x] `<mcpui-card>` — status card with drill-down event
-  - [x] `<mcpui-stat-bar>` — horizontal metric chips
-  - [x] `<mcpui-table>` — data table with status coloring
-  - [x] `<mcpui-chart>` — Chart.js wrapper
-  - [x] `<mcpui-section>` — collapsible section with grid
-  - [x] `<mcpui-metric>` — single KPI display
-  - [x] `<mcpui-message>` — chat bubble
+  - [x] `<burnish-card>` — status card with drill-down event
+  - [x] `<burnish-stat-bar>` — horizontal metric chips
+  - [x] `<burnish-table>` — data table with status coloring
+  - [x] `<burnish-chart>` — Chart.js wrapper
+  - [x] `<burnish-section>` — collapsible section with grid
+  - [x] `<burnish-metric>` — single KPI display
+  - [x] `<burnish-message>` — chat bubble
   - [x] `index.ts` barrel export
 - [x] Build succeeds (`pnpm build`)
 
@@ -166,14 +166,14 @@ Status values: `success`, `warning`, `error`, `muted` (maps to semantic colors)
 
 ```html
 <!-- CDN (simplest) -->
-<script type="module" src="https://cdn.jsdelivr.net/npm/@mcpui/components/dist/index.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@burnish/components/dist/index.js"></script>
 ```
 
 ```javascript
-// npm install @mcpui/components
+// npm install @burnish/components
 // Re-register with custom prefix if needed:
-import { McpuiCard } from '@mcpui/components';
-customElements.define('xm-card', class extends McpuiCard {});
+import { BurnishCard } from '@burnish/components';
+customElements.define('xm-card', class extends BurnishCard {});
 ```
 
 Consumer keeps: their own backend, system prompt, tool definitions, branding.

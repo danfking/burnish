@@ -79,7 +79,7 @@ async function* streamResponseCli(
     const userMessage = buildUserMessage(conv);
 
     // Write system prompt to temp file (avoids command-line size limits)
-    const tempFile = join(tmpdir(), `mcpui-prompt-${randomUUID()}.txt`);
+    const tempFile = join(tmpdir(), `burnish-prompt-${randomUUID()}.txt`);
     await writeFile(tempFile, systemPrompt, 'utf-8');
 
     // Resolve the MCP server config path

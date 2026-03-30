@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-export class McpuiChart extends LitElement {
+export class BurnishChart extends LitElement {
     constructor() {
         super(...arguments);
         this._chart = null;
@@ -9,14 +9,14 @@ export class McpuiChart extends LitElement {
         config: { type: String },
     }; }
     static { this.styles = css `
-        :host { display: block; margin: var(--mcpui-space-lg, 16px) 0; }
+        :host { display: block; margin: var(--burnish-space-lg, 16px) 0; }
         .chart-container {
-            background: var(--mcpui-surface, #fff);
-            border-radius: var(--mcpui-radius-md, 8px);
-            box-shadow: var(--mcpui-shadow-sm);
-            padding: var(--mcpui-space-lg, 16px);
+            background: var(--burnish-surface, #fff);
+            border-radius: var(--burnish-radius-md, 8px);
+            box-shadow: var(--burnish-shadow-sm);
+            padding: var(--burnish-space-lg, 16px);
             position: relative;
-            height: var(--mcpui-chart-height, 300px);
+            height: var(--burnish-chart-height, 300px);
         }
         canvas { width: 100% !important; height: 100% !important; }
     `; }
@@ -49,7 +49,7 @@ export class McpuiChart extends LitElement {
             this._chart = new Chart(canvas.getContext('2d'), chartConfig);
         }
         catch (e) {
-            console.error('mcpui-chart: render error', e);
+            console.error('burnish-chart: render error', e);
         }
     }
     disconnectedCallback() {
@@ -63,5 +63,5 @@ export class McpuiChart extends LitElement {
         return html `<div class="chart-container"><canvas></canvas></div>`;
     }
 }
-customElements.define('mcpui-chart', McpuiChart);
+customElements.define('burnish-chart', BurnishChart);
 //# sourceMappingURL=chart.js.map

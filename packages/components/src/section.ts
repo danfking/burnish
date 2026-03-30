@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 
-export class McpuiSection extends LitElement {
+export class BurnishSection extends LitElement {
     static properties = {
         label: { type: String },
         count: { type: Number },
@@ -12,27 +12,27 @@ export class McpuiSection extends LitElement {
         :host { display: block; }
         :host(:first-child) { margin-top: 0; }
         .header {
-            display: flex; align-items: center; gap: var(--mcpui-space-sm, 8px);
-            cursor: pointer; user-select: none; padding: var(--mcpui-space-sm, 8px) 0;
+            display: flex; align-items: center; gap: var(--burnish-space-sm, 8px);
+            cursor: pointer; user-select: none; padding: var(--burnish-space-sm, 8px) 0;
         }
         .chevron {
-            width: 16px; height: 16px; color: var(--mcpui-text-muted);
-            transition: transform var(--mcpui-transition-fast); flex-shrink: 0;
+            width: 16px; height: 16px; color: var(--burnish-text-muted);
+            transition: transform var(--burnish-transition-fast); flex-shrink: 0;
         }
         :host([collapsed]) .chevron { transform: rotate(-90deg); }
         .status-dot {
-            width: 12px; height: 12px; border-radius: var(--mcpui-radius-round, 50%); flex-shrink: 0;
+            width: 12px; height: 12px; border-radius: var(--burnish-radius-round, 50%); flex-shrink: 0;
         }
-        .label { font-size: var(--mcpui-font-size-lg, 16px); font-weight: 600; color: var(--mcpui-text); }
-        .label[data-status="error"], .label[data-status="failing"] { color: var(--mcpui-error); }
-        .label[data-status="warning"] { color: var(--mcpui-warning); }
-        .label[data-status="success"], .label[data-status="healthy"] { color: var(--mcpui-success); }
-        .label[data-status="muted"], .label[data-status="no-data"] { color: var(--mcpui-text-muted); }
-        .count { font-size: var(--mcpui-font-size-md, 14px); font-weight: 600; color: var(--mcpui-text-muted); }
-        .content { overflow: hidden; transition: max-height var(--mcpui-transition-normal); }
+        .label { font-size: var(--burnish-font-size-lg, 16px); font-weight: 600; color: var(--burnish-text); }
+        .label[data-status="error"], .label[data-status="failing"] { color: var(--burnish-error); }
+        .label[data-status="warning"] { color: var(--burnish-warning); }
+        .label[data-status="success"], .label[data-status="healthy"] { color: var(--burnish-success); }
+        .label[data-status="muted"], .label[data-status="no-data"] { color: var(--burnish-text-muted); }
+        .count { font-size: var(--burnish-font-size-md, 14px); font-weight: 600; color: var(--burnish-text-muted); }
+        .content { overflow: hidden; transition: max-height var(--burnish-transition-normal); }
         .grid {
             display: flex; flex-wrap: wrap;
-            gap: var(--mcpui-space-md, 12px);
+            gap: var(--burnish-space-md, 12px);
         }
         :host([collapsed]) .content { max-height: 0 !important; }
         @media (max-width: 768px) { .grid { flex-direction: column; } }
@@ -52,11 +52,11 @@ export class McpuiSection extends LitElement {
 
     private _getStatusColor(): string {
         const s = (this.status || '').toLowerCase();
-        if (s === 'error' || s === 'failing') return 'var(--mcpui-error, #dc2626)';
-        if (s === 'warning') return 'var(--mcpui-warning, #ca8a04)';
-        if (s === 'success' || s === 'healthy') return 'var(--mcpui-success, #16a34a)';
-        if (s === 'info') return 'var(--mcpui-info, #6366f1)';
-        return 'var(--mcpui-muted, #9ca3af)';
+        if (s === 'error' || s === 'failing') return 'var(--burnish-error, #dc2626)';
+        if (s === 'warning') return 'var(--burnish-warning, #ca8a04)';
+        if (s === 'success' || s === 'healthy') return 'var(--burnish-success, #16a34a)';
+        if (s === 'info') return 'var(--burnish-info, #6366f1)';
+        return 'var(--burnish-muted, #9ca3af)';
     }
 
     render() {
@@ -77,4 +77,4 @@ export class McpuiSection extends LitElement {
     }
 }
 
-customElements.define('mcpui-section', McpuiSection);
+customElements.define('burnish-section', BurnishSection);

@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-export class McpuiMetric extends LitElement {
+export class BurnishMetric extends LitElement {
     static { this.properties = {
         label: { type: String },
         value: { type: String },
@@ -9,31 +9,31 @@ export class McpuiMetric extends LitElement {
     static { this.styles = css `
         :host { display: block; }
         .metric {
-            background: var(--mcpui-surface, #fff);
-            border-radius: var(--mcpui-radius-md, 8px);
-            box-shadow: var(--mcpui-shadow-sm);
-            padding: var(--mcpui-space-lg, 16px) var(--mcpui-space-xl, 20px);
-            display: flex; align-items: center; gap: var(--mcpui-space-lg, 16px);
+            background: var(--burnish-surface, #fff);
+            border-radius: var(--burnish-radius-md, 8px);
+            box-shadow: var(--burnish-shadow-sm);
+            padding: var(--burnish-space-lg, 16px) var(--burnish-space-xl, 20px);
+            display: flex; align-items: center; gap: var(--burnish-space-lg, 16px);
         }
         .metric-body { flex: 1; }
         .metric-label {
-            font-size: var(--mcpui-font-size-sm, 12px); color: var(--mcpui-text-secondary);
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--mcpui-space-xs, 4px);
+            font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--burnish-space-xs, 4px);
         }
         .metric-value {
-            font-size: var(--mcpui-font-size-2xl, 24px); font-weight: 700; color: var(--mcpui-text);
+            font-size: var(--burnish-font-size-2xl, 24px); font-weight: 700; color: var(--burnish-text);
         }
         .metric-unit {
-            font-size: var(--mcpui-font-size-md, 14px); font-weight: 400;
-            color: var(--mcpui-text-secondary); margin-left: var(--mcpui-space-xs, 4px);
+            font-size: var(--burnish-font-size-md, 14px); font-weight: 400;
+            color: var(--burnish-text-secondary); margin-left: var(--burnish-space-xs, 4px);
         }
         .metric-trend {
-            font-size: var(--mcpui-font-size-lg, 16px); font-weight: 600;
+            font-size: var(--burnish-font-size-lg, 16px); font-weight: 600;
             display: flex; align-items: center;
         }
-        .metric-trend[data-trend="up"] { color: var(--mcpui-success); }
-        .metric-trend[data-trend="down"] { color: var(--mcpui-error); }
-        .metric-trend[data-trend="flat"] { color: var(--mcpui-text-muted); }
+        .metric-trend[data-trend="up"] { color: var(--burnish-success); }
+        .metric-trend[data-trend="down"] { color: var(--burnish-error); }
+        .metric-trend[data-trend="flat"] { color: var(--burnish-text-muted); }
     `; }
     _trendIcon() {
         if (this.trend === 'up')
@@ -59,5 +59,5 @@ export class McpuiMetric extends LitElement {
         `;
     }
 }
-customElements.define('mcpui-metric', McpuiMetric);
+customElements.define('burnish-metric', BurnishMetric);
 //# sourceMappingURL=metric.js.map

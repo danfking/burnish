@@ -1,5 +1,5 @@
 /**
- * Component mapper — auto-infers the best MCPUI component for a given data shape.
+ * Component mapper — auto-infers the best Burnish component for a given data shape.
  *
  * This is the supplementary auto-inference layer. The primary mapping is done
  * via the LLM system prompt, but this module handles cases where the LLM
@@ -12,7 +12,7 @@ export interface ComponentSuggestion {
 }
 
 export interface MapperOptions {
-    /** Tag prefix (default: 'mcpui-') */
+    /** Tag prefix (default: 'burnish-') */
     prefix?: string;
 }
 
@@ -31,7 +31,7 @@ export function inferComponent(
     data: unknown,
     options: MapperOptions = {},
 ): ComponentSuggestion | null {
-    const prefix = options.prefix ?? 'mcpui-';
+    const prefix = options.prefix ?? 'burnish-';
 
     if (data == null) return null;
 
