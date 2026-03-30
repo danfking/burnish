@@ -1,5 +1,5 @@
 {
-  "name": "mcpui",
+  "name": "burnish",
   "private": true,
   "description": "Universal UI layer for MCP servers",
   "scripts": {

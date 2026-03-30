@@ -1,5 +1,5 @@
 /**
- * MCPUI Demo Server — Hono API + static file serving.
+ * Burnish Demo Server — Hono API + static file serving.
  */
 
 import { Hono } from 'hono';
@@ -158,8 +158,8 @@ async function start() {
     const llmBackend = (process.env.LLM_BACKEND || (apiKey ? 'api' : 'cli')) as 'api' | 'cli';
 
     if (llmBackend === 'api' && !apiKey) {
-        console.error('[mcpui] ANTHROPIC_API_KEY required for api backend.');
-        console.error('[mcpui] Set LLM_BACKEND=cli to use your Claude Code subscription instead.');
+        console.error('[burnish] ANTHROPIC_API_KEY required for api backend.');
+        console.error('[burnish] Set LLM_BACKEND=cli to use your Claude Code subscription instead.');
         process.exit(1);
     }
 
@@ -170,23 +170,23 @@ async function start() {
     try {
         await mcpHub.initialize(configPath);
     } catch (err) {
-        console.warn('[mcpui] Could not initialize MCP servers:', err);
-        console.warn('[mcpui] Starting without MCP server connections');
+        console.warn('[burnish] Could not initialize MCP servers:', err);
+        console.warn('[burnish] Starting without MCP server connections');
     }
 
     const serverInfo = mcpHub.getServerInfo();
-    console.log(`[mcpui] Connected to ${serverInfo.length} MCP server(s)`);
+    console.log(`[burnish] Connected to ${serverInfo.length} MCP server(s)`);
     for (const s of serverInfo) {
-        console.log(`  - ${s.name}: ${s.toolCount} tools (${s.tools.join(', ')})`);
+        console.log(`  - ${s.name}: ${s.toolCount} tools (${s.tools.map(t => t.name).join(', ')})`);
     }
 
     serve({ fetch: app.fetch, port }, () => {
-        console.log(`[mcpui] Demo server running at http://localhost:${port}`);
+        console.log(`[burnish] Demo server running at http://localhost:${port}`);
     });
 
     // Graceful shutdown
     process.on('SIGINT', async () => {
-        console.log('\n[mcpui] Shutting down...');
+        console.log('\n[burnish] Shutting down...');
         await mcpHub.shutdown();
         process.exit(0);
     });

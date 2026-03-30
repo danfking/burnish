@@ -1,7 +1,7 @@
 {
-  "name": "@mcpui/renderer",
+  "name": "@burnish/renderer",
   "version": "0.1.0",
-  "description": "Streaming HTML renderer and component mapper for MCPUI",
+  "description": "Streaming HTML renderer and component mapper for Burnish",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

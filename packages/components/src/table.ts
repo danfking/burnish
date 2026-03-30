@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 
-export class McpuiTable extends LitElement {
+export class BurnishTable extends LitElement {
     static properties = {
         title: { type: String },
         columns: { type: String },
@@ -11,35 +11,35 @@ export class McpuiTable extends LitElement {
     static styles = css`
         :host { display: block; width: 100%; min-width: 0; }
         .table-container {
-            background: var(--mcpui-surface, #fff);
-            border-radius: var(--mcpui-radius-md, 8px);
-            box-shadow: var(--mcpui-shadow-sm);
+            background: var(--burnish-surface, #fff);
+            border-radius: var(--burnish-radius-md, 8px);
+            box-shadow: var(--burnish-shadow-sm);
             overflow: hidden;
         }
         .table-title {
-            padding: var(--mcpui-space-md, 12px) var(--mcpui-space-lg, 16px);
-            font-size: var(--mcpui-font-size-md, 14px); font-weight: 600;
-            border-bottom: 1px solid var(--mcpui-border-light, #f3f4f6);
+            padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px);
+            font-size: var(--burnish-font-size-md, 14px); font-weight: 600;
+            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
         }
-        table { width: 100%; border-collapse: collapse; font-size: var(--mcpui-font-size-base, 13px); }
+        table { width: 100%; border-collapse: collapse; font-size: var(--burnish-font-size-base, 13px); }
         th {
-            text-align: left; padding: 10px var(--mcpui-space-lg, 16px);
-            background: var(--mcpui-surface-alt, #f5f6f8);
-            color: var(--mcpui-text-secondary); font-weight: 600;
-            font-size: var(--mcpui-font-size-sm, 12px); text-transform: uppercase;
-            letter-spacing: 0.5px; border-bottom: 1px solid var(--mcpui-border-light);
+            text-align: left; padding: 10px var(--burnish-space-lg, 16px);
+            background: var(--burnish-surface-alt, #f5f6f8);
+            color: var(--burnish-text-secondary); font-weight: 600;
+            font-size: var(--burnish-font-size-sm, 12px); text-transform: uppercase;
+            letter-spacing: 0.5px; border-bottom: 1px solid var(--burnish-border-light);
         }
         td {
-            padding: 10px var(--mcpui-space-lg, 16px);
-            border-bottom: 1px solid var(--mcpui-border-light, #f3f4f6);
-            color: var(--mcpui-text, #1f2937);
+            padding: 10px var(--burnish-space-lg, 16px);
+            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+            color: var(--burnish-text, #1f2937);
         }
         tr:last-child td { border-bottom: none; }
-        tr:hover td { background: var(--mcpui-surface-hover, #f9fafb); }
-        .status-success, .status-healthy { color: var(--mcpui-success); }
-        .status-warning { color: var(--mcpui-warning); }
-        .status-error, .status-failing { color: var(--mcpui-error); font-weight: 600; }
-        .status-muted, .status-no-data { color: var(--mcpui-text-muted); }
+        tr:hover td { background: var(--burnish-surface-hover, #f9fafb); }
+        .status-success, .status-healthy { color: var(--burnish-success); }
+        .status-warning { color: var(--burnish-warning); }
+        .status-error, .status-failing { color: var(--burnish-error); font-weight: 600; }
+        .status-muted, .status-no-data { color: var(--burnish-text-muted); }
     `;
 
     declare title: string;
@@ -77,4 +77,4 @@ export class McpuiTable extends LitElement {
     }
 }
 
-customElements.define('mcpui-table', McpuiTable);
+customElements.define('burnish-table', BurnishTable);

@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 
-export class McpuiStatBar extends LitElement {
+export class BurnishStatBar extends LitElement {
     static properties = {
         items: { type: String },
         _activeFilter: { state: true },
@@ -8,28 +8,28 @@ export class McpuiStatBar extends LitElement {
 
     static styles = css`
         :host { display: block; width: 100%; min-width: 0; }
-        .stat-bar { display: flex; gap: var(--mcpui-space-md, 12px); flex-wrap: wrap; }
+        .stat-bar { display: flex; gap: var(--burnish-space-md, 12px); flex-wrap: wrap; }
         .stat-chip {
-            display: flex; align-items: center; gap: var(--mcpui-space-sm, 8px);
-            background: var(--mcpui-surface, #fff);
-            border-radius: var(--mcpui-radius-pill, 20px);
-            padding: var(--mcpui-space-sm, 8px) var(--mcpui-space-lg, 16px);
-            box-shadow: var(--mcpui-shadow-sm);
-            font-size: var(--mcpui-font-size-md, 14px);
-            transition: all var(--mcpui-transition-fast);
+            display: flex; align-items: center; gap: var(--burnish-space-sm, 8px);
+            background: var(--burnish-surface, #fff);
+            border-radius: var(--burnish-radius-pill, 20px);
+            padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
+            box-shadow: var(--burnish-shadow-sm);
+            font-size: var(--burnish-font-size-md, 14px);
+            transition: all var(--burnish-transition-fast);
             cursor: pointer;
             user-select: none;
             border: 2px solid transparent;
         }
-        .stat-chip:hover { transform: translateY(-1px); box-shadow: var(--mcpui-shadow-md); }
+        .stat-chip:hover { transform: translateY(-1px); box-shadow: var(--burnish-shadow-md); }
         .stat-chip.active {
-            border-color: var(--mcpui-accent, #4f6df5);
-            box-shadow: var(--mcpui-shadow-md);
+            border-color: var(--burnish-accent, #4f6df5);
+            box-shadow: var(--burnish-shadow-md);
         }
         .stat-chip.dimmed { opacity: 0.4; }
-        .stat-dot { width: 10px; height: 10px; border-radius: var(--mcpui-radius-round, 50%); }
-        .stat-value { font-weight: 700; font-size: var(--mcpui-font-size-xl, 18px); margin-right: var(--mcpui-space-xs, 4px); }
-        .stat-label { color: var(--mcpui-text-secondary, #6b7280); }
+        .stat-dot { width: 10px; height: 10px; border-radius: var(--burnish-radius-round, 50%); }
+        .stat-value { font-weight: 700; font-size: var(--burnish-font-size-xl, 18px); margin-right: var(--burnish-space-xs, 4px); }
+        .stat-label { color: var(--burnish-text-secondary, #6b7280); }
     `;
 
     declare items: string;
@@ -42,20 +42,20 @@ export class McpuiStatBar extends LitElement {
 
     private _getColor(color?: string): string {
         const map: Record<string, string> = {
-            success: 'var(--mcpui-success, #16a34a)', healthy: 'var(--mcpui-success, #16a34a)',
-            warning: 'var(--mcpui-warning, #ca8a04)',
-            error: 'var(--mcpui-error, #dc2626)', failing: 'var(--mcpui-error, #dc2626)',
-            info: 'var(--mcpui-info, #6366f1)',
-            muted: 'var(--mcpui-muted, #9ca3af)', 'no-data': 'var(--mcpui-muted, #9ca3af)',
+            success: 'var(--burnish-success, #16a34a)', healthy: 'var(--burnish-success, #16a34a)',
+            warning: 'var(--burnish-warning, #ca8a04)',
+            error: 'var(--burnish-error, #dc2626)', failing: 'var(--burnish-error, #dc2626)',
+            info: 'var(--burnish-info, #6366f1)',
+            muted: 'var(--burnish-muted, #9ca3af)', 'no-data': 'var(--burnish-muted, #9ca3af)',
         };
-        return map[color || ''] || color || 'var(--mcpui-muted, #9ca3af)';
+        return map[color || ''] || color || 'var(--burnish-muted, #9ca3af)';
     }
 
     private _handleClick(label: string) {
         // Toggle: click same chip to deselect
         this._activeFilter = this._activeFilter === label ? null : label;
 
-        this.dispatchEvent(new CustomEvent('mcpui-filter', {
+        this.dispatchEvent(new CustomEvent('burnish-filter', {
             detail: { filter: this._activeFilter },
             bubbles: true,
             composed: true,
@@ -85,4 +85,4 @@ export class McpuiStatBar extends LitElement {
     }
 }
 
-customElements.define('mcpui-stat-bar', McpuiStatBar);
+customElements.define('burnish-stat-bar', BurnishStatBar);

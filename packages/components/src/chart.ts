@@ -3,7 +3,7 @@ import { LitElement, html, css } from 'lit';
 // Chart.js is expected as a global (loaded via CDN <script> tag)
 declare const Chart: any;
 
-export class McpuiChart extends LitElement {
+export class BurnishChart extends LitElement {
     static properties = {
         type: { type: String },
         config: { type: String },
@@ -12,12 +12,12 @@ export class McpuiChart extends LitElement {
     static styles = css`
         :host { display: block; width: 100%; min-width: 0; }
         .chart-container {
-            background: var(--mcpui-surface, #fff);
-            border-radius: var(--mcpui-radius-md, 8px);
-            box-shadow: var(--mcpui-shadow-sm);
-            padding: var(--mcpui-space-lg, 16px);
+            background: var(--burnish-surface, #fff);
+            border-radius: var(--burnish-radius-md, 8px);
+            box-shadow: var(--burnish-shadow-sm);
+            padding: var(--burnish-space-lg, 16px);
             position: relative;
-            height: var(--mcpui-chart-height, 300px);
+            height: var(--burnish-chart-height, 300px);
         }
         canvas { width: 100% !important; height: 100% !important; }
     `;
@@ -51,7 +51,7 @@ export class McpuiChart extends LitElement {
         };
 
         try { this._chart = new Chart(canvas.getContext('2d'), chartConfig); }
-        catch (e) { console.error('mcpui-chart: render error', e); }
+        catch (e) { console.error('burnish-chart: render error', e); }
     }
 
     disconnectedCallback() {
@@ -64,4 +64,4 @@ export class McpuiChart extends LitElement {
     }
 }
 
-customElements.define('mcpui-chart', McpuiChart);
+customElements.define('burnish-chart', BurnishChart);

@@ -16,7 +16,7 @@ interface LookupResult {
     label: string;
 }
 
-export class McpuiForm extends LitElement {
+export class BurnishForm extends LitElement {
     static properties = {
         title: { type: String },
         'tool-id': { type: String, attribute: 'tool-id' },
@@ -32,37 +32,37 @@ export class McpuiForm extends LitElement {
     static styles = css`
         :host { display: block; width: 100%; min-width: 0; }
         .form-container {
-            background: var(--mcpui-surface, #fff);
-            border-radius: var(--mcpui-radius-md, 8px);
-            box-shadow: var(--mcpui-shadow-sm);
+            background: var(--burnish-surface, #fff);
+            border-radius: var(--burnish-radius-md, 8px);
+            box-shadow: var(--burnish-shadow-sm);
             overflow: hidden;
         }
         .form-header {
-            padding: var(--mcpui-space-md, 12px) var(--mcpui-space-lg, 16px);
-            font-size: var(--mcpui-font-size-md, 14px);
+            padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px);
+            font-size: var(--burnish-font-size-md, 14px);
             font-weight: 600;
-            border-bottom: 1px solid var(--mcpui-border-light, #f3f4f6);
+            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
             display: flex; align-items: center; gap: 8px;
         }
-        .form-icon { width: 18px; height: 18px; color: var(--mcpui-accent, #4f6df5); }
-        .form-body { padding: var(--mcpui-space-lg, 16px); }
-        .form-field { margin-bottom: var(--mcpui-space-md, 12px); }
-        .form-field:last-of-type { margin-bottom: var(--mcpui-space-lg, 16px); }
+        .form-icon { width: 18px; height: 18px; color: var(--burnish-accent, #4f6df5); }
+        .form-body { padding: var(--burnish-space-lg, 16px); }
+        .form-field { margin-bottom: var(--burnish-space-md, 12px); }
+        .form-field:last-of-type { margin-bottom: var(--burnish-space-lg, 16px); }
         .form-label {
-            display: block; font-size: var(--mcpui-font-size-sm, 12px);
-            font-weight: 500; color: var(--mcpui-text-secondary, #6b7280);
-            margin-bottom: var(--mcpui-space-xs, 4px);
+            display: block; font-size: var(--burnish-font-size-sm, 12px);
+            font-weight: 500; color: var(--burnish-text-secondary, #6b7280);
+            margin-bottom: var(--burnish-space-xs, 4px);
         }
-        .form-required { color: var(--mcpui-error, #ef4444); margin-left: 2px; }
+        .form-required { color: var(--burnish-error, #ef4444); margin-left: 2px; }
         .form-input, .form-textarea, .form-select {
             width: 100%; padding: 8px 12px;
-            border: 1px solid var(--mcpui-border, #e5e7eb); border-radius: 6px;
-            font-size: var(--mcpui-font-size-base, 13px); font-family: inherit;
-            color: var(--mcpui-text, #1f2937); background: var(--mcpui-surface, #fff);
+            border: 1px solid var(--burnish-border, #e5e7eb); border-radius: 6px;
+            font-size: var(--burnish-font-size-base, 13px); font-family: inherit;
+            color: var(--burnish-text, #1f2937); background: var(--burnish-surface, #fff);
             box-sizing: border-box; transition: border-color 0.15s ease;
         }
         .form-input:focus, .form-textarea:focus, .form-select:focus {
-            outline: none; border-color: var(--mcpui-accent, #4f6df5);
+            outline: none; border-color: var(--burnish-accent, #4f6df5);
             box-shadow: 0 0 0 3px rgba(79, 109, 245, 0.1);
         }
         .form-textarea { min-height: 80px; resize: vertical; }
@@ -71,63 +71,63 @@ export class McpuiForm extends LitElement {
         .form-input-row { display: flex; gap: 4px; }
         .form-input-row .form-input { flex: 1; }
         .form-lookup-btn {
-            padding: 0 10px; border: 1px solid var(--mcpui-border, #e5e7eb); border-radius: 6px;
-            background: var(--mcpui-surface-alt, #f9fafb); cursor: pointer;
-            color: var(--mcpui-text-muted, #6b7280); font-size: 14px;
+            padding: 0 10px; border: 1px solid var(--burnish-border, #e5e7eb); border-radius: 6px;
+            background: var(--burnish-surface-alt, #f9fafb); cursor: pointer;
+            color: var(--burnish-text-muted, #6b7280); font-size: 14px;
             display: flex; align-items: center; transition: all 0.15s ease;
             flex-shrink: 0;
         }
         .form-lookup-btn:hover {
-            background: var(--mcpui-border-light, #f3f4f6);
-            border-color: var(--mcpui-accent, #4f6df5); color: var(--mcpui-accent, #4f6df5);
+            background: var(--burnish-border-light, #f3f4f6);
+            border-color: var(--burnish-accent, #4f6df5); color: var(--burnish-accent, #4f6df5);
         }
         .form-lookup-btn.loading { opacity: 0.5; pointer-events: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .form-lookup-btn.loading svg { animation: spin 1s linear infinite; }
         .form-lookup-results {
-            border: 1px solid var(--mcpui-border, #e5e7eb); border-radius: 6px;
+            border: 1px solid var(--burnish-border, #e5e7eb); border-radius: 6px;
             margin-top: 4px; max-height: 200px; overflow-y: auto;
-            background: var(--mcpui-surface, #fff); box-shadow: var(--mcpui-shadow-md);
+            background: var(--burnish-surface, #fff); box-shadow: var(--burnish-shadow-md);
         }
         .form-lookup-item {
             padding: 8px 12px; cursor: pointer; font-size: 13px;
-            border-bottom: 1px solid var(--mcpui-border-light, #f3f4f6);
+            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
             transition: background 0.1s ease;
         }
         .form-lookup-item:hover { background: rgba(79, 109, 245, 0.06); }
         .form-lookup-item:last-child { border-bottom: none; }
-        .form-lookup-item-value { font-weight: 500; color: var(--mcpui-text, #1f2937); }
-        .form-lookup-item-label { font-size: 11px; color: var(--mcpui-text-muted, #9ca3af); margin-left: 6px; }
+        .form-lookup-item-value { font-weight: 500; color: var(--burnish-text, #1f2937); }
+        .form-lookup-item-label { font-size: 11px; color: var(--burnish-text-muted, #9ca3af); margin-left: 6px; }
         .form-lookup-empty {
             padding: 12px; text-align: center; font-size: 12px;
-            color: var(--mcpui-text-muted, #9ca3af);
+            color: var(--burnish-text-muted, #9ca3af);
         }
         .form-lookup-loading {
             padding: 12px; text-align: center; font-size: 12px;
-            color: var(--mcpui-accent, #4f6df5);
+            color: var(--burnish-accent, #4f6df5);
         }
 
         /* Actions */
         .form-actions {
             display: flex; gap: 8px; justify-content: flex-end;
-            padding-top: var(--mcpui-space-sm, 8px);
-            border-top: 1px solid var(--mcpui-border-light, #f3f4f6);
+            padding-top: var(--burnish-space-sm, 8px);
+            border-top: 1px solid var(--burnish-border-light, #f3f4f6);
         }
         .form-btn {
             padding: 8px 20px; border-radius: 6px;
-            font-size: var(--mcpui-font-size-base, 13px); font-weight: 500;
+            font-size: var(--burnish-font-size-base, 13px); font-weight: 500;
             cursor: pointer; border: none; transition: all 0.15s ease;
         }
-        .form-btn-submit { background: var(--mcpui-accent, #4f6df5); color: white; }
+        .form-btn-submit { background: var(--burnish-accent, #4f6df5); color: white; }
         .form-btn-submit:hover { filter: brightness(1.1); }
         .form-btn-reset {
-            background: var(--mcpui-surface-alt, #f5f6f8);
-            color: var(--mcpui-text-secondary, #6b7280);
+            background: var(--burnish-surface-alt, #f5f6f8);
+            color: var(--burnish-text-secondary, #6b7280);
         }
-        .form-btn-reset:hover { background: var(--mcpui-border, #e5e7eb); }
-        .form-status { font-size: var(--mcpui-font-size-sm, 12px); padding: 6px 0; text-align: center; }
-        .form-status.error { color: var(--mcpui-error, #ef4444); }
-        .form-status.success { color: var(--mcpui-success, #22c55e); }
+        .form-btn-reset:hover { background: var(--burnish-border, #e5e7eb); }
+        .form-status { font-size: var(--burnish-font-size-sm, 12px); padding: 6px 0; text-align: center; }
+        .form-status.error { color: var(--burnish-error, #ef4444); }
+        .form-status.success { color: var(--burnish-success, #22c55e); }
     `;
 
     declare title: string;
@@ -182,7 +182,7 @@ export class McpuiForm extends LitElement {
             if (el?.value?.trim()) context[f.key] = el.value.trim();
         }
 
-        this.dispatchEvent(new CustomEvent('mcpui-form-lookup', {
+        this.dispatchEvent(new CustomEvent('burnish-form-lookup', {
             detail: {
                 fieldKey: field.key,
                 prompt: field.lookup.prompt,
@@ -230,7 +230,7 @@ export class McpuiForm extends LitElement {
         }
         this._status = '';
         this._statusMsg = '';
-        this.dispatchEvent(new CustomEvent('mcpui-form-submit', {
+        this.dispatchEvent(new CustomEvent('burnish-form-submit', {
             detail: { toolId: this['tool-id'], values },
             bubbles: true, composed: true,
         }));
@@ -327,7 +327,7 @@ export class McpuiForm extends LitElement {
                             <label class="form-label">
                                 ${f.label}
                                 ${f.required ? html`<span class="form-required">*</span>` : ''}
-                                ${f.lookup ? html`<span style="font-weight:400; color: var(--mcpui-text-muted)"> — searchable</span>` : nothing}
+                                ${f.lookup ? html`<span style="font-weight:400; color: var(--burnish-text-muted)"> — searchable</span>` : nothing}
                             </label>
                             ${this._renderField(f)}
                         </div>
@@ -343,4 +343,4 @@ export class McpuiForm extends LitElement {
     }
 }
 
-customElements.define('mcpui-form', McpuiForm);
+customElements.define('burnish-form', BurnishForm);

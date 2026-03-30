@@ -1,8 +1,8 @@
 /**
- * Progressive streaming HTML parser for MCPUI components.
+ * Progressive streaming HTML parser for Burnish components.
  *
  * Parses streamed text into a flat list of elements for progressive rendering.
- * Container tags (like mcpui-section) emit separate open/close entries so their
+ * Container tags (like burnish-section) emit separate open/close entries so their
  * children can render individually as they arrive.
  */
 
@@ -13,7 +13,7 @@ export interface StreamElement {
 }
 
 export interface StreamParserOptions {
-    /** Tag prefix to match (default: 'mcpui-') */
+    /** Tag prefix to match (default: 'burnish-') */
     prefix?: string;
     /** Tags whose children should stream individually */
     containerTags?: Set<string>;
@@ -21,8 +21,8 @@ export interface StreamParserOptions {
     extraTags?: string[];
 }
 
-const DEFAULT_PREFIX = 'mcpui-';
-const DEFAULT_CONTAINERS = new Set(['mcpui-section']);
+const DEFAULT_PREFIX = 'burnish-';
+const DEFAULT_CONTAINERS = new Set(['burnish-section']);
 
 /**
  * Check if text contains any component tags with the given prefix.
@@ -162,9 +162,9 @@ export function extractHtmlContent(
 
     let result = '';
     if (preamble && renderMarkdown) {
-        result += `<div class="mcpui-text-preamble">${renderMarkdown(preamble)}</div>`;
+        result += `<div class="burnish-text-preamble">${renderMarkdown(preamble)}</div>`;
     } else if (preamble) {
-        result += `<div class="mcpui-text-preamble">${preamble}</div>`;
+        result += `<div class="burnish-text-preamble">${preamble}</div>`;
     }
     result += htmlContent;
     return result;

@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 
-export class McpuiCard extends LitElement {
+export class BurnishCard extends LitElement {
     static properties = {
         title: { type: String },
         status: { type: String },
@@ -17,12 +17,12 @@ export class McpuiCard extends LitElement {
             flex: 0 0 340px;
         }
         .card {
-            background: var(--mcpui-surface, #fff);
-            border-radius: var(--mcpui-radius-md, 4px);
-            border: 1px solid var(--mcpui-border-muted, #e5e7eb);
+            background: var(--burnish-surface, #fff);
+            border-radius: var(--burnish-radius-md, 4px);
+            border: 1px solid var(--burnish-border-muted, #e5e7eb);
             overflow: hidden;
-            box-shadow: var(--mcpui-shadow-sm);
-            transition: transform var(--mcpui-transition-fast), box-shadow var(--mcpui-transition-fast);
+            box-shadow: var(--burnish-shadow-sm);
+            transition: transform var(--burnish-transition-fast), box-shadow var(--burnish-transition-fast);
             position: relative;
         }
         .card::before {
@@ -30,74 +30,74 @@ export class McpuiCard extends LitElement {
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 3px;
-            background: var(--mcpui-border-muted, #e5e7eb);
+            background: var(--burnish-border-muted, #e5e7eb);
         }
         .card:hover, .card:focus {
             transform: translateY(-1px);
-            box-shadow: var(--mcpui-shadow-md);
+            box-shadow: var(--burnish-shadow-md);
         }
-        .card:focus { outline: 2px solid var(--mcpui-accent, #4f6df5); outline-offset: 2px; }
+        .card:focus { outline: 2px solid var(--burnish-accent, #4f6df5); outline-offset: 2px; }
         .card[data-status="success"]::before,
-        .card[data-status="healthy"]::before { background: var(--mcpui-success, #16a34a); }
-        .card[data-status="warning"]::before { background: var(--mcpui-warning, #ca8a04); }
+        .card[data-status="healthy"]::before { background: var(--burnish-success, #16a34a); }
+        .card[data-status="warning"]::before { background: var(--burnish-warning, #ca8a04); }
         .card[data-status="error"]::before,
-        .card[data-status="failing"]::before { background: var(--mcpui-error, #dc2626); }
-        .card[data-status="info"]::before { background: var(--mcpui-info, #6366f1); }
+        .card[data-status="failing"]::before { background: var(--burnish-error, #dc2626); }
+        .card[data-status="info"]::before { background: var(--burnish-info, #6366f1); }
         .card-header {
-            padding: var(--mcpui-space-md, 12px) var(--mcpui-space-lg, 16px) var(--mcpui-space-sm, 8px);
+            padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px) var(--burnish-space-sm, 8px);
             display: flex; align-items: center; justify-content: space-between;
         }
-        .card-title { font-size: var(--mcpui-font-size-md, 14px); font-weight: 600; color: var(--mcpui-text, #1f2937); }
+        .card-title { font-size: var(--burnish-font-size-md, 14px); font-weight: 600; color: var(--burnish-text, #1f2937); }
         .card-badge {
-            font-size: var(--mcpui-font-size-xs, 11px); font-weight: 600;
+            font-size: var(--burnish-font-size-xs, 11px); font-weight: 600;
             text-transform: uppercase; letter-spacing: 0.5px;
-            padding: 2px var(--mcpui-space-sm, 8px); border-radius: 10px;
+            padding: 2px var(--burnish-space-sm, 8px); border-radius: 10px;
         }
         .card-badge[data-status="success"], .card-badge[data-status="healthy"] {
-            color: var(--mcpui-success); background: var(--mcpui-border-success);
+            color: var(--burnish-success); background: var(--burnish-border-success);
         }
-        .card-badge[data-status="warning"] { color: var(--mcpui-warning); background: var(--mcpui-border-warning); }
+        .card-badge[data-status="warning"] { color: var(--burnish-warning); background: var(--burnish-border-warning); }
         .card-badge[data-status="error"], .card-badge[data-status="failing"] {
-            color: var(--mcpui-error); background: var(--mcpui-border-error);
+            color: var(--burnish-error); background: var(--burnish-border-error);
         }
         .card-badge[data-status="muted"], .card-badge[data-status="no-data"] {
-            color: var(--mcpui-text-muted); background: var(--mcpui-border-muted);
+            color: var(--burnish-text-muted); background: var(--burnish-border-muted);
         }
         .card-badge[data-status="info"] {
-            color: var(--mcpui-info, #6366f1); background: var(--mcpui-border-info, #c7d2fe);
+            color: var(--burnish-info, #6366f1); background: var(--burnish-border-info, #c7d2fe);
         }
         .card-body {
-            padding: 0 var(--mcpui-space-lg, 16px) var(--mcpui-space-md, 12px);
-            font-size: var(--mcpui-font-size-base, 13px); color: var(--mcpui-text-secondary);
+            padding: 0 var(--burnish-space-lg, 16px) var(--burnish-space-md, 12px);
+            font-size: var(--burnish-font-size-base, 13px); color: var(--burnish-text-secondary);
             line-height: 1.4;
         }
         .card-meta {
-            padding: var(--mcpui-space-sm, 8px) var(--mcpui-space-lg, 16px);
-            border-top: 1px solid var(--mcpui-border-light, #f3f4f6);
-            display: flex; gap: var(--mcpui-space-lg, 16px); flex-wrap: wrap;
+            padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
+            border-top: 1px solid var(--burnish-border-light, #f3f4f6);
+            display: flex; gap: var(--burnish-space-lg, 16px); flex-wrap: wrap;
         }
-        .meta-item { font-size: var(--mcpui-font-size-sm, 12px); }
-        .meta-label { color: var(--mcpui-text-muted); margin-right: var(--mcpui-space-xs, 4px); }
-        .meta-value { color: var(--mcpui-text); font-weight: 500; }
+        .meta-item { font-size: var(--burnish-font-size-sm, 12px); }
+        .meta-label { color: var(--burnish-text-muted); margin-right: var(--burnish-space-xs, 4px); }
+        .meta-value { color: var(--burnish-text); font-weight: 500; }
         .card-action {
-            padding: var(--mcpui-space-sm, 8px) var(--mcpui-space-lg, 16px);
-            border-top: 1px solid var(--mcpui-border-light);
-            font-size: var(--mcpui-font-size-sm, 12px); color: var(--mcpui-link, #3b82f6);
-            opacity: 0; transition: opacity var(--mcpui-transition-fast);
+            padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
+            border-top: 1px solid var(--burnish-border-light);
+            font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-link, #3b82f6);
+            opacity: 0; transition: opacity var(--burnish-transition-fast);
             cursor: pointer;
         }
         .card-action:hover { background: rgba(59, 130, 246, 0.04); }
         .card:hover .card-action { opacity: 1; }
         .card-link {
-            color: var(--mcpui-link, #3b82f6);
+            color: var(--burnish-link, #3b82f6);
             text-decoration: none;
             font-weight: 500;
         }
         .card-link:hover { text-decoration: underline; }
         .error-state {
             display: flex; align-items: center; justify-content: center; gap: 8px;
-            min-height: 60px; padding: var(--mcpui-space-lg);
-            color: var(--mcpui-text-muted); font-size: var(--mcpui-font-size-base);
+            min-height: 60px; padding: var(--burnish-space-lg);
+            color: var(--burnish-text-muted); font-size: var(--burnish-font-size-base);
         }
     `;
 
@@ -119,7 +119,7 @@ export class McpuiCard extends LitElement {
         if (target.closest('a') || target.closest('.card-link')) return;
         // Only trigger drill-down from the explore button
         if (!target.closest('.card-action')) return;
-        this.dispatchEvent(new CustomEvent('mcpui-card-action', {
+        this.dispatchEvent(new CustomEvent('burnish-card-action', {
             detail: { title: this.title, status: this.status, itemId: this['item-id'] },
             bubbles: true,
             composed: true,
@@ -129,7 +129,7 @@ export class McpuiCard extends LitElement {
     private _handleKeydown(e: KeyboardEvent) {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            this.dispatchEvent(new CustomEvent('mcpui-card-action', {
+            this.dispatchEvent(new CustomEvent('burnish-card-action', {
                 detail: { title: this.title, status: this.status, itemId: this['item-id'] },
                 bubbles: true,
                 composed: true,
@@ -192,4 +192,4 @@ export class McpuiCard extends LitElement {
     }
 }
 
-customElements.define('mcpui-card', McpuiCard);
+customElements.define('burnish-card', BurnishCard);

@@ -1,11 +1,11 @@
-// @mcpui/components — Lit web components for rendering MCP tool call results
+// @burnish/components — Lit web components for rendering MCP tool call results
 
-export { McpuiCard } from './card.js';
-export { McpuiStatBar } from './stat-bar.js';
-export { McpuiTable } from './table.js';
-export { McpuiChart } from './chart.js';
-export { McpuiSection } from './section.js';
-export { McpuiMetric } from './metric.js';
-export { McpuiMessage } from './message.js';
-export { McpuiForm } from './form.js';
-export { McpuiActions } from './actions.js';
+export { BurnishCard } from './card.js';
+export { BurnishStatBar } from './stat-bar.js';
+export { BurnishTable } from './table.js';
+export { BurnishChart } from './chart.js';
+export { BurnishSection } from './section.js';
+export { BurnishMetric } from './metric.js';
+export { BurnishMessage } from './message.js';
+export { BurnishForm } from './form.js';
+export { BurnishActions } from './actions.js';

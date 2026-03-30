@@ -7,7 +7,7 @@ interface Action {
     icon?: string;
 }
 
-export class McpuiActions extends LitElement {
+export class BurnishActions extends LitElement {
     static properties = {
         actions: { type: String },
     };
@@ -34,13 +34,13 @@ export class McpuiActions extends LitElement {
             line-height: 1;
         }
         .action-btn {
-            background: var(--mcpui-surface, #fff);
-            border: 1px solid var(--mcpui-border, #e5e7eb);
-            color: var(--mcpui-text, #1f2937);
+            background: var(--burnish-surface, #fff);
+            border: 1px solid var(--burnish-border, #e5e7eb);
+            color: var(--burnish-text, #1f2937);
         }
         .action-btn:hover {
-            border-color: var(--mcpui-accent, #4f6df5);
-            color: var(--mcpui-accent, #4f6df5);
+            border-color: var(--burnish-accent, #4f6df5);
+            color: var(--burnish-accent, #4f6df5);
             background: rgba(79, 109, 245, 0.04);
         }
         .action-icon {
@@ -57,7 +57,7 @@ export class McpuiActions extends LitElement {
     }
 
     private _handleClick(action: Action) {
-        this.dispatchEvent(new CustomEvent('mcpui-action', {
+        this.dispatchEvent(new CustomEvent('burnish-action', {
             detail: {
                 label: action.label,
                 action: action.action,
@@ -109,4 +109,4 @@ export class McpuiActions extends LitElement {
     }
 }
 
-customElements.define('mcpui-actions', McpuiActions);
+customElements.define('burnish-actions', BurnishActions);

@@ -63,7 +63,7 @@ async function connectServer(
         env: { ...process.env, ...config.env } as Record<string, string>,
     });
 
-    const client = new Client({ name: `mcpui-${name}`, version: '0.1.0' });
+    const client = new Client({ name: `burnish-${name}`, version: '0.1.0' });
     await client.connect(transport);
 
     // Discover tools

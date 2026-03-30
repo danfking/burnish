@@ -1,72 +1,72 @@
-/* === MCPUI Design Tokens === */
+/* === Burnish Design Tokens === */
 /* Override these custom properties to theme all components */
 
 :root {
     /* ── Colors: Primary ── */
-    --mcpui-primary: #1a1a2e;
-    --mcpui-primary-hover: rgba(255, 255, 255, 0.1);
-    --mcpui-surface: #ffffff;
-    --mcpui-surface-alt: #f5f6f8;
-    --mcpui-surface-hover: #f9fafb;
-    --mcpui-accent: #4f6df5;
-    --mcpui-link: #3b82f6;
+    --burnish-primary: #1a1a2e;
+    --burnish-primary-hover: rgba(255, 255, 255, 0.1);
+    --burnish-surface: #ffffff;
+    --burnish-surface-alt: #f5f6f8;
+    --burnish-surface-hover: #f9fafb;
+    --burnish-accent: #4f6df5;
+    --burnish-link: #3b82f6;
 
     /* ── Colors: Status ── */
-    --mcpui-success: #16a34a;
-    --mcpui-warning: #ca8a04;
-    --mcpui-error: #dc2626;
-    --mcpui-muted: #9ca3af;
-    --mcpui-info: #6366f1;
+    --burnish-success: #16a34a;
+    --burnish-warning: #ca8a04;
+    --burnish-error: #dc2626;
+    --burnish-muted: #9ca3af;
+    --burnish-info: #6366f1;
 
     /* ── Colors: Status Borders (lighter, for bars/indicators) ── */
-    --mcpui-border-success: #bbf7d0;
-    --mcpui-border-warning: #fef08a;
-    --mcpui-border-error: #fecaca;
-    --mcpui-border-muted: #e5e7eb;
-    --mcpui-border-info: #c7d2fe;
+    --burnish-border-success: #bbf7d0;
+    --burnish-border-warning: #fef08a;
+    --burnish-border-error: #fecaca;
+    --burnish-border-muted: #e5e7eb;
+    --burnish-border-info: #c7d2fe;
 
     /* ── Colors: Neutral ── */
-    --mcpui-text: #1f2937;
-    --mcpui-text-secondary: #6b7280;
-    --mcpui-text-muted: #9ca3af;
-    --mcpui-border: #e5e7eb;
-    --mcpui-border-light: #f3f4f6;
+    --burnish-text: #1f2937;
+    --burnish-text-secondary: #6b7280;
+    --burnish-text-muted: #9ca3af;
+    --burnish-border: #e5e7eb;
+    --burnish-border-light: #f3f4f6;
 
     /* ── Spacing ── */
-    --mcpui-space-xs: 4px;
-    --mcpui-space-sm: 8px;
-    --mcpui-space-md: 12px;
-    --mcpui-space-lg: 16px;
-    --mcpui-space-xl: 20px;
-    --mcpui-space-2xl: 24px;
+    --burnish-space-xs: 4px;
+    --burnish-space-sm: 8px;
+    --burnish-space-md: 12px;
+    --burnish-space-lg: 16px;
+    --burnish-space-xl: 20px;
+    --burnish-space-2xl: 24px;
 
     /* ── Typography ── */
-    --mcpui-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --mcpui-font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
-    --mcpui-font-size-xs: 11px;
-    --mcpui-font-size-sm: 12px;
-    --mcpui-font-size-base: 13px;
-    --mcpui-font-size-md: 14px;
-    --mcpui-font-size-lg: 16px;
-    --mcpui-font-size-xl: 18px;
-    --mcpui-font-size-2xl: 24px;
+    --burnish-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --burnish-font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    --burnish-font-size-xs: 11px;
+    --burnish-font-size-sm: 12px;
+    --burnish-font-size-base: 13px;
+    --burnish-font-size-md: 14px;
+    --burnish-font-size-lg: 16px;
+    --burnish-font-size-xl: 18px;
+    --burnish-font-size-2xl: 24px;
 
     /* ── Borders & Radius ── */
-    --mcpui-radius-sm: 2px;
-    --mcpui-radius-md: 4px;
-    --mcpui-radius-lg: 8px;
-    --mcpui-radius-pill: 20px;
-    --mcpui-radius-round: 50%;
+    --burnish-radius-sm: 2px;
+    --burnish-radius-md: 4px;
+    --burnish-radius-lg: 8px;
+    --burnish-radius-pill: 20px;
+    --burnish-radius-round: 50%;
 
     /* ── Shadows ── */
-    --mcpui-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --mcpui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --mcpui-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+    --burnish-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --burnish-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --burnish-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
 
     /* ── Transitions ── */
-    --mcpui-transition-fast: 0.15s ease;
-    --mcpui-transition-normal: 0.25s ease;
+    --burnish-transition-fast: 0.15s ease;
+    --burnish-transition-normal: 0.25s ease;
 
     /* ── Layout ── */
-    --mcpui-chart-height: 300px;
+    --burnish-chart-height: 300px;
 }

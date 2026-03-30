@@ -1,4 +1,4 @@
-// @mcpui/renderer — streaming render engine for MCP UI
+// @burnish/renderer — streaming render engine for MCP UI
 
 export {
     findStreamElements,
@@ -12,7 +12,7 @@ export {
 export {
     buildSanitizerConfig,
     buildSanitizerConfigWithPrefix,
-    MCPUI_COMPONENTS,
+    BURNISH_COMPONENTS,
     type ComponentDef,
     type SanitizerConfig,
 } from './sanitizer.js';
