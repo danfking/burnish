@@ -668,6 +668,10 @@ body {
     color: var(--burnish-text-muted, #9ca3af);
     flex-shrink: 0;
 }
+/* Hide "just now" while streaming (header contains a spinner) */
+.burnish-node-header:has(.burnish-node-spinner) .burnish-node-time {
+    display: none;
+}
 /* ── Tree Layout ── */
 .burnish-tree {
     display: flex;
@@ -771,7 +775,50 @@ body {
 }
 .burnish-node-header:hover .burnish-node-info { opacity: 1; }
 .burnish-node-info:hover { color: var(--burnish-accent, #4f6df5); }
+/* Refresh button */
+.burnish-node-refresh {
+    background: none;
+    border: none;
+    color: var(--burnish-text-muted, #9ca3af);
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0;
+    transition: opacity var(--burnish-transition-fast);
+    flex-shrink: 0;
+    line-height: 1;
+}
+.burnish-node-header:hover .burnish-node-refresh { opacity: 1; }
+.burnish-node-refresh:hover { color: var(--burnish-accent, #4f6df5); }
+/* Always show action buttons on expanded nodes */
+.burnish-node[data-collapsed="false"] .burnish-node-maximize,
+.burnish-node[data-collapsed="false"] .burnish-node-refresh,
+.burnish-node[data-collapsed="false"] .burnish-node-delete,
+.burnish-node[data-collapsed="false"] .burnish-node-info { opacity: 1; }
 .burnish-node-header:hover .burnish-node-delete { opacity: 1; }
+/* Inline status text in node header during streaming */
+.burnish-node-status {
+    font-size: 11px;
+    color: var(--burnish-text-muted, #9ca3af);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    flex-shrink: 1;
+}
+/* Spinning indicator in node header while streaming */
+.burnish-node-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--burnish-border, #e5e7eb);
+    border-top-color: var(--burnish-accent, #4f6df5);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 .burnish-node-delete:hover {
     color: var(--burnish-error, #ef4444);
     background: var(--burnish-border-error, #fee2e2);
@@ -890,6 +937,58 @@ body {
 .burnish-setup-status { font-size: 12px; padding: 8px 0; }
 .burnish-setup-status.error { color: #ef4444; }
 .burnish-setup-status.success { color: #22c55e; }
+
+/* ── Diagnostic Panel ── */
+.burnish-diagnostic-panel {
+    background: white;
+    border: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-radius: var(--burnish-radius-sm, 4px);
+    padding: 12px 16px;
+    font-size: 12px;
+    font-family: var(--burnish-font-mono, 'SF Mono', 'Fira Code', 'Fira Mono', monospace);
+    color: var(--burnish-text-secondary, #6b7280);
+    animation: fadeSlideIn 0.2s ease-out;
+}
+.burnish-diag-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+}
+.burnish-diag-metric strong {
+    color: var(--burnish-text, #1f2937);
+    margin-right: 4px;
+}
+.burnish-diag-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.burnish-diag-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.burnish-diag-check {
+    color: var(--burnish-success, #22c55e);
+    font-size: 11px;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+}
+.burnish-diag-label {
+    flex: 1;
+    min-width: 0;
+}
+.burnish-diag-time {
+    color: var(--burnish-text-muted, #9ca3af);
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+}
 
 /* ── Responsive ── */
 @media (max-width: 768px) {

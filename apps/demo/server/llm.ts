@@ -20,10 +20,15 @@ import { buildSystemPrompt } from './prompt-template.js';
 
 export type StreamChunk =
     | { type: 'content'; text: string }
-    | { type: 'progress'; stage: string; detail?: string }
+    | { type: 'progress'; stage: string; detail?: string; meta?: { model?: string; server?: string } }
     | { type: 'stats'; durationMs: number; inputTokens: number; outputTokens: number; costUsd?: number };
 
 const MAX_TOOL_ROUNDS = 5;
+
+function extractServerName(toolName: string): string | undefined {
+    const match = toolName.match(/^mcp__([^_]+)__/);
+    return match?.[1];
+}
 
 let backend: 'api' | 'cli' = 'api';
 let client: Anthropic | null = null;
@@ -114,6 +119,7 @@ async function* streamResponseCli(
         ];
 
         console.log(`[llm-cli] Launching with MCP config: ${mcpConfigPath}`);
+        yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } } as StreamChunk;
 
         // Spawn the CLI process
         const env = { ...process.env };
@@ -148,8 +154,12 @@ async function* streamResponseCli(
 
             // System init — MCP servers connecting
             if (doc.type === 'system' && doc.subtype === 'init') {
-                const serverCount = doc.mcp_servers?.length ?? 0;
-                yield { type: 'progress', stage: 'connecting', detail: `Connected to ${serverCount} MCP server(s)` };
+                const serverNames: string[] = (doc.mcp_servers || []).map((s: any) => s.name || 'unknown');
+                const label = serverNames.length === 1
+                    ? `Connecting to MCP server…`
+                    : `Connecting to ${serverNames.length} MCP servers…`;
+                const server = serverNames.length === 1 ? serverNames[0] : serverNames.join(', ');
+                yield { type: 'progress', stage: 'connecting', detail: label, meta: { server } };
                 continue;
             }
 
@@ -171,12 +181,14 @@ async function* streamResponseCli(
             if (doc.type === 'assistant' && doc.message?.content) {
                 for (const block of doc.message.content) {
                     if (block.type === 'thinking') {
-                        yield { type: 'progress', stage: 'thinking', detail: 'Analyzing your request...' };
+                        yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
                     } else if (block.type === 'tool_use') {
-                        const toolName = (block.name || '').replace(/^mcp__\w+__/, '');
-                        yield { type: 'progress', stage: 'tool_call', detail: `Calling ${toolName}...` };
+                        const fullToolName = block.name || '';
+                        const shortName = fullToolName.replace(/^mcp__\w+__/, '');
+                        const server = extractServerName(fullToolName);
+                        yield { type: 'progress', stage: 'tool_call', detail: `Calling ${shortName}…`, meta: server ? { server } : undefined };
                     } else if (block.type === 'tool_result') {
-                        yield { type: 'progress', stage: 'tool_result', detail: 'Processing results...' };
+                        yield { type: 'progress', stage: 'tool_result', detail: 'Processing results…' };
                     } else if (block.type === 'text' && block.text) {
                         // Skip if already streamed via stream_event deltas
                         if (!fullResponse) {
@@ -304,6 +316,8 @@ async function* streamResponseApi(
     let cacheCreationTokens = 0;
     const apiStartTime = Date.now();
 
+    yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } };
+
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         const params: Anthropic.MessageCreateParams = {
             model: useModel,
@@ -322,7 +336,7 @@ async function* streamResponseApi(
         }> = [];
 
         if (round === 0) {
-            yield { type: 'progress', stage: 'thinking', detail: 'Analyzing your request...' };
+            yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
         }
 
         for await (const event of stream) {
@@ -372,7 +386,8 @@ async function* streamResponseApi(
         const toolResults: Anthropic.ToolResultBlockParam[] = [];
         for (const tc of pendingToolCalls) {
             try {
-                yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}...` };
+                const server = extractServerName(tc.name);
+                yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: server ? { server } : undefined };
                 console.log(`[llm] Executing tool: ${tc.name}`);
                 const result = await mcpHub.executeTool(tc.name, tc.input);
                 toolResults.push({
@@ -391,6 +406,7 @@ async function* streamResponseApi(
         }
 
         messages.push({ role: 'user', content: toolResults });
+        yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
         textAccumulator = '';
     }
 
