@@ -229,3 +229,34 @@ scripts/
 ├── .locks/               # Runtime lock files (gitignored)
 └── logs/                 # Runtime logs (gitignored)
 ```
+
+### Recovering from `agent:failed`
+
+When an issue lands on `agent:failed`, check the failure comment for the log excerpt, then apply the label for the phase you want to retry:
+
+| Retry from | Apply label | Notes |
+|------------|-------------|-------|
+| Start over | `agent:queue` | Re-plans from scratch |
+| Re-implement | `agent:approved` | Keeps the existing plan, re-runs implement |
+| Re-review | `agent:reviewing` | Re-runs review on the existing branch |
+| Re-ship | `agent:ship` | Re-creates the PR |
+
+Always remove `agent:failed` first — the daemon ignores issues that also have `agent:failed`.
+
+### Worktree Cleanup
+
+The daemon creates worktrees at `.claude/worktrees/<branch>` but does not remove them. After merging a PR:
+
+```bash
+# Remove a specific worktree
+git worktree remove .claude/worktrees/<branch>
+
+# Or clean up all merged worktrees at once
+git worktree list | grep '\.claude/worktrees' | while read dir rest; do
+  branch=$(git -C "$dir" branch --show-current 2>/dev/null)
+  if [ -n "$branch" ] && git branch -r --merged main | grep -q "$branch"; then
+    echo "Removing merged worktree: $dir"
+    git worktree remove "$dir"
+  fi
+done
+```
