@@ -591,17 +591,6 @@ body {
     border-radius: var(--burnish-radius-md, 4px);
     box-shadow: var(--burnish-shadow-sm);
 }
-.burnish-node[data-collapsed="false"]::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 3px;
-    background: var(--burnish-accent, #4f6df5);
-    z-index: 1;
-    border-radius: var(--burnish-radius-md, 4px) 0 0 var(--burnish-radius-md, 4px);
-}
 .burnish-node + .burnish-node {
     margin-top: var(--burnish-space-sm, 8px);
 }
