@@ -67,5 +67,9 @@ Always include a "Refresh" read action.
 <burnish-card title="Database Connection" status="error" item-id="db-1" body="Connection timeout after 30s" meta='[{"label":"Last seen","value":"5 min ago"},{"label":"Occurrences","value":"23"}]'></burnish-card>
 </burnish-section>
 
+## Form Example
+When a tool requires user input, emit a burnish-form — NEVER describe the parameters as text:
+<burnish-form title="Search Repositories" tool-id="github__search_repositories" fields='[{"key":"query","label":"Search query","type":"text","required":true,"placeholder":"e.g. burnish language:typescript"},{"key":"per_page","label":"Results per page","type":"number","value":"10"}]'></burnish-form>
+
 ${extraInstructions}`;
 }

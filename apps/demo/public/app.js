@@ -67,6 +67,12 @@ function getActivePath(session) {
 // Track which node to branch from (set when user clicks "Branch" button)
 let branchFromNodeId = null;
 
+// Track tool hint for drill-down fallback form generation
+let drillDownToolHint = null;
+
+// Cache of tool schemas keyed by tool name (populated from /api/servers)
+const toolSchemaCache = {};
+
 // ── Persistence (IndexedDB via idb-keyval) ──
 
 // Track which sessions have had their nodes loaded from IndexedDB
@@ -903,6 +909,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Branch from the node containing this card
             const nodeEl = e.target.closest('.burnish-node');
             if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
+            // Track tool hint for fallback form generation
+            const looksLikeTool = itemId && (itemId.includes('__') || itemId.includes('mcp_'));
+            drillDownToolHint = looksLikeTool ? { toolName: itemId, title } : null;
             promptInput.value = getDrillDownPrompt(title, status, itemId);
             handleSubmit(title);
         }
@@ -1027,7 +1036,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             stats: null,
             timestamp: Date.now(),
             collapsed: false,
+            _toolHint: drillDownToolHint,
         };
+        drillDownToolHint = null; // consume
 
         // Update parent's children array
         if (parentId) {
@@ -1126,7 +1137,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                         contentEl.appendChild(temp.content);
                     }
                 } else {
-                    contentEl.innerHTML = `<div class="burnish-text-response">${renderMarkdown(trimmed)}</div>`;
+                    // Fallback: if the LLM returned plain text but this was a tool
+                    // drill-down with required params, auto-generate a form from the schema
+                    let fallbackHtml = null;
+                    if (node._toolHint) {
+                        const schema = toolSchemaCache[node._toolHint.toolName];
+                        if (schema && schema.properties && Object.keys(schema.properties).length > 0) {
+                            fallbackHtml = generateFallbackForm(node._toolHint.toolName, schema);
+                        }
+                    }
+                    if (fallbackHtml) {
+                        contentEl.innerHTML = '';
+                        const clean = transformOutput(DOMPurify.sanitize(fallbackHtml, PURIFY_CONFIG));
+                        const temp = document.createElement('template');
+                        temp.innerHTML = clean;
+                        contentEl.appendChild(temp.content);
+                        node.response = fallbackHtml;
+                        node.type = 'components';
+                    } else {
+                        contentEl.innerHTML = `<div class="burnish-text-response">${renderMarkdown(trimmed)}</div>`;
+                    }
                 }
 
                 updateNodeSummary(nodeId);
@@ -1394,6 +1424,27 @@ function transformOutput(html) {
     return root.innerHTML;
 }
 
+// ── Fallback Form Generator ──
+function generateFallbackForm(toolName, schema) {
+    const props = schema.properties || {};
+    const required = new Set(schema.required || []);
+    const fields = Object.entries(props).map(([key, prop]) => {
+        const field = {
+            key,
+            label: prop.title || key.replace(/_/g, ' '),
+            type: prop.type === 'number' || prop.type === 'integer' ? 'number' : prop.enum ? 'select' : 'text',
+            required: required.has(key),
+        };
+        if (prop.description) field.placeholder = prop.description;
+        if (prop.default !== undefined) field.value = String(prop.default);
+        if (prop.enum) field.options = prop.enum.map(String);
+        return field;
+    });
+    if (fields.length === 0) return null;
+    const displayName = (toolName.split('__').pop() || toolName).replace(/_/g, ' ');
+    return `<burnish-form title="${escapeAttr(displayName)}" tool-id="${escapeAttr(toolName)}" fields='${JSON.stringify(fields).replace(/'/g, '&#39;')}'></burnish-form>`;
+}
+
 // ── Drill-Down ──
 // Write/mutate tool patterns — these should NOT be auto-invoked
 const WRITE_TOOL_PATTERNS = /^(create|update|delete|remove|push|write|edit|move|fork|merge|add|set|close|lock|assign)/i;
@@ -1416,6 +1467,9 @@ RULES:
 - If the tool has required parameters that need user input → show a burnish-form with the parameters as fields. Add lookup to fields where values can be searched. Do NOT guess parameter values.
 - If the tool can run with NO parameters or has obvious defaults (like listing the current directory) → call it and show results.
 ${isWrite ? '- This is a write tool — ALWAYS show a form, never auto-invoke.' : '- Only auto-invoke if truly no user input is needed.'}
+
+EXAMPLE — a tool with required params MUST produce a form like this:
+<burnish-form title="${title}" tool-id="${itemId || 'tool_name'}" fields='[{"key":"query","label":"Search query","type":"text","required":true,"placeholder":"enter value"}]'></burnish-form>
 
 Use ONLY burnish-* web components. Include burnish-actions with next steps after results.`;
     }
@@ -1459,6 +1513,17 @@ async function loadDynamicSuggestions(container) {
     try {
         const res = await fetch('/api/servers');
         const { servers } = await res.json();
+
+        // Populate tool schema cache for fallback form generation
+        // Store under both plain name and MCP-prefixed name (mcp__server__tool)
+        for (const s of servers) {
+            for (const tool of s.tools) {
+                if (tool.inputSchema) {
+                    toolSchemaCache[tool.name] = tool.inputSchema;
+                    toolSchemaCache[`mcp__${s.name}__${tool.name}`] = tool.inputSchema;
+                }
+            }
+        }
 
         // Render server buttons immediately
         const serverBtns = container.querySelector('#server-buttons');

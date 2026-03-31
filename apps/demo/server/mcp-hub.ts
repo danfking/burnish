@@ -132,11 +132,11 @@ export function getAllTools(): ToolDef[] {
 /**
  * Get connected server info.
  */
-export function getServerInfo(): Array<{ name: string; toolCount: number; tools: Array<{ name: string; description: string }> }> {
+export function getServerInfo(): Array<{ name: string; toolCount: number; tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> }> {
     return servers.map(s => ({
         name: s.name,
         toolCount: s.tools.length,
-        tools: s.tools.map(t => ({ name: t.name, description: t.description })),
+        tools: s.tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
     }));
 }
 
