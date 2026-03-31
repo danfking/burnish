@@ -179,11 +179,11 @@ customElements.define('xm-card', class extends BurnishCard {});
 Consumer keeps: their own backend, system prompt, tool definitions, branding.
 Consumer imports: component library + optionally the renderer.
 
-## Autonomous Agent Workflow
+## Agent Pipeline
 
-An optional daemon-based workflow that processes GitHub issues through a label-driven state machine using `claude -p` CLI invocations.
+A conversational workflow for processing GitHub issues through Claude Code. Instead of an external daemon, you manage the pipeline interactively within a Claude Code session.
 
-### State Machine
+### Phase Flow
 
 ```
 agent:queue → agent:planning → agent:plan-review → (human approves) →
@@ -191,61 +191,70 @@ agent:approved → agent:implementing → agent:reviewing →
 agent:verify → (human tests) → agent:ship → agent:done
 ```
 
-Human gates: `agent:plan-review` (read plan, apply `agent:approved`) and `agent:verify` (test locally, apply `agent:ship`). Any phase can fail to `agent:failed`.
+Human gates: `agent:plan-review` (review plan, say "approve") and `agent:verify` (test locally, say "ship it"). Any phase can fail to `agent:failed`.
 
-### Setup & Usage
+### Conversational Interface
 
-```bash
-# One-time: create labels on the repo
-bash scripts/setup-labels.sh
+Queue issues for the pipeline and manage them conversationally:
 
-# Start the daemon (polls every 30s, max 2 concurrent agents)
-bash scripts/agent-daemon.sh
-
-# Override defaults via env vars
-POLL_INTERVAL=60 MAX_CONCURRENT=1 bash scripts/agent-daemon.sh
+```
+"queue #9 and #8"           → Labels agent:queue, spawns parallel plan agents
+"approve both"              → Labels agent:approved, spawns implement agents
+"pipeline status"           → Checks GitHub labels, reports per-phase status
+"approve #9, hold #8"       → Selective approval
+"retry #9 from implement"   → Re-runs implement phase
 ```
 
 ### How It Works
 
-1. Label an issue `agent:queue` (or create one and add the label)
-2. Daemon picks it up, runs plan phase (read-only), posts plan as comment
-3. Review the plan on the issue, apply `agent:approved` label
-4. Daemon runs implement (worktree + branch), then self-review
-5. If review passes → `agent:verify`; test locally, apply `agent:ship`
-6. Daemon creates PR with `Closes #N` — you merge manually
+1. **Queue** — User says "queue #N". Claude applies `agent:queue` label and spawns a plan-phase Task agent (read-only, uses `scripts/prompts/plan.md` as reference). Multiple issues can be queued in parallel.
+2. **Plan review** — Plan completes, Claude applies `agent:plan-review`, shows the plan inline, and asks for approval. This is a human gate.
+3. **Implement** — User approves. Claude applies `agent:approved`, spawns an implement Task agent with `isolation: "worktree"` (uses `scripts/prompts/implement.md` as reference). The agent works in an isolated worktree, creates a branch, and pushes.
+4. **Review** — Implement completes. Claude applies `agent:reviewing`, spawns a review Task agent (read-only, uses `scripts/prompts/review.md` as reference). If review passes, moves to next phase automatically.
+5. **Ship** — Review passes. Claude applies `agent:ship`, creates a PR with `Closes #N` (uses `scripts/prompts/ship.md` as reference). Reports PR link inline.
+6. **Verify & merge** — User tests locally, then merges with: `gh pr merge <N> --squash --delete-branch`
 
-### Files
+### GitHub Labels
 
-```
-scripts/
-├── agent-daemon.sh       # Main polling daemon
-├── setup-labels.sh       # One-time label setup
-├── prompts/
-│   ├── plan.md           # Plan phase (read-only)
-│   ├── implement.md      # Implement phase (worktree, code, push)
-│   ├── review.md         # Review phase (read-only)
-│   └── ship.md           # Ship phase (create PR)
-├── .locks/               # Runtime lock files (gitignored)
-└── logs/                 # Runtime logs (gitignored)
-```
+Labels track state for visibility on GitHub. The same label set as before:
+
+| Label | Meaning |
+|-------|---------|
+| `agent:queue` | Waiting to be planned |
+| `agent:planning` | Plan phase in progress |
+| `agent:plan-review` | Plan ready for human review |
+| `agent:approved` | Human approved, ready to implement |
+| `agent:implementing` | Implementation in progress |
+| `agent:reviewing` | Self-review in progress |
+| `agent:verify` | Ready for human testing |
+| `agent:ship` | PR created, ready to merge |
+| `agent:done` | Merged and complete |
+| `agent:failed` | Phase failed, needs retry |
 
 ### Recovering from `agent:failed`
 
-When an issue lands on `agent:failed`, check the failure comment for the log excerpt, then apply the label for the phase you want to retry:
+Tell Claude which phase to retry:
 
-| Retry from | Apply label | Notes |
-|------------|-------------|-------|
-| Start over | `agent:queue` | Re-plans from scratch |
-| Re-implement | `agent:approved` | Keeps the existing plan, re-runs implement |
-| Re-review | `agent:reviewing` | Re-runs review on the existing branch |
-| Re-ship | `agent:ship` | Re-creates the PR |
+```
+"retry #9 from planning"    → Re-plans from scratch
+"retry #9 from implement"   → Keeps plan, re-runs implement
+"retry #9 from review"      → Re-runs review on existing branch
+"retry #9 from ship"        → Re-creates the PR
+```
 
-Always remove `agent:failed` first — the daemon ignores issues that also have `agent:failed`.
+### Reference Files
+
+```
+scripts/prompts/
+├── plan.md           # Plan phase instructions
+├── implement.md      # Implement phase instructions
+├── review.md         # Review phase instructions
+└── ship.md           # Ship phase instructions
+```
 
 ### Worktree Cleanup
 
-The daemon creates worktrees at `.claude/worktrees/<branch>` but does not remove them. After merging a PR:
+Implement phases create worktrees via `isolation: "worktree"`. After merging a PR:
 
 ```bash
 # Remove a specific worktree
