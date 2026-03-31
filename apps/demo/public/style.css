@@ -772,6 +772,20 @@ body {
 .burnish-node-header:hover .burnish-node-info { opacity: 1; }
 .burnish-node-info:hover { color: var(--burnish-accent, #4f6df5); }
 .burnish-node-header:hover .burnish-node-delete { opacity: 1; }
+/* Spinning indicator in node header while streaming */
+.burnish-node-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--burnish-border, #e5e7eb);
+    border-top-color: var(--burnish-accent, #4f6df5);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 .burnish-node-delete:hover {
     color: var(--burnish-error, #ef4444);
     background: var(--burnish-border-error, #fee2e2);

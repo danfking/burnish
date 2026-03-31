@@ -67,6 +67,9 @@ function getActivePath(session) {
 // Track which node to branch from (set when user clicks "Branch" button)
 let branchFromNodeId = null;
 
+// Track which node is currently streaming (for spinner)
+let streamingNodeId = null;
+
 // Track tool hint for drill-down fallback form generation
 let drillDownToolHint = null;
 
@@ -583,6 +586,30 @@ function updateNodeHeader(nodeId) {
     }
 }
 
+function addNodeSpinner(nodeId) {
+    streamingNodeId = nodeId;
+    const el = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
+    if (!el) return;
+    const header = el.querySelector('.burnish-node-header');
+    if (!header || header.querySelector('.burnish-node-spinner')) return;
+    const spinner = document.createElement('span');
+    spinner.className = 'burnish-node-spinner';
+    // Insert before the action buttons (info/maximize/delete) — after the time element
+    const timeEl = header.querySelector('.burnish-node-time');
+    if (timeEl) {
+        timeEl.after(spinner);
+    } else {
+        header.appendChild(spinner);
+    }
+}
+
+function removeNodeSpinner(nodeId) {
+    streamingNodeId = null;
+    const el = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
+    if (!el) return;
+    el.querySelector('.burnish-node-spinner')?.remove();
+}
+
 // ── Main Content Rendering (Tree) ──
 function renderMainContent() {
     const container = document.getElementById('dashboard-container');
@@ -1068,6 +1095,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (contentEl) contentEl.innerHTML = getProgressHtml();
         if (nodeEl) nodeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+        addNodeSpinner(nodeId);
+
         submitBtn.classList.add('cancel');
         submitBtn.innerHTML = ICON_STOP;
 
@@ -1116,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // onDone
             async (fullText, newConversationId) => {
                 stopProgressTimer();
+                removeNodeSpinner(nodeId);
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
                 promptInput.disabled = false;
@@ -1188,6 +1218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // onError
             async (error) => {
                 stopProgressTimer();
+                removeNodeSpinner(nodeId);
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
                 promptInput.disabled = false;
