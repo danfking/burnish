@@ -216,7 +216,7 @@ async function migrateFromLocalStorage() {
 }
 
 // ── Session CRUD ──
-function createSession() {
+async function createSession() {
     const session = {
         id: generateId(),
         title: 'New conversation',
@@ -230,7 +230,7 @@ function createSession() {
     _loadedSessionIds.add(session.id);
     renderSessionList();
     renderMainContent();
-    saveState();
+    await saveState();
 }
 
 async function switchSession(sessionId) {
@@ -247,7 +247,7 @@ async function switchSession(sessionId) {
 
     renderMainContent();
     renderSessionList();
-    saveState();
+    await saveState();
 }
 
 async function deleteSession(sessionId) {
@@ -263,7 +263,7 @@ async function deleteSession(sessionId) {
 
     if (activeSessionId === sessionId) {
         activeSessionId = sessions[0]?.id || null;
-        if (!activeSessionId) createSession();
+        if (!activeSessionId) await createSession();
         else { renderMainContent(); }
     }
     renderSessionList();
@@ -272,7 +272,7 @@ async function deleteSession(sessionId) {
     if (nodeIds.length > 0) {
         await Promise.all(nodeIds.map(id => del(`node:${id}`, nodeStore)));
     }
-    saveState();
+    await saveState();
 }
 
 // ── Summary & Helpers ──
@@ -423,7 +423,7 @@ function createNodeEl(node) {
     return div;
 }
 
-function toggleNode(nodeId) {
+async function toggleNode(nodeId) {
     const session = getActiveSession();
     if (!session) return;
     const node = session.nodes.find(n => n.id === nodeId);
@@ -440,10 +440,10 @@ function toggleNode(nodeId) {
         if (el) el.dataset.collapsed = 'true';
     }
 
-    saveState();
+    await saveState();
 }
 
-function scrollToNode(nodeId, highlight = true) {
+async function scrollToNode(nodeId, highlight = true) {
     const el = document.querySelector(`.burnish-node[data-node-id="${nodeId}"]`);
     if (!el) return;
     const session = getActiveSession();
@@ -455,7 +455,7 @@ function scrollToNode(nodeId, highlight = true) {
         void el.offsetWidth;
         el.classList.add('burnish-node-highlight');
     }
-    saveState();
+    await saveState();
 }
 
 function getDescendantIds(session, nodeId) {
@@ -467,7 +467,7 @@ function getDescendantIds(session, nodeId) {
     return ids;
 }
 
-function deleteNode(nodeId) {
+async function deleteNode(nodeId) {
     const session = getActiveSession();
     if (!session) return;
 
@@ -502,8 +502,8 @@ function deleteNode(nodeId) {
     renderSessionList();
 
     // Remove deleted nodes from IndexedDB
-    Promise.all([...removeIds].map(id => del(`node:${id}`, nodeStore))).catch(() => {});
-    saveState();
+    await Promise.all([...removeIds].map(id => del(`node:${id}`, nodeStore)));
+    await saveState();
 }
 
 function collapseAllExcept(exceptNodeId) {
@@ -777,7 +777,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSessionList();
         renderMainContent();
     } else {
-        createSession();
+        await createSession();
     }
 
     function updateBreadcrumb() {
@@ -974,14 +974,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // ── Submit handler ──
-    function handleSubmit(displayLabel) {
+    async function handleSubmit(displayLabel) {
         const prompt = promptInput.value.trim();
         if (!prompt) return;
         promptInput.value = '';
         promptInput.style.height = '';
 
         let session = getActiveSession();
-        if (!session) { createSession(); session = getActiveSession(); }
+        if (!session) { await createSession(); session = getActiveSession(); }
 
         // Remove empty state
         const emptyState = container.querySelector('.burnish-empty-state');
@@ -1092,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             },
             // onDone
-            (fullText, newConversationId) => {
+            async (fullText, newConversationId) => {
                 stopProgressTimer();
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
@@ -1121,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateNodeSummary(nodeId);
                 updateBreadcrumb();
                 renderSessionList();
-                saveState();
+                await saveState();
 
                 // Auto-title: after first node completes, request an LLM-generated title
                 if (session.nodes.length === 1) {
@@ -1134,18 +1134,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }),
                     })
                         .then(r => r.json())
-                        .then(data => {
+                        .then(async (data) => {
                             if (data.title) {
                                 session.title = data.title;
                                 renderSessionList();
-                                saveState();
+                                await saveState();
                             }
                         })
                         .catch(() => { /* keep truncated title as fallback */ });
                 }
             },
             // onError
-            (error) => {
+            async (error) => {
                 stopProgressTimer();
                 submitBtn.classList.remove('cancel');
                 submitBtn.innerHTML = ICON_SEND;
@@ -1156,17 +1156,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 node.summary = 'Error';
                 node.tags = ['error'];
                 updateNodeSummary(nodeId);
-                saveState();
+                await saveState();
             },
             // onProgress
             (stage, detail) => {
                 updateProgress(contentEl, stage, detail);
             },
             // onStats
-            (stats) => {
+            async (stats) => {
                 node.stats = stats;
                 updateNodeHeader(nodeId);
-                saveState();
+                await saveState();
             }
         );
 
