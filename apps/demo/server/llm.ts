@@ -413,6 +413,83 @@ async function* streamResponseApi(
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Title Generation — lightweight LLM call to auto-title sessions
+// ═══════════════════════════════════════════════════════════════
+
+const TITLE_SYSTEM_PROMPT =
+    'Generate a concise 3-6 word title that describes the user\'s request. ' +
+    'Return ONLY the title text, no quotes, no punctuation at the end, no explanation.';
+
+/**
+ * Generate a short descriptive title for a session based on the first exchange.
+ * Uses haiku for speed and cost efficiency.
+ */
+export async function generateTitle(prompt: string, response: string): Promise<string> {
+    const truncatedResponse = response.slice(0, 500);
+    const userMessage = `User prompt: ${prompt}\n\nAssistant response (truncated): ${truncatedResponse}`;
+
+    if (backend === 'cli') {
+        return generateTitleCli(userMessage);
+    } else {
+        return generateTitleApi(userMessage);
+    }
+}
+
+async function generateTitleApi(userMessage: string): Promise<string> {
+    if (!client) throw new Error('LLM not configured');
+
+    const result = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 30,
+        system: TITLE_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+    });
+
+    const text = result.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map(b => b.text)
+        .join('');
+    return text.trim();
+}
+
+async function generateTitleCli(userMessage: string): Promise<string> {
+    const claudeCmd = process.platform === 'win32' ? 'claude.cmd' : 'claude';
+    const env = { ...process.env };
+    delete env.CLAUDECODE;
+
+    const fullPrompt = `${TITLE_SYSTEM_PROMPT}\n\n${userMessage}`;
+
+    return new Promise<string>((resolve, reject) => {
+        const proc = spawn(claudeCmd, [
+            '--print',
+            '--model', 'haiku',
+            '--tools', '',
+            '--setting-sources', 'user',
+        ], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env,
+            shell: process.platform === 'win32',
+        });
+
+        proc.stdin.write(fullPrompt);
+        proc.stdin.end();
+
+        let stdout = '';
+        let stderr = '';
+        proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
+        proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+
+        proc.on('close', (code) => {
+            if (code !== 0) {
+                reject(new Error(`claude exited with code ${code}: ${stderr}`));
+            } else {
+                resolve(stdout.trim());
+            }
+        });
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Lightweight Lookup — minimal prompt, no tools, text-in/text-out
 // ═══════════════════════════════════════════════════════════════
 

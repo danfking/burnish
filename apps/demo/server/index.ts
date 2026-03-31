@@ -96,6 +96,18 @@ app.delete('/api/servers/:name', async (c) => {
     }
 });
 
+app.post('/api/title', async (c) => {
+    const { prompt, response } = await c.req.json<{ prompt: string; response: string }>();
+    try {
+        const title = await llm.generateTitle(prompt, response);
+        return c.json({ title });
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.warn('[burnish] Title generation failed:', msg);
+        return c.json({ error: msg }, 500);
+    }
+});
+
 // Lookup result cache — avoids redundant LLM calls for identical prompts
 const lookupCache = new Map<string, { results: unknown[]; timestamp: number }>();
 const LOOKUP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes

@@ -991,6 +991,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateBreadcrumb();
                 renderSessionList();
                 saveState();
+
+                // Auto-title: after first node completes, request an LLM-generated title
+                if (session.nodes.length === 1) {
+                    fetch('/api/title', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt: node.promptDisplay,
+                            response: (trimmed || '').slice(0, 500),
+                        }),
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.title) {
+                                session.title = data.title;
+                                renderSessionList();
+                                saveState();
+                            }
+                        })
+                        .catch(() => { /* keep truncated title as fallback */ });
+                }
             },
             // onError
             (error) => {
