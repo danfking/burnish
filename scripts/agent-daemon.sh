@@ -49,10 +49,12 @@ clean_stale_locks() {
     [ -f "$lockfile" ] || continue
     local pid
     pid=$(cat "$lockfile" 2>/dev/null || echo "")
-    if [ -z "$pid" ] || ! [[ "$pid" =~ ^[0-9]+$ ]] || ! kill -0 "$pid" 2>/dev/null; then
-      log "Cleaning stale lock: $lockfile (PID $pid dead)"
-      rm -f "$lockfile"
+    # Skip valid, live locks
+    if [ -n "$pid" ] && [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+      continue
     fi
+    log "Cleaning stale lock: $lockfile (PID $pid dead)"
+    rm -f "$lockfile"
   done
 }
 
