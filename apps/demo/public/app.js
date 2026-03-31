@@ -6,8 +6,11 @@
 import { get, set, del, keys, createStore } from 'idb-keyval';
 
 // ── IndexedDB Stores ──
-const sessionStore = createStore('burnish-db', 'sessions');
-const nodeStore = createStore('burnish-db', 'nodes');
+// Each store uses a separate database — idb-keyval's createStore only supports
+// one object store per database. Using the same DB name for both would cause
+// the second store to fail (the DB already exists with only the first store).
+const sessionStore = createStore('burnish-sessions', 'sessions');
+const nodeStore = createStore('burnish-nodes', 'nodes');
 
 // ── DOMPurify Config ──
 const PURIFY_CONFIG = {
