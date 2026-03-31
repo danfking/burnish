@@ -771,6 +771,25 @@ body {
 }
 .burnish-node-header:hover .burnish-node-info { opacity: 1; }
 .burnish-node-info:hover { color: var(--burnish-accent, #4f6df5); }
+/* Refresh button */
+.burnish-node-refresh {
+    background: none;
+    border: none;
+    color: var(--burnish-text-muted, #9ca3af);
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0;
+    transition: opacity var(--burnish-transition-fast);
+    flex-shrink: 0;
+    line-height: 1;
+}
+.burnish-node-header:hover .burnish-node-refresh { opacity: 1; }
+.burnish-node-refresh:hover { color: var(--burnish-accent, #4f6df5); }
+/* Always show action buttons on expanded nodes */
+.burnish-node[data-collapsed="false"] .burnish-node-maximize,
+.burnish-node[data-collapsed="false"] .burnish-node-refresh,
+.burnish-node[data-collapsed="false"] .burnish-node-delete,
+.burnish-node[data-collapsed="false"] .burnish-node-info { opacity: 1; }
 .burnish-node-header:hover .burnish-node-delete { opacity: 1; }
 /* Spinning indicator in node header while streaming */
 .burnish-node-spinner {
