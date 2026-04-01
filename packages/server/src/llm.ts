@@ -66,16 +66,20 @@ function validateModel(model: string): string {
 
 /** Validate mcpConfigPath — must be a plausible file path with no shell metacharacters. */
 function validateConfigPath(configPath: string): string {
+    // Normalize Windows backslashes to forward slashes before validation.
+    // The CLI accepts forward slashes on all platforms, and this avoids
+    // rejecting legitimate Windows temp paths like C:\Users\...\mcp-servers.json.
+    const normalized = configPath.replace(/\\/g, '/');
     // Block shell metacharacters that could enable command injection
     const dangerous = /[;|&$`!><(){}\[\]'"\\#~\n\r]/;
-    if (dangerous.test(configPath)) {
+    if (dangerous.test(normalized)) {
         throw new Error(`Invalid mcpConfigPath: contains dangerous characters`);
     }
     // Must end in .json
-    if (!configPath.endsWith('.json')) {
+    if (!normalized.endsWith('.json')) {
         throw new Error(`Invalid mcpConfigPath: must end in .json`);
     }
-    return configPath;
+    return normalized;
 }
 
 function extractServerName(toolName: string): string | undefined {
