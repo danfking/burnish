@@ -1660,11 +1660,11 @@ function transformOutput(html) {
         }
     });
 
-    // Rule 1b: Sections containing info cards should also use "info"
+    // Rule 1b: Sections in informational context should use "info" status
+    // (ensures consistent blue dots instead of random LLM-assigned colors)
     root.querySelectorAll('burnish-section').forEach(section => {
-        const hasInfoCards = section.querySelector('burnish-card[status="info"]');
-        const status = section.getAttribute('status');
-        if (hasInfoCards || status === 'success') {
+        const hasCards = section.querySelector('burnish-card');
+        if (hasCards) {
             section.setAttribute('status', 'info');
         }
     });
