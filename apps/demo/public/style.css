@@ -1029,6 +1029,17 @@ body {
     flex-shrink: 0;
 }
 
+.burnish-diag-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--burnish-text, #1f2937);
+    margin: 10px 0 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--burnish-border-light, #f3f4f6);
+}
+
 /* ── Dashboard Mode ── */
 [data-dashboard="true"] .burnish-session-panel { display: none; }
 [data-dashboard="true"] .burnish-prompt-bar { display: none; }

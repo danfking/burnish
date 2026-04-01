@@ -363,6 +363,7 @@ async function regenerateNode(nodeId) {
     node.summary = null;
     node.stats = null;
     node._progressLog = [];
+    node._componentLog = [];
     session.activeNodeId = nodeId;
 
     // Re-render and simulate a new submission for this node's prompt
@@ -412,7 +413,12 @@ async function regenerateNode(nodeId) {
                 }
                 const elements = findStreamElements(trimmed);
                 while (renderedCount < elements.length) {
-                    appendElement(contentEl, containerStack, elements[renderedCount]);
+                    const el = elements[renderedCount];
+                    appendElement(contentEl, containerStack, el);
+                    if (el.tagName && el.tagName.startsWith('burnish-') && el.type === 'leaf') {
+                        node._componentLog.push({ tag: el.tagName, timestamp: Date.now() });
+                        updateNodeStatus(nodeId, `Rendering ${el.tagName}…`);
+                    }
                     renderedCount++;
                 }
             } else {
@@ -711,7 +717,8 @@ function toggleDiagnosticPanel(nodeId) {
     let stepsHtml = '';
     if (progressLog.length > 0) {
         const baseTime = progressLog[0].timestamp;
-        stepsHtml = '<div class="burnish-diag-steps">';
+        stepsHtml = '<div class="burnish-diag-section-title">Steps</div>'
+            + '<div class="burnish-diag-steps">';
         for (let i = 0; i < progressLog.length; i++) {
             const step = progressLog[i];
             const elapsed = ((step.timestamp - baseTime) / 1000).toFixed(1);
@@ -738,9 +745,32 @@ function toggleDiagnosticPanel(nodeId) {
         stepsHtml += '</div>';
     }
 
+    // Component breakdown
+    let componentsHtml = '';
+    const componentLog = node._componentLog || [];
+    if (componentLog.length > 0) {
+        const modelName = modelEntry ? modelEntry.meta.model : '';
+        const streamStart = progressLog.length > 0 ? progressLog[progressLog.length - 1].timestamp : componentLog[0].timestamp;
+        componentsHtml = '<div class="burnish-diag-section-title">Components</div>'
+            + '<div class="burnish-diag-steps">';
+        for (let i = 0; i < componentLog.length; i++) {
+            const comp = componentLog[i];
+            const prev = i === 0 ? streamStart : componentLog[i - 1].timestamp;
+            const dur = ((comp.timestamp - prev) / 1000).toFixed(1) + 's';
+            const modelSuffix = modelName ? ` (${escapeHtml(modelName)})` : '';
+            componentsHtml += `<div class="burnish-diag-step">`
+                + `<span class="burnish-diag-check">\u2713</span>`
+                + `<span class="burnish-diag-label">${escapeHtml(comp.tag)}${modelSuffix}</span>`
+                + `<span class="burnish-diag-time">${dur}</span>`
+                + `</div>`;
+        }
+        componentsHtml += '</div>';
+    }
+
     panel.innerHTML = (metrics.length > 0
         ? `<div class="burnish-diag-metrics">${metrics.join('')}</div>` : '')
-        + stepsHtml;
+        + stepsHtml
+        + componentsHtml;
 
     contentEl.insertBefore(panel, contentEl.firstChild);
 }
@@ -1209,6 +1239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             collapsed: false,
             _toolHint: drillDownToolHint,
             _progressLog: [],
+            _componentLog: [],
         };
         drillDownToolHint = null; // consume
 
@@ -1281,7 +1312,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     const elements = findStreamElements(trimmed);
                     while (renderedCount < elements.length) {
-                        appendElement(contentEl, containerStack, elements[renderedCount]);
+                        const el = elements[renderedCount];
+                        appendElement(contentEl, containerStack, el);
+                        if (el.tagName && el.tagName.startsWith('burnish-') && el.type === 'leaf') {
+                            node._componentLog.push({ tag: el.tagName, timestamp: Date.now() });
+                            updateNodeStatus(nodeId, `Rendering ${el.tagName}…`);
+                        }
                         renderedCount++;
                     }
                 } else {
