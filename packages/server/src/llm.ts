@@ -16,6 +16,7 @@ import { createInterface } from 'node:readline';
 import type { McpHub } from './mcp-hub.js';
 import type { ConversationStore, Conversation } from './conversation.js';
 import { buildSystemPrompt } from './prompt-template.js';
+import { guardToolExecution } from './guards.js';
 
 export interface WorkflowStep {
     server: string;
@@ -30,6 +31,52 @@ export type StreamChunk =
     | { type: 'stats'; durationMs: number; inputTokens: number; outputTokens: number; costUsd?: number };
 
 const DEFAULT_MAX_TOOL_ROUNDS = 8;
+
+/**
+ * Strip stack traces, file paths, and internal details from error messages
+ * before sending to the client stream.
+ */
+function sanitizeErrorMessage(err: unknown): string {
+    const raw = err instanceof Error ? err.message : String(err);
+    // Strip file paths (Unix and Windows)
+    let sanitized = raw.replace(/(?:[A-Z]:)?[/\\][\w./\\-]+/gi, '[path]');
+    // Strip stack trace lines
+    sanitized = sanitized.replace(/\n\s+at\s+.*/g, '');
+    // Truncate to prevent excessive error data
+    if (sanitized.length > 200) {
+        sanitized = sanitized.slice(0, 200) + '…';
+    }
+    return sanitized || 'An internal error occurred';
+}
+
+/** Allowlisted model identifiers for CLI subprocess. */
+const ALLOWED_MODELS = new Set([
+    'sonnet', 'haiku', 'opus',
+    'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-6',
+    'claude-sonnet-4-5-20250514',
+]);
+
+/** Validate model name against allowlist. */
+function validateModel(model: string): string {
+    if (!ALLOWED_MODELS.has(model)) {
+        throw new Error(`Invalid model: "${model}". Allowed: ${[...ALLOWED_MODELS].join(', ')}`);
+    }
+    return model;
+}
+
+/** Validate mcpConfigPath — must be a plausible file path with no shell metacharacters. */
+function validateConfigPath(configPath: string): string {
+    // Block shell metacharacters that could enable command injection
+    const dangerous = /[;|&$`!><(){}\[\]'"\\#~\n\r]/;
+    if (dangerous.test(configPath)) {
+        throw new Error(`Invalid mcpConfigPath: contains dangerous characters`);
+    }
+    // Must end in .json
+    if (!configPath.endsWith('.json')) {
+        throw new Error(`Invalid mcpConfigPath: must end in .json`);
+    }
+    return configPath;
+}
 
 function extractServerName(toolName: string): string | undefined {
     const match = toolName.match(/^mcp__([^_]+)__/);
@@ -120,13 +167,15 @@ export class LlmOrchestrator {
 
             const mcpConfigPath = this.mcpConfigPath;
             if (!mcpConfigPath) throw new Error('mcpConfigPath required for CLI backend');
+            validateConfigPath(mcpConfigPath);
+            const validatedModel = validateModel(useModel);
 
             const args = [
                 '--print',
                 '--verbose',
                 '--output-format', 'stream-json',
                 '--include-partial-messages',
-                '--model', useModel,
+                '--model', validatedModel,
                 '--system-prompt-file', tempFile,
                 '--mcp-config', mcpConfigPath,
                 '--strict-mcp-config',
@@ -392,6 +441,20 @@ export class LlmOrchestrator {
                 yield { type: 'workflow_trace', steps: [...workflowSteps] };
 
                 try {
+                    // Pre-execution guard check
+                    const guard = guardToolExecution(tc.name, tc.input);
+                    if (!guard.allowed) {
+                        step.status = 'error';
+                        yield { type: 'workflow_trace', steps: [...workflowSteps] };
+                        toolResults.push({
+                            type: 'tool_result',
+                            tool_use_id: tc.id,
+                            content: guard.reason || `Tool "${tc.name}" blocked by guard`,
+                            is_error: true,
+                        });
+                        continue;
+                    }
+
                     yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: { server } };
                     console.log(`[llm] Executing tool: ${tc.name}`);
                     const result = await this.mcpHub.executeTool(tc.name, tc.input);
@@ -405,10 +468,11 @@ export class LlmOrchestrator {
                 } catch (err) {
                     step.status = 'error';
                     yield { type: 'workflow_trace', steps: [...workflowSteps] };
+                    console.error(`[llm] Tool execution error for ${tc.name}:`, err);
                     toolResults.push({
                         type: 'tool_result',
                         tool_use_id: tc.id,
-                        content: `Error: ${err instanceof Error ? err.message : String(err)}`,
+                        content: `Error: ${sanitizeErrorMessage(err)}`,
                         is_error: true,
                     });
                 }
@@ -483,9 +547,10 @@ export class LlmOrchestrator {
         const fullPrompt = `${LlmOrchestrator.TITLE_SYSTEM_PROMPT}\n\n${userMessage}`;
 
         return new Promise<string>((resolve, reject) => {
+            const validatedTitleModel = validateModel('haiku');
             const proc = spawn(claudeCmd, [
                 '--print',
-                '--model', 'haiku',
+                '--model', validatedTitleModel,
                 '--tools', '',
                 '--setting-sources', 'user',
             ], {
@@ -504,7 +569,8 @@ export class LlmOrchestrator {
 
             proc.on('close', (code: number | null) => {
                 if (code !== 0) {
-                    reject(new Error(`claude exited with code ${code}: ${stderr}`));
+                    console.error(`[llm-cli] claude exited with code ${code}: ${stderr}`);
+                    reject(new Error(`LLM subprocess failed (exit code ${code})`));
                 } else {
                     resolve(stdout.trim());
                 }
@@ -610,6 +676,18 @@ export class LlmOrchestrator {
             const toolResults: Anthropic.ToolResultBlockParam[] = [];
             for (const tc of pendingToolCalls) {
                 try {
+                    // Pre-execution guard check
+                    const guard = guardToolExecution(tc.name, tc.input);
+                    if (!guard.allowed) {
+                        toolResults.push({
+                            type: 'tool_result',
+                            tool_use_id: tc.id,
+                            content: guard.reason || `Tool "${tc.name}" blocked by guard`,
+                            is_error: true,
+                        });
+                        continue;
+                    }
+
                     const result = await this.mcpHub.executeTool(tc.name, tc.input);
                     toolResults.push({
                         type: 'tool_result',
@@ -617,10 +695,11 @@ export class LlmOrchestrator {
                         content: result,
                     });
                 } catch (err) {
+                    console.error(`[llm] Lookup tool error for ${tc.name}:`, err);
                     toolResults.push({
                         type: 'tool_result',
                         tool_use_id: tc.id,
-                        content: `Error: ${err instanceof Error ? err.message : String(err)}`,
+                        content: `Error: ${sanitizeErrorMessage(err)}`,
                         is_error: true,
                     });
                 }

@@ -6,6 +6,43 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { readFile, writeFile } from 'node:fs/promises';
+import { guardToolExecution } from './guards.js';
+
+/** Env vars that must never be overridden via MCP server config. */
+const BLOCKED_ENV_VARS = new Set([
+    'PATH', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'NODE_OPTIONS',
+    'DYLD_INSERT_LIBRARIES', 'DYLD_LIBRARY_PATH',
+]);
+
+/**
+ * Validate an MCP server config entry.
+ * Throws if the config is structurally invalid or contains dangerous env vars.
+ */
+function validateServerConfig(name: string, config: unknown): asserts config is McpServerConfig {
+    if (config == null || typeof config !== 'object') {
+        throw new Error(`MCP server "${name}": config must be an object`);
+    }
+    const c = config as Record<string, unknown>;
+
+    if (typeof c.command !== 'string' || c.command.trim() === '') {
+        throw new Error(`MCP server "${name}": "command" must be a non-empty string`);
+    }
+    if (c.args !== undefined) {
+        if (!Array.isArray(c.args) || !c.args.every((a: unknown) => typeof a === 'string')) {
+            throw new Error(`MCP server "${name}": "args" must be an array of strings`);
+        }
+    }
+    if (c.env !== undefined) {
+        if (c.env == null || typeof c.env !== 'object' || Array.isArray(c.env)) {
+            throw new Error(`MCP server "${name}": "env" must be an object`);
+        }
+        for (const key of Object.keys(c.env as Record<string, unknown>)) {
+            if (BLOCKED_ENV_VARS.has(key.toUpperCase())) {
+                throw new Error(`MCP server "${name}": env var "${key}" is blocked for security reasons`);
+            }
+        }
+    }
+}
 
 export interface McpServerConfig {
     command: string;
@@ -46,6 +83,7 @@ export class McpHub {
 
         for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
             try {
+                validateServerConfig(name, serverConfig);
                 await this.connectServer(name, serverConfig);
                 console.log(`[mcp-hub] Connected to "${name}"`);
             } catch (err) {
@@ -86,6 +124,8 @@ export class McpHub {
         name: string,
         config: McpServerConfig,
     ): Promise<void> {
+        validateServerConfig(name, config);
+
         // Disconnect existing server with same name if present
         const idx = this.servers.findIndex(s => s.name === name);
         if (idx !== -1) {
@@ -148,6 +188,12 @@ export class McpHub {
         toolName: string,
         args: Record<string, unknown>,
     ): Promise<string> {
+        // Enforce deterministic guard before any tool execution
+        const guard = guardToolExecution(toolName, args);
+        if (!guard.allowed) {
+            throw new Error(guard.reason || `Tool "${toolName}" blocked by guard`);
+        }
+
         for (const server of this.servers) {
             const tool = server.tools.find(t => t.name === toolName);
             if (tool) {
