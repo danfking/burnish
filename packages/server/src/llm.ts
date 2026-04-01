@@ -17,12 +17,19 @@ import type { McpHub } from './mcp-hub.js';
 import type { ConversationStore, Conversation } from './conversation.js';
 import { buildSystemPrompt } from './prompt-template.js';
 
+export interface WorkflowStep {
+    server: string;
+    tool: string;
+    status: 'pending' | 'running' | 'success' | 'error';
+}
+
 export type StreamChunk =
     | { type: 'content'; text: string }
     | { type: 'progress'; stage: string; detail?: string; meta?: { model?: string; server?: string } }
+    | { type: 'workflow_trace'; steps: WorkflowStep[] }
     | { type: 'stats'; durationMs: number; inputTokens: number; outputTokens: number; costUsd?: number };
 
-const MAX_TOOL_ROUNDS = 5;
+const DEFAULT_MAX_TOOL_ROUNDS = 8;
 
 function extractServerName(toolName: string): string | undefined {
     const match = toolName.match(/^mcp__([^_]+)__/);
@@ -37,6 +44,8 @@ export interface LlmOrchestratorOptions {
     cwd?: string;
     /** Path to MCP server config JSON file (for CLI backend) */
     mcpConfigPath?: string;
+    /** Maximum tool-call rounds per request (default 8) */
+    maxToolRounds?: number;
 }
 
 export class LlmOrchestrator {
@@ -45,6 +54,7 @@ export class LlmOrchestrator {
     private model = 'sonnet';
     private cwd: string | undefined;
     private mcpConfigPath: string | undefined;
+    private maxToolRounds = DEFAULT_MAX_TOOL_ROUNDS;
 
     constructor(
         private mcpHub: McpHub,
@@ -56,6 +66,7 @@ export class LlmOrchestrator {
         if (options.model) this.model = options.model;
         if (options.cwd) this.cwd = options.cwd;
         if (options.mcpConfigPath) this.mcpConfigPath = options.mcpConfigPath;
+        if (options.maxToolRounds != null) this.maxToolRounds = options.maxToolRounds;
 
         if (this.backend === 'api') {
             if (!options.apiKey) throw new Error('ANTHROPIC_API_KEY required for api backend');
@@ -303,10 +314,11 @@ export class LlmOrchestrator {
         let cacheReadTokens = 0;
         let cacheCreationTokens = 0;
         const apiStartTime = Date.now();
+        const workflowSteps: WorkflowStep[] = [];
 
         yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } };
 
-        for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        for (let round = 0; round < this.maxToolRounds; round++) {
             const params: Anthropic.MessageCreateParams = {
                 model: useModel,
                 max_tokens: 4096,
@@ -373,17 +385,26 @@ export class LlmOrchestrator {
 
             const toolResults: Anthropic.ToolResultBlockParam[] = [];
             for (const tc of pendingToolCalls) {
+                const server = extractServerName(tc.name) || 'unknown';
+                const shortName = tc.name.replace(/^mcp__\w+__/, '');
+                const step: WorkflowStep = { server, tool: shortName, status: 'running' };
+                workflowSteps.push(step);
+                yield { type: 'workflow_trace', steps: [...workflowSteps] };
+
                 try {
-                    const server = extractServerName(tc.name);
-                    yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: server ? { server } : undefined };
+                    yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: { server } };
                     console.log(`[llm] Executing tool: ${tc.name}`);
                     const result = await this.mcpHub.executeTool(tc.name, tc.input);
+                    step.status = 'success';
+                    yield { type: 'workflow_trace', steps: [...workflowSteps] };
                     toolResults.push({
                         type: 'tool_result',
                         tool_use_id: tc.id,
                         content: result,
                     });
                 } catch (err) {
+                    step.status = 'error';
+                    yield { type: 'workflow_trace', steps: [...workflowSteps] };
                     toolResults.push({
                         type: 'tool_result',
                         tool_use_id: tc.id,
@@ -531,7 +552,7 @@ export class LlmOrchestrator {
 
         let fullResponse = '';
 
-        for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        for (let round = 0; round < this.maxToolRounds; round++) {
             const params: Anthropic.MessageCreateParams = {
                 model: this.model,
                 max_tokens: 1024,

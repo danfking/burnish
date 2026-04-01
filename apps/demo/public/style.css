@@ -936,6 +936,31 @@ body {
 }
 .burnish-connected-server-disconnect:hover { background: #fee2e2; }
 .burnish-no-servers { color: #9ca3af; font-size: 13px; padding: 12px 0; }
+.burnish-catalog-search {
+    margin-bottom: 12px;
+}
+.burnish-catalog-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #f9fafb;
+    outline: none;
+    box-sizing: border-box;
+}
+.burnish-catalog-search input:focus {
+    border-color: #4f6df5;
+    background: white;
+}
+.burnish-catalog-popular {
+    margin-bottom: 16px;
+}
+.burnish-catalog-verified {
+    color: #5cb85c;
+    font-size: 11px;
+    margin-left: 4px;
+}
 .burnish-catalog-category { margin-bottom: 16px; }
 .burnish-catalog-category-label {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
@@ -1063,6 +1088,64 @@ body {
 #btn-dashboard-toggle.active {
     color: white;
     background: rgba(255,255,255,0.15);
+}
+
+/* ── Workflow Trace (cross-server pipeline) ── */
+.burnish-workflow-trace {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: var(--burnish-bg-secondary, #1a1a2e);
+    border-radius: 8px;
+    font-size: 12px;
+    flex-wrap: wrap;
+    animation: fadeSlideIn 0.25s ease-out;
+}
+.burnish-trace-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.burnish-trace-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    flex-shrink: 0;
+}
+.burnish-trace-step.running .burnish-trace-dot {
+    background: var(--burnish-warning, #f0ad4e);
+    animation: pulse 1s ease-in-out infinite;
+}
+.burnish-trace-step.success .burnish-trace-dot {
+    background: var(--burnish-success, #5cb85c);
+}
+.burnish-trace-step.error .burnish-trace-dot {
+    background: var(--burnish-error, #d9534f);
+}
+.burnish-trace-server {
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+}
+.burnish-trace-server::after {
+    content: ':';
+}
+.burnish-trace-tool {
+    color: rgba(255,255,255,0.85);
+}
+.burnish-trace-arrow {
+    color: rgba(255,255,255,0.3);
+    font-size: 14px;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
 
 /* ── Responsive ── */

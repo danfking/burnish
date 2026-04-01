@@ -482,6 +482,9 @@ async function regenerateNode(nodeId) {
             node.stats = stats;
             updateNodeHeader(nodeId);
             await saveState();
+        },
+        (steps) => {
+            updateWorkflowTrace(contentEl, steps);
         }
     );
 }
@@ -990,10 +993,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-close-modal')?.addEventListener('click', () => closeServerModal());
     document.querySelector('.burnish-modal-backdrop')?.addEventListener('click', () => closeServerModal());
 
-    document.getElementById('catalog-grid')?.addEventListener('click', (e) => {
-        const item = e.target.closest('.burnish-catalog-item');
-        if (item && !item.classList.contains('connected')) showSetupForm(item.dataset.presetId);
+    // Catalog search
+    let catalogSearchTimer = null;
+    document.getElementById('catalog-search')?.addEventListener('input', () => {
+        clearTimeout(catalogSearchTimer);
+        catalogSearchTimer = setTimeout(() => refreshServerModal(), 150);
     });
+
+    // Catalog item clicks (delegate on both popular and grid sections)
+    for (const containerId of ['catalog-grid', 'catalog-popular']) {
+        document.getElementById(containerId)?.addEventListener('click', (e) => {
+            const item = e.target.closest('.burnish-catalog-item');
+            if (item && !item.classList.contains('connected')) showSetupForm(item.dataset.presetId);
+        });
+    }
 
     document.getElementById('connected-server-list')?.addEventListener('click', (e) => {
         const btn = e.target.closest('.burnish-connected-server-disconnect');
@@ -1427,6 +1440,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 node.stats = stats;
                 updateNodeHeader(nodeId);
                 await saveState();
+            },
+            // onWorkflowTrace
+            (steps) => {
+                updateWorkflowTrace(contentEl, steps);
             }
         );
 
@@ -1435,15 +1452,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// ── Workflow Trace (cross-server pipeline indicator) ──
+
+function updateWorkflowTrace(contentEl, steps) {
+    if (!steps || steps.length === 0) return;
+    // Only show trace when tools span multiple servers
+    const servers = new Set(steps.map(s => s.server));
+    if (servers.size < 2) return;
+
+    let traceEl = contentEl.querySelector('.burnish-workflow-trace');
+    if (!traceEl) {
+        traceEl = document.createElement('div');
+        traceEl.className = 'burnish-workflow-trace';
+        // Insert before the progress trail
+        const progressEl = contentEl.querySelector('.burnish-progress');
+        if (progressEl) {
+            progressEl.parentNode.insertBefore(traceEl, progressEl);
+        } else {
+            contentEl.prepend(traceEl);
+        }
+    }
+
+    traceEl.innerHTML = steps.map((step, i) => {
+        const statusClass = step.status === 'running' ? 'running'
+            : step.status === 'success' ? 'success'
+            : step.status === 'error' ? 'error'
+            : 'pending';
+        const arrow = i < steps.length - 1 ? '<span class="burnish-trace-arrow">\u2192</span>' : '';
+        return `<span class="burnish-trace-step ${statusClass}">` +
+            `<span class="burnish-trace-dot"></span>` +
+            `<span class="burnish-trace-server">${escapeHtml(step.server)}</span>` +
+            `<span class="burnish-trace-tool">${escapeHtml(step.tool)}</span>` +
+            `</span>${arrow}`;
+    }).join('');
+}
+
 // ── SSE Streaming (via StreamOrchestrator) ──
 
-function submitPrompt(prompt, existingConversationId, onChunk, onDone, onError, onProgress, onStats) {
+function submitPrompt(prompt, existingConversationId, onChunk, onDone, onError, onProgress, onStats, onWorkflowTrace) {
     streamOrchestrator.submitPrompt(
         '', // same origin
         prompt,
         existingConversationId,
         fastMode ? 'haiku' : undefined,
-        { onChunk, onDone, onError, onProgress, onStats },
+        { onChunk, onDone, onError, onProgress, onStats, onWorkflowTrace },
     ).catch(onError);
 }
 
@@ -1616,27 +1668,71 @@ async function refreshServerModal() {
     }
 
     const connectedNames = new Set(servers.map(s => s.name));
-    const categories = { databases: 'Databases', devtools: 'Developer Tools', observability: 'Observability', saas: 'SaaS & APIs' };
+
+    // Get search query
+    const searchInput = document.getElementById('catalog-search');
+    const query = searchInput?.value?.toLowerCase() || '';
+
+    // Filter catalog by search
+    const filteredCatalog = query
+        ? catalog.filter(s =>
+            s.name.toLowerCase().includes(query) ||
+            s.description.toLowerCase().includes(query) ||
+            (s.tags || []).some(t => t.includes(query)) ||
+            s.category.includes(query))
+        : catalog;
+
+    // Popular section (only shown when not searching)
+    const popularEl = document.getElementById('catalog-popular');
+    if (popularEl) {
+        if (!query) {
+            const popular = [...catalog]
+                .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+                .slice(0, 6);
+            let html = '<div class="burnish-catalog-category-label">Popular</div>';
+            html += '<div class="burnish-catalog-grid">';
+            for (const item of popular) {
+                const isConnected = connectedNames.has(item.id);
+                html += renderCatalogItem(item, isConnected);
+            }
+            html += '</div>';
+            popularEl.innerHTML = html;
+            popularEl.hidden = false;
+        } else {
+            popularEl.innerHTML = '';
+            popularEl.hidden = true;
+        }
+    }
+
+    const categories = { databases: 'Databases', devtools: 'Developer Tools', productivity: 'Productivity', devops: 'DevOps', testing: 'Testing', saas: 'SaaS & APIs' };
     const catalogGrid = document.getElementById('catalog-grid');
     if (catalogGrid) {
         let html = '';
         for (const [cat, label] of Object.entries(categories)) {
-            const items = catalog.filter(s => s.category === cat);
+            const items = filteredCatalog.filter(s => s.category === cat);
             if (items.length === 0) continue;
             html += `<div class="burnish-catalog-category">`;
             html += `<div class="burnish-catalog-category-label">${label}</div>`;
             html += `<div class="burnish-catalog-grid">`;
             for (const item of items) {
                 const isConnected = connectedNames.has(item.id);
-                html += `<div class="burnish-catalog-item${isConnected ? ' connected' : ''}" data-preset-id="${item.id}">
-                    <div class="burnish-catalog-item-name">${escapeHtml(item.name)}</div>
-                    <div class="burnish-catalog-item-desc">${escapeHtml(item.description)}</div>
-                </div>`;
+                html += renderCatalogItem(item, isConnected);
             }
             html += `</div></div>`;
         }
+        if (query && filteredCatalog.length === 0) {
+            html = '<div class="burnish-no-servers">No servers match your search</div>';
+        }
         catalogGrid.innerHTML = html;
     }
+}
+
+function renderCatalogItem(item, isConnected) {
+    const verifiedBadge = item.verified ? '<span class="burnish-catalog-verified" title="Verified">&#10003;</span>' : '';
+    return `<div class="burnish-catalog-item${isConnected ? ' connected' : ''}" data-preset-id="${item.id}">
+        <div class="burnish-catalog-item-name">${escapeHtml(item.name)}${verifiedBadge}</div>
+        <div class="burnish-catalog-item-desc">${escapeHtml(item.description)}</div>
+    </div>`;
 }
 
 async function showSetupForm(presetId) {

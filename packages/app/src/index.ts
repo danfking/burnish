@@ -32,6 +32,7 @@ export {
 export {
     StreamOrchestrator,
     type StreamCallbacks,
+    type WorkflowStep,
 } from './stream-orchestrator.js';
 
 export {

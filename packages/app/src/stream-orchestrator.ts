@@ -2,12 +2,19 @@
  * Stream orchestrator — manages SSE streaming lifecycle.
  */
 
+export interface WorkflowStep {
+    server: string;
+    tool: string;
+    status: 'pending' | 'running' | 'success' | 'error';
+}
+
 export interface StreamCallbacks {
     onChunk: (chunk: string, fullText: string) => void;
     onDone: (fullText: string, conversationId: string) => void;
     onError: (error: string) => void;
     onProgress?: (stage: string, detail?: string, meta?: Record<string, string>) => void;
     onStats?: (stats: { durationMs: number; inputTokens: number; outputTokens: number; costUsd?: number }) => void;
+    onWorkflowTrace?: (steps: WorkflowStep[]) => void;
 }
 
 export class StreamOrchestrator {
@@ -52,6 +59,7 @@ export class StreamOrchestrator {
                 callbacks.onError,
                 callbacks.onProgress,
                 callbacks.onStats,
+                callbacks.onWorkflowTrace,
             );
         } catch (err) {
             callbacks.onError(err instanceof Error ? err.message : String(err));
@@ -65,6 +73,7 @@ export class StreamOrchestrator {
         onError: (error: string) => void,
         onProgress?: (stage: string, detail?: string, meta?: Record<string, string>) => void,
         onStats?: (stats: { durationMs: number; inputTokens: number; outputTokens: number; costUsd?: number }) => void,
+        onWorkflowTrace?: (steps: WorkflowStep[]) => void,
     ): Promise<void> {
         let fullText = '';
         const myGeneration = this.cancelGeneration;
@@ -86,6 +95,8 @@ export class StreamOrchestrator {
                     } else if (data.type === 'content') {
                         fullText += data.text;
                         onChunk(data.text, fullText);
+                    } else if (data.type === 'workflow_trace') {
+                        if (onWorkflowTrace) onWorkflowTrace(data.steps);
                     } else if (data.type === 'stats') {
                         if (onStats) onStats(data);
                     } else if (data.type === 'done') {
