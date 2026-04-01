@@ -417,6 +417,7 @@ async function regenerateNode(nodeId) {
                     appendElement(contentEl, containerStack, el);
                     if (el.tagName && el.tagName.startsWith('burnish-') && el.type === 'leaf') {
                         node._componentLog.push({ tag: el.tagName, timestamp: Date.now() });
+                        updateNodeStatus(nodeId, `Rendering ${el.tagName}…`);
                     }
                     renderedCount++;
                 }
@@ -1310,7 +1311,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     const elements = findStreamElements(trimmed);
                     while (renderedCount < elements.length) {
-                        appendElement(contentEl, containerStack, elements[renderedCount]);
+                        const el = elements[renderedCount];
+                        appendElement(contentEl, containerStack, el);
+                        if (el.tagName && el.tagName.startsWith('burnish-') && el.type === 'leaf') {
+                            node._componentLog.push({ tag: el.tagName, timestamp: Date.now() });
+                            updateNodeStatus(nodeId, `Rendering ${el.tagName}…`);
+                        }
                         renderedCount++;
                     }
                 } else {
