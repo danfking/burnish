@@ -1029,6 +1029,31 @@ body {
     flex-shrink: 0;
 }
 
+/* ── Dashboard Mode ── */
+[data-dashboard="true"] .burnish-session-panel { display: none; }
+[data-dashboard="true"] .burnish-prompt-bar { display: none; }
+[data-dashboard="true"] .burnish-content { margin-left: 0; }
+[data-dashboard="true"] .burnish-node-header { display: none; }
+[data-dashboard="true"] .burnish-node-prompt-bubble { display: none; }
+[data-dashboard="true"] .burnish-node[data-collapsed="true"] .burnish-node-content { display: flex; }
+[data-dashboard="true"] .burnish-node-content {
+    border: none;
+    border-radius: 0;
+    padding: 8px 0;
+    background: transparent;
+}
+[data-dashboard="true"] .burnish-node {
+    box-shadow: none;
+}
+[data-dashboard="true"] .burnish-node + .burnish-node {
+    margin-top: 0;
+}
+[data-dashboard="true"] .burnish-empty-state { display: none; }
+#btn-dashboard-toggle.active {
+    color: white;
+    background: rgba(255,255,255,0.15);
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .burnish-session-panel { left: -260px; transition: left var(--burnish-transition-normal); }
