@@ -1013,6 +1013,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (btn) disconnectServer(btn.dataset.server);
     });
 
+    // Custom server button
+    document.getElementById('btn-custom-server')?.addEventListener('click', () => showCustomServerForm());
+
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeServerModal(); });
 
     // ── Restore from IndexedDB ──
@@ -1523,7 +1526,7 @@ function extractContent(text) {
 function renderMarkdown(text) {
     if (typeof marked !== 'undefined') {
         const html = marked.parse(text);
-        return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html) : html;
+        return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html, PURIFY_CONFIG) : html;
     }
     const div = document.createElement('div');
     div.textContent = text;
@@ -1807,6 +1810,101 @@ async function connectPresetServer(preset, fieldValues) {
     } catch (err) {
         if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.className = 'burnish-setup-status error'; }
     }
+}
+
+function showCustomServerForm() {
+    document.querySelector('.burnish-setup-form')?.remove();
+
+    const form = document.createElement('div');
+    form.className = 'burnish-setup-form';
+    form.innerHTML = `
+        <h4>Connect Custom Server</h4>
+        <div class="burnish-setup-field">
+            <label>Server Name</label>
+            <input type="text" id="custom-server-name" placeholder="my-server" />
+        </div>
+        <div class="burnish-setup-field">
+            <label>Command</label>
+            <input type="text" id="custom-server-command" placeholder="npx" />
+        </div>
+        <div class="burnish-setup-field">
+            <label>Arguments (comma-separated)</label>
+            <input type="text" id="custom-server-args" placeholder="-y, @scope/mcp-server-name" />
+        </div>
+        <div class="burnish-setup-field">
+            <label>Environment Variables</label>
+            <div id="custom-env-rows"></div>
+            <button type="button" class="burnish-custom-env-add" id="btn-add-env">+ Add variable</button>
+        </div>
+        <div class="burnish-setup-status" id="setup-status"></div>
+        <div class="burnish-setup-actions">
+            <button class="burnish-setup-btn burnish-setup-btn-cancel" id="btn-setup-cancel">Cancel</button>
+            <button class="burnish-setup-btn burnish-setup-btn-primary" id="btn-setup-connect">Connect</button>
+        </div>
+    `;
+
+    document.querySelector('.burnish-modal-body')?.appendChild(form);
+    form.scrollIntoView({ behavior: 'smooth' });
+
+    const envRows = form.querySelector('#custom-env-rows');
+
+    function addEnvRow(key = '', value = '') {
+        const row = document.createElement('div');
+        row.className = 'burnish-custom-env-row';
+        row.innerHTML = `
+            <input type="text" placeholder="KEY" value="${escapeHtml(key)}" class="env-key" />
+            <input type="text" placeholder="value" value="${escapeHtml(value)}" class="env-val" />
+            <button type="button" class="burnish-custom-env-remove" title="Remove">&times;</button>
+        `;
+        row.querySelector('.burnish-custom-env-remove').addEventListener('click', () => row.remove());
+        envRows.appendChild(row);
+    }
+
+    form.querySelector('#btn-add-env').addEventListener('click', () => addEnvRow());
+    form.querySelector('#btn-setup-cancel').addEventListener('click', () => form.remove());
+    form.querySelector('#btn-setup-connect').addEventListener('click', async () => {
+        const name = form.querySelector('#custom-server-name').value.trim();
+        const command = form.querySelector('#custom-server-command').value.trim();
+        const argsRaw = form.querySelector('#custom-server-args').value.trim();
+
+        if (!name || !command) {
+            const statusEl = form.querySelector('#setup-status');
+            statusEl.textContent = 'Name and command are required';
+            statusEl.className = 'burnish-setup-status error';
+            return;
+        }
+
+        const args = argsRaw ? argsRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
+        const env = {};
+        envRows.querySelectorAll('.burnish-custom-env-row').forEach(row => {
+            const k = row.querySelector('.env-key').value.trim();
+            const v = row.querySelector('.env-val').value.trim();
+            if (k) env[k] = v;
+        });
+
+        const config = { command, args };
+        if (Object.keys(env).length > 0) config.env = env;
+
+        const statusEl = form.querySelector('#setup-status');
+        statusEl.textContent = 'Connecting...';
+        statusEl.className = 'burnish-setup-status';
+
+        try {
+            const res = await fetch('/api/servers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, config }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to connect');
+            statusEl.textContent = 'Connected!';
+            statusEl.className = 'burnish-setup-status success';
+            setTimeout(async () => { form.remove(); await refreshServerModal(); }, 1000);
+        } catch (err) {
+            statusEl.textContent = `Error: ${err.message}`;
+            statusEl.className = 'burnish-setup-status error';
+        }
+    });
 }
 
 async function disconnectServer(name) {

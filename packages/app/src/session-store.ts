@@ -172,6 +172,17 @@ export class SessionStore {
         this._loadedSessionIds.clear();
     }
 
+    /**
+     * Clear all sensitive data from IndexedDB stores.
+     * Intended for logout/cleanup scenarios to remove user session data.
+     */
+    async clearSensitiveData(): Promise<void> {
+        const allNodeKeys = await keys(this.nodeDb);
+        await Promise.all(allNodeKeys.map(k => del(k, this.nodeDb)));
+        await del('sessions', this.sessionDb);
+        this._loadedSessionIds.clear();
+    }
+
     async migrateFromLocalStorage(): Promise<void> {
         try {
             if (typeof localStorage === 'undefined') return;

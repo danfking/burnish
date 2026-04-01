@@ -13,6 +13,8 @@ export interface ComponentDef {
 export interface SanitizerConfig {
     ADD_TAGS: string[];
     ADD_ATTR: string[];
+    FORBID_TAGS: string[];
+    FORBID_ATTR: string[];
 }
 
 /** Default Burnish component definitions */
@@ -47,6 +49,8 @@ export function buildSanitizerConfig(
     return {
         ADD_TAGS: [...tags],
         ADD_ATTR: [...attrs],
+        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
     };
 }
 
