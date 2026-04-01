@@ -357,13 +357,17 @@ function updateBreadcrumb() {
 }
 
 // ── Session List Rendering ──
+function stripHtml(text) {
+    return text.replace(/<[^>]*>/g, '').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ');
+}
+
 function sessionMatchesSearch(session, query) {
     const q = query.toLowerCase();
     if ((session.title || '').toLowerCase().includes(q)) return true;
     if (session.nodes) {
         for (const node of session.nodes) {
             if ((node.prompt || '').toLowerCase().includes(q)) return true;
-            if ((node.response || '').toLowerCase().includes(q)) return true;
+            if (stripHtml(node.response || '').toLowerCase().includes(q)) return true;
         }
     }
     return false;
@@ -374,16 +378,17 @@ function getSearchSnippet(session, query) {
     if ((session.title || '').toLowerCase().includes(q)) return '';
     if (session.nodes) {
         for (const node of session.nodes) {
-            for (const text of [node.prompt, node.response]) {
-                if (!text) continue;
+            for (const rawText of [node.prompt, node.response]) {
+                if (!rawText) continue;
+                const text = stripHtml(rawText);
                 const idx = text.toLowerCase().indexOf(q);
                 if (idx === -1) continue;
                 const start = Math.max(0, idx - 30);
                 const end = Math.min(text.length, idx + query.length + 30);
                 const prefix = start > 0 ? '...' : '';
                 const suffix = end < text.length ? '...' : '';
-                const raw = text.slice(start, end).replace(/<[^>]+>/g, '');
-                const escaped = escapeHtml(raw);
+                const snippet = text.slice(start, end);
+                const escaped = escapeHtml(snippet);
                 const re = new RegExp(`(${escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
                 return prefix + escaped.replace(re, '<mark>$1</mark>') + suffix;
             }
@@ -392,9 +397,25 @@ function getSearchSnippet(session, query) {
     return '';
 }
 
+async function ensureAllSessionsLoaded() {
+    const unloaded = sessions.filter(s => s._nodeIds && !_loadedSessionIds.has(s.id));
+    if (unloaded.length === 0) return;
+    await Promise.all(unloaded.map(async s => {
+        await loadSessionNodes(s, s._nodeIds);
+        delete s._nodeIds;
+        _loadedSessionIds.add(s.id);
+    }));
+}
+
 function renderSessionList() {
     const listEl = document.getElementById('session-list');
     if (!listEl) return;
+
+    // If searching and there are unloaded sessions, load them first then re-render
+    if (searchQuery && sessions.some(s => s._nodeIds && !_loadedSessionIds.has(s.id))) {
+        ensureAllSessionsLoaded().then(() => renderSessionList());
+        return;
+    }
 
     // Group by time
     const now = Date.now();
