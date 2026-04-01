@@ -36,6 +36,7 @@ let cancelGeneration = 0;
 let fastMode = localStorage.getItem('burnish:fastMode') === 'true';
 let searchQuery = '';
 let searchDebounceTimer = null;
+let dashboardMode = localStorage.getItem('burnish:dashboardMode') === 'true';
 
 // Multi-session state
 let sessions = [];
@@ -1104,6 +1105,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.setItem('burnish:fastMode', String(fastMode));
         });
     }
+
+    // ── Dashboard mode toggle ──
+    if (dashboardMode) {
+        document.body.dataset.dashboard = 'true';
+        document.getElementById('btn-dashboard-toggle')?.classList.add('active');
+    }
+
+    document.getElementById('btn-dashboard-toggle')?.addEventListener('click', () => {
+        dashboardMode = !dashboardMode;
+        localStorage.setItem('burnish:dashboardMode', String(dashboardMode));
+        document.body.dataset.dashboard = dashboardMode ? 'true' : 'false';
+        document.getElementById('btn-dashboard-toggle')?.classList.toggle('active', dashboardMode);
+    });
 
     // ── Session panel events ──
     document.getElementById('btn-new-session')?.addEventListener('click', () => createSession());
