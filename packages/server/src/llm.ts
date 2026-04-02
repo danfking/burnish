@@ -254,6 +254,15 @@ export class LlmOrchestrator {
             return conv.messages[0].content;
         }
 
+        // If the latest user message is a direct tool invocation (e.g. from a form
+        // submission), it already contains all needed context (tool name + params).
+        // Including truncated history would strip the tool context the LLM needs,
+        // so we return only the tool-call instruction.
+        const lastMsg = conv.messages[conv.messages.length - 1];
+        if (lastMsg.role === 'user' && /^Call the tool\b/i.test(lastMsg.content)) {
+            return lastMsg.content;
+        }
+
         return conv.messages
             .map(m => {
                 if (m.role === 'user') return `User: ${m.content}`;
