@@ -93,11 +93,6 @@
                 <span>Fast</span>
                 <div class="burnish-fast-toggle-switch"></div>
             </div>
-            <button id="btn-servers" class="burnish-header-btn" title="Connected servers">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
-                    <path d="M2 4c0-1 3.6-2 8-2s8 1 8 2v2c0 1-3.6 2-8 2S2 7 2 6V4zm0 5c1.6 1 4.6 1.5 8 1.5S16.4 10 18 9v3c0 1-3.6 2-8 2S2 13 2 12V9zm0 5c1.6 1 4.6 1.5 8 1.5S16.4 15 18 14v2c0 1-3.6 2-8 2S2 17 2 16v-2z"/>
-                </svg>
-            </button>
         </div>
     </header>
 
@@ -142,30 +137,5 @@
         </div>
     </footer>
 
-    <!-- Server Config Modal -->
-    <div id="server-modal" class="burnish-modal" hidden>
-        <div class="burnish-modal-backdrop"></div>
-        <div class="burnish-modal-content">
-            <div class="burnish-modal-header">
-                <h3>MCP Servers</h3>
-                <button class="burnish-modal-close" id="btn-close-modal">&times;</button>
-            </div>
-            <div class="burnish-modal-body">
-                <div class="burnish-connected-servers">
-                    <h4>Connected</h4>
-                    <div id="connected-server-list"></div>
-                </div>
-                <div class="burnish-server-catalog">
-                    <h4>Add Server</h4>
-                    <div class="burnish-catalog-search">
-                        <input type="text" id="catalog-search" placeholder="Search servers..." autocomplete="off" />
-                    </div>
-                    <div id="catalog-popular" class="burnish-catalog-popular"></div>
-                    <div id="catalog-grid"></div>
-                    <button id="btn-custom-server" class="burnish-custom-server-btn">+ Connect Custom Server</button>
-                </div>
-            </div>
-        </div>
-    </div>
 </body>
 </html>

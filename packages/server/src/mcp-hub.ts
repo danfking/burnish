@@ -5,7 +5,9 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, access } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { resolve } from 'node:path';
 
 export interface McpServerConfig {
     command: string;
@@ -41,17 +43,27 @@ export class McpHub {
      */
     async initialize(configPath: string): Promise<void> {
         this.configFilePath = configPath;
-        const raw = await readFile(configPath, 'utf-8');
-        const config: McpServersConfig = JSON.parse(raw);
 
-        for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
-            try {
-                await this.connectServer(name, serverConfig);
-                console.log(`[mcp-hub] Connected to "${name}"`);
-            } catch (err) {
-                console.error(`[mcp-hub] Failed to connect to "${name}":`, err);
-            }
+        let config: McpServersConfig;
+        try {
+            await access(configPath, constants.R_OK);
+            const raw = await readFile(configPath, 'utf-8');
+            config = JSON.parse(raw);
+        } catch {
+            console.warn('[mcp-hub] No config file found at', configPath);
+            return;
         }
+
+        await Promise.allSettled(
+            Object.entries(config.mcpServers).map(async ([name, serverConfig]) => {
+                try {
+                    await this.connectServer(name, serverConfig);
+                    console.log(`[mcp-hub] Connected to "${name}"`);
+                } catch (err) {
+                    console.error(`[mcp-hub] Failed to connect to "${name}":`, err);
+                }
+            }),
+        );
     }
 
     private async connectServer(
@@ -62,6 +74,7 @@ export class McpHub {
             command: config.command,
             args: config.args,
             env: { ...process.env, ...config.env } as Record<string, string>,
+            cwd: this.configFilePath ? resolve(this.configFilePath, '..') : undefined,
         });
 
         const client = new Client({ name: `burnish-${name}`, version: '0.1.0' });
@@ -77,50 +90,6 @@ export class McpHub {
         }));
 
         this.servers.push({ name, client, transport, tools, config });
-    }
-
-    /**
-     * Add a new MCP server at runtime, connect to it, and persist config.
-     */
-    async addServer(
-        name: string,
-        config: McpServerConfig,
-    ): Promise<void> {
-        // Disconnect existing server with same name if present
-        const idx = this.servers.findIndex(s => s.name === name);
-        if (idx !== -1) {
-            try { await this.servers[idx].client.close(); } catch { /* ignore */ }
-            this.servers.splice(idx, 1);
-        }
-        await this.connectServer(name, config);
-        console.log(`[mcp-hub] Connected to "${name}"`);
-        await this.persistConfig();
-    }
-
-    /**
-     * Remove an MCP server by name, disconnect, and persist config.
-     */
-    async removeServer(name: string): Promise<void> {
-        const idx = this.servers.findIndex(s => s.name === name);
-        if (idx === -1) {
-            throw new Error(`Server "${name}" not found`);
-        }
-        try { await this.servers[idx].client.close(); } catch { /* ignore */ }
-        this.servers.splice(idx, 1);
-        await this.persistConfig();
-    }
-
-    /**
-     * Write current server configs back to the config file.
-     */
-    private async persistConfig(): Promise<void> {
-        if (!this.configFilePath) return;
-        const mcpServers: Record<string, McpServerConfig> = {};
-        for (const s of this.servers) {
-            mcpServers[s.name] = s.config;
-        }
-        const data: McpServersConfig = { mcpServers };
-        await writeFile(this.configFilePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
     }
 
     /**

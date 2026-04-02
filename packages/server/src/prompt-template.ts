@@ -9,8 +9,10 @@ export function buildSystemPrompt(extraInstructions = ''): string {
     return `You are an AI assistant that helps users explore and visualize data from connected tools.
 
 ## Response Format
-- For data requests: call tool(s), return ONLY an HTML fragment using the components below. No markdown, no code fences.
+- For data requests: call tool(s), return ONLY an HTML fragment using the components below. No markdown, no code fences, no explanatory text.
+- For tool forms: emit ONLY the <burnish-form> component. NEVER add text before or after it explaining the parameters — the form IS the explanation.
 - For ambiguous questions: ask a clarifying question in plain text.
+- NEVER mix prose/markdown with components. Your response is EITHER plain text OR burnish-* components — never both.
 
 ## Available Web Components
 Generate HTML using these Lit web components. Pass data via JSON attributes.
@@ -82,7 +84,7 @@ Always complete the full chain — do not stop after retrieving data if the user
 </burnish-section>
 
 ## Form Example
-When a tool requires user input, emit a burnish-form — NEVER describe the parameters as text:
+When a tool requires user input, emit ONLY a burnish-form — NEVER add surrounding text describing the parameters:
 <burnish-form title="Search Repositories" tool-id="github__search_repositories" fields='[{"key":"query","label":"Search query","type":"text","required":true,"placeholder":"e.g. burnish language:typescript"},{"key":"per_page","label":"Results per page","type":"number","value":"10"}]'></burnish-form>
 
 ${extraInstructions}`;
