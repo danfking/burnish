@@ -438,6 +438,16 @@ async function regenerateNode(nodeId) {
             node.response = trimmed;
             node.type = containsBurnishTags(trimmed) ? 'components' : 'text';
 
+            if (!trimmed) {
+                contentEl.innerHTML = '<div class="burnish-text-response" style="color: var(--burnish-text-muted, #9ca3af); font-style: italic;">No response received. Try regenerating.</div>';
+                node.type = 'text';
+                updateNodeSummary(nodeId);
+                updateBreadcrumb();
+                renderSessionList();
+                await saveState();
+                return;
+            }
+
             if (containsBurnishTags(trimmed)) {
                 // Always apply transformOutput on completion to ensure
                 // color normalization rules run (streaming bypasses them)
@@ -1325,6 +1335,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const trimmed = fullText.trim();
                 node.response = trimmed;
                 node.type = containsBurnishTags(trimmed) ? 'components' : 'text';
+
+                if (!trimmed) {
+                    contentEl.innerHTML = '<div class="burnish-text-response" style="color: var(--burnish-text-muted, #9ca3af); font-style: italic;">No response received. Try regenerating.</div>';
+                    node.type = 'text';
+                    updateNodeSummary(nodeId);
+                    updateBreadcrumb();
+                    renderSessionList();
+                    await saveState();
+                    return;
+                }
 
                 if (containsBurnishTags(trimmed)) {
                     // Always apply transformOutput on completion to ensure
