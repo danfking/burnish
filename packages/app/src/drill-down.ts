@@ -6,6 +6,17 @@
 // (this package runs in the browser, server runs in Node)
 const WRITE_TOOL_PATTERNS = /^(create|update|delete|remove|push|write|edit|move|fork|merge|add|set|close|lock|assign)/i;
 
+/** Max length for sanitized drill-down inputs */
+const MAX_INPUT_LENGTH = 500;
+
+/**
+ * Strip control characters (ASCII 0-8, 11, 12, 14-31) and truncate to max length.
+ */
+function sanitizeInput(input: string, maxLength = MAX_INPUT_LENGTH): string {
+    // eslint-disable-next-line no-control-regex
+    return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').slice(0, maxLength);
+}
+
 /**
  * Classify a tool as a write/mutate operation based on its name.
  */
@@ -20,6 +31,10 @@ export function isWriteTool(toolName: string): boolean {
  * Build the drill-down prompt for a card click.
  */
 export function getDrillDownPrompt(title: string, status?: string, itemId?: string): string {
+    title = sanitizeInput(title);
+    if (status) status = sanitizeInput(status);
+    if (itemId) itemId = sanitizeInput(itemId);
+
     const idClause = itemId ? ` (tool: ${itemId})` : '';
     const looksLikeTool = itemId && (itemId.includes('__') || itemId.includes('mcp_'));
 

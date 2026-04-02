@@ -19,7 +19,17 @@ const STATUS_COLOR_MAP: Record<string, string> = {
     muted: 'var(--burnish-muted, #9ca3af)',
 };
 
+/** Maximum HTML input size for transformation (2 MB) */
+const MAX_HTML_INPUT_SIZE = 2 * 1024 * 1024;
+
 export function transformOutput(html: string, options?: TransformOutputOptions): string {
+    // Validate input
+    if (!html || typeof html !== 'string') return '';
+    if (html.length > MAX_HTML_INPUT_SIZE) {
+        console.warn('transformOutput: input exceeds maximum size, truncating');
+        html = html.slice(0, MAX_HTML_INPUT_SIZE);
+    }
+
     if (!options?.domParser && typeof DOMParser === 'undefined') {
         // No DOMParser available (Node.js) and none injected — return html unchanged
         return html;

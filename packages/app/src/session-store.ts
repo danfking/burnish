@@ -46,6 +46,11 @@ export interface AppSession {
     _nodeIds?: string[];
 }
 
+/** Maximum number of sessions allowed */
+const MAX_SESSIONS = 100;
+/** Maximum total storage size in bytes (10 MB) */
+const MAX_STORAGE_BYTES = 10 * 1024 * 1024;
+
 export class SessionStore {
     private sessionDb: UseStore;
     private nodeDb: UseStore;
@@ -77,6 +82,46 @@ export class SessionStore {
 
     async save(sessions: AppSession[], activeSessionId: string | null): Promise<void> {
         try {
+            // Enforce session count limit — evict oldest sessions first
+            if (sessions.length > MAX_SESSIONS) {
+                const sorted = [...sessions].sort((a, b) => a.updatedAt - b.updatedAt);
+                const toEvict = sorted.slice(0, sessions.length - MAX_SESSIONS);
+                const evictIds = new Set(toEvict.map(s => s.id));
+                // Delete evicted session nodes
+                for (const s of toEvict) {
+                    const nodeIds = this._loadedSessionIds.has(s.id)
+                        ? s.nodes.map(n => n.id)
+                        : (s._nodeIds || []);
+                    if (nodeIds.length > 0) await this.deleteNodes(nodeIds);
+                    this._loadedSessionIds.delete(s.id);
+                }
+                sessions = sessions.filter(s => !evictIds.has(s.id));
+                if (activeSessionId && evictIds.has(activeSessionId)) {
+                    activeSessionId = sessions.length > 0 ? sessions[sessions.length - 1].id : null;
+                }
+            }
+
+            // Enforce total storage size limit — estimate and evict oldest if exceeded
+            let estimatedSize = 0;
+            const sessionsByAge = [...sessions].sort((a, b) => a.updatedAt - b.updatedAt);
+            for (const s of sessionsByAge) {
+                const nodeCount = this._loadedSessionIds.has(s.id) ? s.nodes.length : (s._nodeIds?.length || 0);
+                // Rough estimate: ~2KB per node average
+                estimatedSize += 200 + nodeCount * 2048;
+            }
+            while (estimatedSize > MAX_STORAGE_BYTES && sessions.length > 1) {
+                const oldest = sessionsByAge.shift()!;
+                if (oldest.id === activeSessionId) continue;
+                const nodeIds = this._loadedSessionIds.has(oldest.id)
+                    ? oldest.nodes.map(n => n.id)
+                    : (oldest._nodeIds || []);
+                if (nodeIds.length > 0) await this.deleteNodes(nodeIds);
+                this._loadedSessionIds.delete(oldest.id);
+                sessions = sessions.filter(s => s.id !== oldest.id);
+                const nodeCount = nodeIds.length;
+                estimatedSize -= 200 + nodeCount * 2048;
+            }
+
             const sessionMeta = sessions.map(s => ({
                 id: s.id,
                 title: s.title,
