@@ -1344,6 +1344,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                             fallbackHtml = generateFallbackForm(node._toolHint.toolName, schema);
                         }
                     }
+                    // Second fallback: for suggestion buttons (no _toolHint),
+                    // scan toolSchemaCache for a tool whose name matches the prompt
+                    if (!fallbackHtml && !node._toolHint && Object.keys(toolSchemaCache).length > 0) {
+                        const promptLower = node.prompt.toLowerCase();
+                        let bestMatch = null;
+                        let bestScore = 0;
+                        for (const [toolName, schema] of Object.entries(toolSchemaCache)) {
+                            if (!schema || !schema.properties || Object.keys(schema.properties).length === 0) continue;
+                            // Score by how many words from the tool name appear in the prompt
+                            const words = toolName.replace(/^mcp__\w+__/, '').split(/[_\s-]+/).filter(w => w.length > 2);
+                            const score = words.filter(w => promptLower.includes(w.toLowerCase())).length;
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestMatch = { toolName, schema };
+                            }
+                        }
+                        if (bestMatch && bestScore >= 1) {
+                            fallbackHtml = generateFallbackForm(bestMatch.toolName, bestMatch.schema);
+                        }
+                    }
                     if (fallbackHtml) {
                         contentEl.innerHTML = '';
                         const clean = transformOutput(DOMPurify.sanitize(fallbackHtml, PURIFY_CONFIG));
