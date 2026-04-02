@@ -82,8 +82,19 @@ app.get('/api/servers/catalog', (c) => {
     return c.json({ catalog: getCatalog() });
 });
 
+const ALLOWED_COMMANDS = new Set(['npx', 'node', 'uvx', 'python', 'python3', 'docker', 'deno', 'bun']);
+const SERVER_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
+
 app.post('/api/servers', async (c) => {
     const body = await c.req.json<{ name: string; config: McpServerConfig }>();
+
+    if (!body.name || !SERVER_NAME_RE.test(body.name)) {
+        return c.json({ error: 'Invalid server name: must be 1-64 alphanumeric/hyphen/underscore characters' }, 400);
+    }
+    if (!body.config?.command || !ALLOWED_COMMANDS.has(body.config.command)) {
+        return c.json({ error: `Invalid command: must be one of ${[...ALLOWED_COMMANDS].join(', ')}` }, 400);
+    }
+
     try {
         await mcpHub.addServer(body.name, body.config);
         return c.json({ ok: true, servers: mcpHub.getServerInfo() });
