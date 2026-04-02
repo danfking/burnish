@@ -12,8 +12,10 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 import {
     McpHub,
@@ -24,6 +26,17 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = new Hono();
+
+/**
+ * Resolve a user-supplied path against a base directory and verify
+ * it does not escape outside the base (prevents path traversal).
+ */
+function safePath(baseDir: string, userPath: string): string | null {
+    const resolved = normalize(resolve(baseDir, userPath));
+    const base = normalize(baseDir);
+    return resolved.startsWith(base + '\\') || resolved.startsWith(base + '/') || resolved === base
+        ? resolved : null;
+}
 
 // --- Instantiate @burnish/server classes ---
 const mcpHub = new McpHub();
@@ -348,8 +361,9 @@ const demoRoot = resolve(__dirname, '..');
 
 // Serve @burnish/app dist files
 app.get('/app/:file{.+}', async (c) => {
-    const { readFile } = await import('node:fs/promises');
-    const filePath = resolve(repoRoot, 'packages/app/dist', c.req.param('file'));
+    const baseDir = resolve(repoRoot, 'packages/app/dist');
+    const filePath = safePath(baseDir, c.req.param('file'));
+    if (!filePath) return c.text('Forbidden', 403);
     try {
         const content = await readFile(filePath, 'utf-8');
         c.header('Content-Type', 'application/javascript');
@@ -361,8 +375,9 @@ app.get('/app/:file{.+}', async (c) => {
 
 // Serve @burnish/renderer dist files
 app.get('/renderer/:file{.+}', async (c) => {
-    const { readFile } = await import('node:fs/promises');
-    const filePath = resolve(repoRoot, 'packages/renderer/dist', c.req.param('file'));
+    const baseDir = resolve(repoRoot, 'packages/renderer/dist');
+    const filePath = safePath(baseDir, c.req.param('file'));
+    if (!filePath) return c.text('Forbidden', 403);
     try {
         const content = await readFile(filePath, 'utf-8');
         c.header('Content-Type', 'application/javascript');
@@ -373,8 +388,9 @@ app.get('/renderer/:file{.+}', async (c) => {
 });
 
 app.get('/components/:file', async (c) => {
-    const { readFile } = await import('node:fs/promises');
-    const filePath = resolve(repoRoot, 'packages/components/dist', c.req.param('file'));
+    const baseDir = resolve(repoRoot, 'packages/components/dist');
+    const filePath = safePath(baseDir, c.req.param('file'));
+    if (!filePath) return c.text('Forbidden', 403);
     try {
         const content = await readFile(filePath, 'utf-8');
         c.header('Content-Type', 'application/javascript');
@@ -385,7 +401,6 @@ app.get('/components/:file', async (c) => {
 });
 
 app.get('/tokens.css', async (c) => {
-    const { readFile } = await import('node:fs/promises');
     const css = await readFile(
         resolve(repoRoot, 'packages/components/src/tokens.css'),
         'utf-8',
@@ -416,7 +431,25 @@ async function start() {
         console.warn('[burnish] Set BURNISH_API_KEY=<secret> to require Bearer token auth on /api/* routes.');
     }
 
-    const configPath = resolve(__dirname, '../mcp-servers.json');
+    const rawConfigPath = resolve(__dirname, '../mcp-servers.json');
+
+    // Resolve ${ENV_VAR} patterns in MCP config so users don't hardcode secrets
+    let configPath = rawConfigPath;
+    try {
+        const rawConfig = await readFile(rawConfigPath, 'utf-8');
+        const resolvedConfig = rawConfig.replace(
+            /\$\{([A-Za-z_][A-Za-z0-9_]*)}/g,
+            (_match, varName) => process.env[varName] || '',
+        );
+        if (resolvedConfig !== rawConfig) {
+            const tmpDir = await mkdtemp(resolve(tmpdir(), 'burnish-'));
+            configPath = resolve(tmpDir, 'mcp-servers.json');
+            await writeFile(configPath, resolvedConfig, 'utf-8');
+            console.log('[burnish] Resolved env vars in MCP config → temp file');
+        }
+    } catch {
+        // If the config file doesn't exist, fall through — mcpHub.initialize will handle it
+    }
 
     llm.configure({
         backend: llmBackend,
