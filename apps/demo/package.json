@@ -11,11 +11,11 @@
     "clean": "echo 'nothing to clean'"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
+    "@burnish/app": "workspace:*",
     "@burnish/components": "workspace:*",
     "@burnish/renderer": "workspace:*",
+    "@burnish/server": "workspace:*",
     "@hono/node-server": "^1.14.0",
-    "@modelcontextprotocol/sdk": "^1.12.1",
     "hono": "^4.7.0"
   },
   "devDependencies": {

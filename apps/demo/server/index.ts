@@ -1,5 +1,5 @@
 /**
- * Burnish Demo Server — Hono API + static file serving.
+ * Burnish Demo Server — thin Hono wrapper over @burnish/server.
  */
 
 import { Hono } from 'hono';
@@ -8,13 +8,21 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as mcpHub from './mcp-hub.js';
-import { getCatalog } from './catalog.js';
-import * as llm from './llm.js';
-import * as conversations from './conversation.js';
+import {
+    McpHub,
+    ConversationStore,
+    LlmOrchestrator,
+    getCatalog,
+    type McpServerConfig,
+} from '@burnish/server';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = new Hono();
+
+// --- Instantiate @burnish/server classes ---
+const mcpHub = new McpHub();
+const conversations = new ConversationStore();
+const llm = new LlmOrchestrator(mcpHub, conversations);
 
 // --- API Routes ---
 
@@ -75,7 +83,7 @@ app.get('/api/servers/catalog', (c) => {
 });
 
 app.post('/api/servers', async (c) => {
-    const body = await c.req.json<{ name: string; config: mcpHub.McpServerConfig }>();
+    const body = await c.req.json<{ name: string; config: McpServerConfig }>();
     try {
         await mcpHub.addServer(body.name, body.config);
         return c.json({ ok: true, servers: mcpHub.getServerInfo() });
@@ -96,33 +104,85 @@ app.delete('/api/servers/:name', async (c) => {
     }
 });
 
-// Lightweight lookup — sends a prompt through the LLM and extracts JSON results
+app.post('/api/title', async (c) => {
+    const { prompt, response } = await c.req.json<{ prompt: string; response: string }>();
+    try {
+        const title = await llm.generateTitle(prompt, response);
+        return c.json({ title });
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.warn('[burnish] Title generation failed:', msg);
+        return c.json({ error: msg }, 500);
+    }
+});
+
+// Lookup result cache — avoids redundant LLM calls for identical prompts
+const lookupCache = new Map<string, { results: unknown[]; timestamp: number }>();
+const LOOKUP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 app.post('/api/lookup', async (c) => {
     const { prompt } = await c.req.json<{ prompt: string }>();
+
+    const cached = lookupCache.get(prompt);
+    if (cached && Date.now() - cached.timestamp < LOOKUP_CACHE_TTL_MS) {
+        console.log(`[lookup] Cache hit for: ${prompt.slice(0, 60)}...`);
+        return c.json({ results: cached.results });
+    }
+
     const conv = conversations.getOrCreate(null);
     conversations.addMessage(conv.id, 'user', prompt);
 
     let result = '';
-    for await (const chunk of llm.streamResponse(conv.id)) {
+    for await (const chunk of llm.streamLookupResponse(conv.id)) {
         if (chunk.type === 'content') result += chunk.text;
     }
 
-    // Try to extract JSON array from the response
+    let results: unknown[] = [];
     try {
         const match = result.match(/\[[\s\S]*?\]/);
-        if (match) return c.json({ results: JSON.parse(match[0]) });
+        if (match) results = JSON.parse(match[0]);
     } catch { /* fall through */ }
 
-    return c.json({ results: [], raw: result });
+    if (results.length > 0) {
+        lookupCache.set(prompt, { results, timestamp: Date.now() });
+    }
+
+    return results.length > 0
+        ? c.json({ results })
+        : c.json({ results: [], raw: result });
 });
 
 // --- Static Files ---
 
-// Resolve paths relative to the repo root (apps/demo/server -> ../../..)
 const repoRoot = resolve(__dirname, '../../..');
 const demoRoot = resolve(__dirname, '..');
 
-// Serve built component JS files at /components/*
+// Serve @burnish/app dist files
+app.get('/app/:file{.+}', async (c) => {
+    const { readFile } = await import('node:fs/promises');
+    const filePath = resolve(repoRoot, 'packages/app/dist', c.req.param('file'));
+    try {
+        const content = await readFile(filePath, 'utf-8');
+        c.header('Content-Type', 'application/javascript');
+        return c.body(content);
+    } catch {
+        return c.text('Not found', 404);
+    }
+});
+
+// Serve @burnish/renderer dist files
+app.get('/renderer/:file{.+}', async (c) => {
+    const { readFile } = await import('node:fs/promises');
+    const filePath = resolve(repoRoot, 'packages/renderer/dist', c.req.param('file'));
+    try {
+        const content = await readFile(filePath, 'utf-8');
+        c.header('Content-Type', 'application/javascript');
+        return c.body(content);
+    } catch {
+        return c.text('Not found', 404);
+    }
+});
+
 app.get('/components/:file', async (c) => {
     const { readFile } = await import('node:fs/promises');
     const filePath = resolve(repoRoot, 'packages/components/dist', c.req.param('file'));
@@ -135,7 +195,6 @@ app.get('/components/:file', async (c) => {
     }
 });
 
-// Serve tokens.css from components package
 app.get('/tokens.css', async (c) => {
     const { readFile } = await import('node:fs/promises');
     const css = await readFile(
@@ -146,7 +205,6 @@ app.get('/tokens.css', async (c) => {
     return c.body(css);
 });
 
-// Serve public directory
 app.use('/*', serveStatic({ root: resolve(demoRoot, 'public') }));
 
 // --- Startup ---
@@ -163,10 +221,16 @@ async function start() {
         process.exit(1);
     }
 
-    llm.configure({ backend: llmBackend, apiKey, model: modelName });
-
-    // Connect to MCP servers
     const configPath = resolve(__dirname, '../mcp-servers.json');
+
+    llm.configure({
+        backend: llmBackend,
+        apiKey,
+        model: modelName,
+        cwd: resolve(__dirname, '..'),
+        mcpConfigPath: configPath,
+    });
+
     try {
         await mcpHub.initialize(configPath);
     } catch (err) {
@@ -184,7 +248,6 @@ async function start() {
         console.log(`[burnish] Demo server running at http://localhost:${port}`);
     });
 
-    // Graceful shutdown
     process.on('SIGINT', async () => {
         console.log('\n[burnish] Shutting down...');
         await mcpHub.shutdown();
