@@ -151,21 +151,20 @@ export function appendStreamElement(
 export function extractHtmlContent(
     text: string,
     prefix = DEFAULT_PREFIX,
-    renderMarkdown?: (text: string) => string,
+    _renderMarkdown?: (text: string) => string,
 ): string {
     let cleaned = text.replace(/<use_mcp_tool[\s\S]*?<\/use_mcp_tool>/g, '');
-    const htmlStart = cleaned.search(new RegExp(`<(?:${prefix}[a-z]|div)`));
+    const tagRe = new RegExp(`<${prefix}[a-z]`);
+    const htmlStart = cleaned.search(tagRe);
     if (htmlStart === -1) return cleaned.trim();
 
-    const preamble = cleaned.substring(0, htmlStart).trim();
-    const htmlContent = cleaned.substring(htmlStart).trim();
-
-    let result = '';
-    if (preamble && renderMarkdown) {
-        result += `<div class="burnish-text-preamble">${renderMarkdown(preamble)}</div>`;
-    } else if (preamble) {
-        result += `<div class="burnish-text-preamble">${preamble}</div>`;
+    // When components are present, strip all surrounding prose text.
+    // Only keep the component HTML — the components ARE the UI.
+    const closingRe = new RegExp(`</${prefix}[a-z][a-z-]*>`, 'g');
+    let lastClose = htmlStart;
+    let m: RegExpExecArray | null;
+    while ((m = closingRe.exec(cleaned)) !== null) {
+        lastClose = m.index + m[0].length;
     }
-    result += htmlContent;
-    return result;
+    return cleaned.substring(htmlStart, lastClose).trim();
 }
