@@ -145,6 +145,12 @@ export const CATALOG: PresetServer[] = [
         popularity: 2,
         verified: true,
     },
+    {
+        id: 'mcpfinder', name: 'MCP Finder',
+        description: 'Search the MCP registry to discover servers',
+        category: 'devtools',
+        config: { command: 'npx', args: ['-y', '@iflow-mcp/mcpfinder-server'] },
+    },
 
     // ── SaaS & APIs ──
     {
