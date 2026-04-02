@@ -17,12 +17,23 @@ export interface StreamCallbacks {
     onWorkflowTrace?: (steps: WorkflowStep[]) => void;
 }
 
+/** Maximum response size in characters (5 MB) */
+const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
+/** Default stream timeout in milliseconds (5 minutes) */
+const DEFAULT_STREAM_TIMEOUT_MS = 5 * 60 * 1000;
+
 export class StreamOrchestrator {
     private activeSource: EventSource | null = null;
     private cancelGeneration = 0;
+    private streamTimeoutMs = DEFAULT_STREAM_TIMEOUT_MS;
 
     get isStreaming(): boolean {
         return this.activeSource !== null;
+    }
+
+    /** Configure the stream timeout (in milliseconds). */
+    setStreamTimeout(ms: number): void {
+        this.streamTimeoutMs = Math.max(1000, ms);
     }
 
     cancel(): void {
@@ -82,25 +93,51 @@ export class StreamOrchestrator {
             const source = new EventSource(streamUrl);
             this.activeSource = source;
 
+            // Timeout: close stream if no 'done' event within the limit
+            let lastActivity = Date.now();
+            const timeoutCheck = setInterval(() => {
+                if (Date.now() - lastActivity > this.streamTimeoutMs) {
+                    clearInterval(timeoutCheck);
+                    source.close(); this.activeSource = null;
+                    if (fullText) { onDone(fullText); }
+                    else { onError('Stream timed out'); }
+                    resolve();
+                }
+            }, 5000);
+
+            const cleanup = () => {
+                clearInterval(timeoutCheck);
+                source.close();
+                this.activeSource = null;
+            };
+
             source.onmessage = (event) => {
+                lastActivity = Date.now();
                 if (this.cancelGeneration > myGeneration) return;
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'error') {
-                        source.close(); this.activeSource = null;
+                        cleanup();
                         onError(data.message || 'Unknown error');
                         resolve();
                     } else if (data.type === 'progress') {
                         if (onProgress) onProgress(data.stage, data.detail, data.meta);
                     } else if (data.type === 'content') {
                         fullText += data.text;
+                        // Enforce response size limit
+                        if (fullText.length > MAX_RESPONSE_SIZE) {
+                            cleanup();
+                            onError('Response size limit exceeded');
+                            resolve();
+                            return;
+                        }
                         onChunk(data.text, fullText);
                     } else if (data.type === 'workflow_trace') {
                         if (onWorkflowTrace) onWorkflowTrace(data.steps);
                     } else if (data.type === 'stats') {
                         if (onStats) onStats(data);
                     } else if (data.type === 'done') {
-                        source.close(); this.activeSource = null;
+                        cleanup();
                         onDone(fullText);
                         resolve();
                     }
@@ -108,7 +145,7 @@ export class StreamOrchestrator {
             };
 
             source.onerror = () => {
-                source.close(); this.activeSource = null;
+                cleanup();
                 if (this.cancelGeneration > myGeneration) { resolve(); }
                 else if (fullText) { onDone(fullText); resolve(); }
                 else { onError('Connection lost'); resolve(); }

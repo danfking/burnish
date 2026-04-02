@@ -27,6 +27,8 @@ const PURIFY_CONFIG = {
                'status-field', 'type', 'config', 'role', 'content', 'class',
                'label', 'count', 'collapsed', 'item-id', 'value', 'unit', 'trend',
                'streaming', 'tool-id', 'fields', 'actions', 'color'],
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
 };
 
 
@@ -1536,7 +1538,7 @@ function extractContent(text) {
 function renderMarkdown(text) {
     if (typeof marked !== 'undefined') {
         const html = marked.parse(text);
-        return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html) : html;
+        return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html, PURIFY_CONFIG) : html;
     }
     const div = document.createElement('div');
     div.textContent = text;
