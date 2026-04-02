@@ -1597,11 +1597,14 @@ async function loadDynamicSuggestions(container) {
         const serverBtns = container.querySelector('#server-buttons');
         if (serverBtns) {
             serverBtns.innerHTML = `
-                <button class="burnish-suggestion burnish-suggestion-server" onclick="document.getElementById('btn-servers')?.click()">
+                <button class="burnish-suggestion burnish-suggestion-server" id="fallback-connect-btn">
                     + Connect a Server
                     <span class="burnish-suggestion-sub">Browse the catalog</span>
                 </button>
             `;
+            serverBtns.querySelector('#fallback-connect-btn')?.addEventListener('click', () => {
+                document.getElementById('btn-servers')?.click();
+            });
         }
         const toolSection = container.querySelector('#tool-shortcuts');
         if (toolSection) toolSection.innerHTML = '';
@@ -1786,8 +1789,8 @@ function showCustomServerForm() {
         const row = document.createElement('div');
         row.className = 'burnish-custom-env-row';
         row.innerHTML = `
-            <input type="text" placeholder="KEY" value="${escapeHtml(key)}" class="env-key" />
-            <input type="text" placeholder="value" value="${escapeHtml(value)}" class="env-val" />
+            <input type="text" placeholder="KEY" value="${escapeAttr(escapeHtml(key))}" class="env-key" />
+            <input type="text" placeholder="value" value="${escapeAttr(escapeHtml(value))}" class="env-val" />
             <button type="button" class="burnish-custom-env-remove" title="Remove">&times;</button>
         `;
         row.querySelector('.burnish-custom-env-remove').addEventListener('click', () => row.remove());
