@@ -19,9 +19,15 @@ export interface Conversation {
 
 export class ConversationStore {
     private conversations = new Map<string, Conversation>();
+    private maxConversations: number;
+
+    constructor(maxConversations = 1000) {
+        this.maxConversations = maxConversations;
+    }
 
     getOrCreate(id?: string | null): Conversation {
         if (id && this.conversations.has(id)) return this.conversations.get(id)!;
+        this.evictIfFull();
         const conv: Conversation = {
             id: randomUUID(),
             messages: [],
@@ -29,6 +35,14 @@ export class ConversationStore {
         };
         this.conversations.set(conv.id, conv);
         return conv;
+    }
+
+    /** Evict the oldest conversation (first key in Map insertion order) when at capacity. */
+    private evictIfFull(): void {
+        if (this.conversations.size >= this.maxConversations) {
+            const oldestKey = this.conversations.keys().next().value;
+            if (oldestKey) this.conversations.delete(oldestKey);
+        }
     }
 
     get(id: string): Conversation | undefined {

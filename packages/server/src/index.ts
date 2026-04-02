@@ -15,6 +15,7 @@ export {
 
 export {
     LlmOrchestrator,
+    ALLOWED_MODELS,
     type LlmOrchestratorOptions,
     type StreamChunk,
     type WorkflowStep,

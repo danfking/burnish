@@ -1,5 +1,12 @@
 /**
  * Burnish Demo Server — thin Hono wrapper over @burnish/server.
+ *
+ * Security hardening:
+ * - Input validation on all API routes
+ * - Token bucket rate limiting (10 req/min per IP)
+ * - Optional Bearer token auth (BURNISH_API_KEY env var)
+ * - Error message sanitization (generic messages to client)
+ * - Bounded caches and stores
  */
 
 import { Hono } from 'hono';
@@ -12,6 +19,7 @@ import {
     McpHub,
     ConversationStore,
     LlmOrchestrator,
+    ALLOWED_MODELS,
 } from '@burnish/server';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -19,109 +27,318 @@ const app = new Hono();
 
 // --- Instantiate @burnish/server classes ---
 const mcpHub = new McpHub();
-const conversations = new ConversationStore();
+const conversations = new ConversationStore(1000);
 const llm = new LlmOrchestrator(mcpHub, conversations);
+
+// --- Validation helpers ---
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_PROMPT_LENGTH = 10_000;
+
+function validatePrompt(prompt: unknown): string | null {
+    if (typeof prompt !== 'string' || prompt.trim().length === 0) {
+        return 'prompt is required and must be a non-empty string';
+    }
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+        return `prompt must be at most ${MAX_PROMPT_LENGTH} characters`;
+    }
+    return null;
+}
+
+function validateUuid(value: string, fieldName: string): string | null {
+    if (!UUID_RE.test(value)) {
+        return `${fieldName} must be a valid UUID`;
+    }
+    return null;
+}
+
+function validateModel(model: unknown): string | null {
+    if (model !== undefined && model !== null && model !== '') {
+        if (typeof model !== 'string' || !ALLOWED_MODELS.has(model)) {
+            return `model must be one of: ${[...ALLOWED_MODELS].join(', ')}`;
+        }
+    }
+    return null;
+}
+
+// --- Token bucket rate limiter ---
+// NOTE: x-forwarded-for is trivially spoofable; not production-grade behind proxies.
+// Use a proper reverse proxy rate limiter (e.g., nginx, Cloudflare) in production.
+
+const RATE_LIMIT_MAX = 10;          // requests per window
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_BUCKET_MAX_ENTRIES = 10_000;
+
+interface RateBucket {
+    tokens: number;
+    lastRefill: number;
+}
+
+const rateBuckets = new Map<string, RateBucket>();
+
+function getClientIp(req: Request, headers: Headers): string {
+    // x-forwarded-for is not reliable without trusted proxy config — see note above
+    const forwarded = headers.get('x-forwarded-for');
+    if (forwarded) {
+        return forwarded.split(',')[0].trim();
+    }
+    return 'unknown';
+}
+
+function evictOldestBucket(): void {
+    if (rateBuckets.size >= RATE_BUCKET_MAX_ENTRIES) {
+        const oldestKey = rateBuckets.keys().next().value;
+        if (oldestKey) rateBuckets.delete(oldestKey);
+    }
+}
+
+function checkRateLimit(ip: string): boolean {
+    const now = Date.now();
+    let bucket = rateBuckets.get(ip);
+
+    if (!bucket) {
+        evictOldestBucket();
+        bucket = { tokens: RATE_LIMIT_MAX, lastRefill: now };
+        rateBuckets.set(ip, bucket);
+    }
+
+    // Refill tokens based on elapsed time
+    const elapsed = now - bucket.lastRefill;
+    const refill = Math.floor(elapsed / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_MAX;
+    if (refill > 0) {
+        bucket.tokens = Math.min(RATE_LIMIT_MAX, bucket.tokens + refill);
+        bucket.lastRefill = now;
+    }
+
+    if (bucket.tokens <= 0) {
+        return false; // rate limited
+    }
+
+    bucket.tokens--;
+    return true;
+}
+
+// --- Optional auth middleware ---
+// If BURNISH_API_KEY is set, require Authorization: Bearer <key> on all /api/* routes.
+
+const requiredApiKey = process.env.BURNISH_API_KEY || null;
+
+app.use('/api/*', async (c, next) => {
+    if (requiredApiKey) {
+        const authHeader = c.req.header('Authorization');
+        if (!authHeader || authHeader !== `Bearer ${requiredApiKey}`) {
+            return c.json({ error: 'Unauthorized' }, 401);
+        }
+    }
+    await next();
+});
+
+// --- Rate limiting middleware for expensive routes ---
+
+app.use('/api/chat', async (c, next) => {
+    const ip = getClientIp(c.req.raw, c.req.raw.headers);
+    if (!checkRateLimit(ip)) {
+        return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+    }
+    await next();
+});
+
+app.use('/api/chat/:id/stream', async (c, next) => {
+    const ip = getClientIp(c.req.raw, c.req.raw.headers);
+    if (!checkRateLimit(ip)) {
+        return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+    }
+    await next();
+});
+
+app.use('/api/lookup', async (c, next) => {
+    const ip = getClientIp(c.req.raw, c.req.raw.headers);
+    if (!checkRateLimit(ip)) {
+        return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+    }
+    await next();
+});
 
 // --- API Routes ---
 
 app.post('/api/chat', async (c) => {
-    const body = await c.req.json<{ prompt: string; conversationId?: string; model?: string }>();
-    const conv = conversations.getOrCreate(body.conversationId);
-    conversations.addMessage(conv.id, 'user', body.prompt);
-    const modelParam = body.model ? `?model=${encodeURIComponent(body.model)}` : '';
-    return c.json({
-        conversationId: conv.id,
-        streamUrl: `/api/chat/${conv.id}/stream${modelParam}`,
-    });
+    try {
+        const body = await c.req.json<{ prompt: string; conversationId?: string; model?: string }>();
+
+        // Validate prompt
+        const promptErr = validatePrompt(body.prompt);
+        if (promptErr) return c.json({ error: promptErr }, 400);
+
+        // Validate conversationId if provided
+        if (body.conversationId) {
+            const idErr = validateUuid(body.conversationId, 'conversationId');
+            if (idErr) return c.json({ error: idErr }, 400);
+        }
+
+        // Validate model if provided
+        const modelErr = validateModel(body.model);
+        if (modelErr) return c.json({ error: modelErr }, 400);
+
+        const conv = conversations.getOrCreate(body.conversationId);
+        conversations.addMessage(conv.id, 'user', body.prompt);
+        const modelParam = body.model ? `?model=${encodeURIComponent(body.model)}` : '';
+        return c.json({
+            conversationId: conv.id,
+            streamUrl: `/api/chat/${conv.id}/stream${modelParam}`,
+        });
+    } catch (err) {
+        console.error('[burnish] POST /api/chat error:', err);
+        return c.json({ error: 'Internal server error' }, 500);
+    }
 });
 
 app.get('/api/chat/:id/stream', async (c) => {
-    const id = c.req.param('id');
-    const requestModel = c.req.query('model') || undefined;
+    try {
+        const id = c.req.param('id');
 
-    const stream = new ReadableStream({
-        async start(controller) {
-            const encoder = new TextEncoder();
-            try {
-                for await (const chunk of llm.streamResponse(id, requestModel)) {
-                    const data = JSON.stringify(chunk);
+        // Validate id is UUID
+        const idErr = validateUuid(id, 'id');
+        if (idErr) return c.json({ error: idErr }, 400);
+
+        // Validate model query param if provided
+        const requestModel = c.req.query('model') || undefined;
+        if (requestModel) {
+            const modelErr = validateModel(requestModel);
+            if (modelErr) return c.json({ error: modelErr }, 400);
+        }
+
+        const stream = new ReadableStream({
+            async start(controller) {
+                const encoder = new TextEncoder();
+                try {
+                    for await (const chunk of llm.streamResponse(id, requestModel)) {
+                        const data = JSON.stringify(chunk);
+                        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                    }
+                    controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
+                } catch (err) {
+                    console.error('[burnish] Stream error:', err);
+                    const data = JSON.stringify({ type: 'error', message: 'An error occurred while streaming the response' });
                     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                } finally {
+                    controller.close();
                 }
-                controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : 'Unknown error';
-                const data = JSON.stringify({ type: 'error', message: msg });
-                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            } finally {
-                controller.close();
-            }
-        },
-    });
+            },
+        });
 
-    return new Response(stream, {
-        headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-        },
-    });
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
+        });
+    } catch (err) {
+        console.error('[burnish] GET /api/chat/:id/stream error:', err);
+        return c.json({ error: 'Internal server error' }, 500);
+    }
 });
 
 app.get('/api/chat/:id', (c) => {
-    const conv = conversations.get(c.req.param('id'));
-    return conv ? c.json(conv) : c.json({ error: 'Not found' }, 404);
+    try {
+        const id = c.req.param('id');
+
+        // Validate id is UUID
+        const idErr = validateUuid(id, 'id');
+        if (idErr) return c.json({ error: idErr }, 400);
+
+        const conv = conversations.get(id);
+        return conv ? c.json(conv) : c.json({ error: 'Not found' }, 404);
+    } catch (err) {
+        console.error('[burnish] GET /api/chat/:id error:', err);
+        return c.json({ error: 'Internal server error' }, 500);
+    }
 });
 
 app.get('/api/servers', (c) => {
-    return c.json({ servers: mcpHub.getServerInfo() });
+    try {
+        return c.json({ servers: mcpHub.getServerInfo() });
+    } catch (err) {
+        console.error('[burnish] GET /api/servers error:', err);
+        return c.json({ error: 'Internal server error' }, 500);
+    }
 });
 
 app.post('/api/title', async (c) => {
-    const { prompt, response } = await c.req.json<{ prompt: string; response: string }>();
     try {
+        const { prompt, response } = await c.req.json<{ prompt: string; response: string }>();
+
+        // Validate prompt
+        const promptErr = validatePrompt(prompt);
+        if (promptErr) return c.json({ error: promptErr }, 400);
+
+        // Validate response
+        if (typeof response !== 'string' || response.trim().length === 0) {
+            return c.json({ error: 'response is required and must be a non-empty string' }, 400);
+        }
+
         const title = await llm.generateTitle(prompt, response);
         return c.json({ title });
     } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        console.warn('[burnish] Title generation failed:', msg);
-        return c.json({ error: msg }, 500);
+        console.error('[burnish] POST /api/title error:', err);
+        return c.json({ error: 'Internal server error' }, 500);
     }
 });
 
 // Lookup result cache — avoids redundant LLM calls for identical prompts
+// Bounded to 1,000 entries with FIFO eviction.
+const LOOKUP_CACHE_MAX = 1_000;
 const lookupCache = new Map<string, { results: unknown[]; timestamp: number }>();
 const LOOKUP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+/** Evict the oldest cache entry (first key in Map insertion order) when at capacity. */
+function evictLookupCache(): void {
+    if (lookupCache.size >= LOOKUP_CACHE_MAX) {
+        const oldestKey = lookupCache.keys().next().value;
+        if (oldestKey) lookupCache.delete(oldestKey);
+    }
+}
+
 app.post('/api/lookup', async (c) => {
-    const { prompt } = await c.req.json<{ prompt: string }>();
-
-    const cached = lookupCache.get(prompt);
-    if (cached && Date.now() - cached.timestamp < LOOKUP_CACHE_TTL_MS) {
-        console.log(`[lookup] Cache hit for: ${prompt.slice(0, 60)}...`);
-        return c.json({ results: cached.results });
-    }
-
-    const conv = conversations.getOrCreate(null);
-    conversations.addMessage(conv.id, 'user', prompt);
-
-    let result = '';
-    for await (const chunk of llm.streamLookupResponse(conv.id)) {
-        if (chunk.type === 'content') result += chunk.text;
-    }
-
-    let results: unknown[] = [];
     try {
-        const match = result.match(/\[[\s\S]*?\]/);
-        if (match) results = JSON.parse(match[0]);
-    } catch { /* fall through */ }
+        const { prompt } = await c.req.json<{ prompt: string }>();
 
-    if (results.length > 0) {
-        lookupCache.set(prompt, { results, timestamp: Date.now() });
+        // Validate prompt
+        const promptErr = validatePrompt(prompt);
+        if (promptErr) return c.json({ error: promptErr }, 400);
+
+        const cached = lookupCache.get(prompt);
+        if (cached && Date.now() - cached.timestamp < LOOKUP_CACHE_TTL_MS) {
+            console.log(`[lookup] Cache hit for: ${prompt.slice(0, 60)}...`);
+            return c.json({ results: cached.results });
+        }
+
+        const conv = conversations.getOrCreate(null);
+        conversations.addMessage(conv.id, 'user', prompt);
+
+        let result = '';
+        for await (const chunk of llm.streamLookupResponse(conv.id)) {
+            if (chunk.type === 'content') result += chunk.text;
+        }
+
+        let results: unknown[] = [];
+        try {
+            const match = result.match(/\[[\s\S]*?\]/);
+            if (match) results = JSON.parse(match[0]);
+        } catch { /* fall through */ }
+
+        if (results.length > 0) {
+            evictLookupCache();
+            lookupCache.set(prompt, { results, timestamp: Date.now() });
+        }
+
+        return results.length > 0
+            ? c.json({ results })
+            : c.json({ results: [], raw: result });
+    } catch (err) {
+        console.error('[burnish] POST /api/lookup error:', err);
+        return c.json({ error: 'Internal server error' }, 500);
     }
-
-    return results.length > 0
-        ? c.json({ results })
-        : c.json({ results: [], raw: result });
 });
 
 // --- Static Files ---
@@ -191,6 +408,12 @@ async function start() {
         console.error('[burnish] ANTHROPIC_API_KEY required for api backend.');
         console.error('[burnish] Set LLM_BACKEND=cli to use your Claude Code subscription instead.');
         process.exit(1);
+    }
+
+    // Warn if no API key is set for auth
+    if (!requiredApiKey) {
+        console.warn('[burnish] WARNING: BURNISH_API_KEY is not set. API routes are unprotected.');
+        console.warn('[burnish] Set BURNISH_API_KEY=<secret> to require Bearer token auth on /api/* routes.');
     }
 
     const configPath = resolve(__dirname, '../mcp-servers.json');

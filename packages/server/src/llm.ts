@@ -31,6 +31,17 @@ export type StreamChunk =
 
 const DEFAULT_MAX_TOOL_ROUNDS = 8;
 
+/** Allowed model name allowlist for CLI subprocess argument validation. */
+export const ALLOWED_MODELS = new Set([
+    'sonnet',
+    'haiku',
+    'opus',
+    'claude-sonnet-4-6',
+    'claude-haiku-4-5-20251001',
+    'claude-opus-4-6',
+    'claude-sonnet-4-5-20250514',
+]);
+
 function extractServerName(toolName: string): string | undefined {
     const match = toolName.match(/^mcp__([^_]+)__/);
     return match?.[1];
@@ -63,9 +74,20 @@ export class LlmOrchestrator {
 
     configure(options: LlmOrchestratorOptions): void {
         this.backend = options.backend ?? 'api';
-        if (options.model) this.model = options.model;
+        if (options.model) {
+            if (!ALLOWED_MODELS.has(options.model)) {
+                throw new Error(`Invalid model: ${options.model}. Allowed: ${[...ALLOWED_MODELS].join(', ')}`);
+            }
+            this.model = options.model;
+        }
         if (options.cwd) this.cwd = options.cwd;
-        if (options.mcpConfigPath) this.mcpConfigPath = options.mcpConfigPath;
+        if (options.mcpConfigPath) {
+            // Validate config path does not contain suspicious characters (path traversal guard)
+            if (/\.\.[/\\]/.test(options.mcpConfigPath)) {
+                throw new Error('mcpConfigPath must not contain path traversal sequences');
+            }
+            this.mcpConfigPath = options.mcpConfigPath;
+        }
         if (options.maxToolRounds != null) this.maxToolRounds = options.maxToolRounds;
 
         if (this.backend === 'api') {
@@ -84,6 +106,9 @@ export class LlmOrchestrator {
         conversationId: string,
         requestModel?: string,
     ): AsyncGenerator<StreamChunk> {
+        if (requestModel && !ALLOWED_MODELS.has(requestModel)) {
+            throw new Error(`Invalid model: ${requestModel}`);
+        }
         const useModel = requestModel || this.model;
         if (this.backend === 'cli') {
             yield* this.streamResponseCli(conversationId, useModel);
