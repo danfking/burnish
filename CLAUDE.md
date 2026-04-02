@@ -58,14 +58,22 @@ All commit messages must follow `type(scope): description`:
 burnish/
 ├── packages/
 │   ├── components/     # @burnish/components — Lit web components (card, table, chart, etc.)
-│   └── renderer/       # @burnish/renderer — streaming HTML parser, sanitizer, component mapper
+│   ├── renderer/       # @burnish/renderer — streaming HTML parser, sanitizer, component mapper
+│   ├── server/         # @burnish/server — MCP hub, LLM orchestrator, conversation store
+│   └── app/            # @burnish/app — headless SDK: nav tree, sessions, streaming, output transform
 ├── apps/
-│   └── demo/           # Demo app — Hono backend + vanilla HTML frontend
-│       ├── server/     # LLM orchestrator, MCP client hub, API endpoints
-│       └── public/     # SPA shell, app.js orchestration
+│   └── demo/           # Thin demo shell — Hono routes + DOM rendering/events
+│       ├── server/     # index.ts (~200 LOC Hono wrapper over @burnish/server)
+│       └── public/     # SPA shell, app.js (DOM-only, imports @burnish/app + @burnish/renderer)
 ├── package.json        # pnpm workspace root
 └── CLAUDE.md           # this file
 ```
+
+### Package Responsibilities
+- **@burnish/components** — Lit web components, publishable to npm/CDN
+- **@burnish/renderer** — Stream parser, HTML sanitizer config, component mapper
+- **@burnish/server** — `McpHub` (MCP client management), `LlmOrchestrator` (dual CLI/API backends), `ConversationStore`, guards, catalog, prompt template
+- **@burnish/app** — Framework-agnostic headless SDK: `SessionStore` (IndexedDB), `StreamOrchestrator` (SSE), navigation tree utils, output transformer, drill-down helpers, summary utils
 
 ## Conventions
 
@@ -178,3 +186,94 @@ customElements.define('xm-card', class extends BurnishCard {});
 
 Consumer keeps: their own backend, system prompt, tool definitions, branding.
 Consumer imports: component library + optionally the renderer.
+
+## Agent Pipeline
+
+A conversational workflow for processing GitHub issues through Claude Code. Instead of an external daemon, you manage the pipeline interactively within a Claude Code session.
+
+### Phase Flow
+
+```
+agent:queue → agent:planning → agent:plan-review → (human approves) →
+agent:approved → agent:implementing → agent:reviewing →
+agent:verify → (human tests) → agent:ship → agent:done
+```
+
+Human gates: `agent:plan-review` (review plan, say "approve") and `agent:verify` (test locally, say "ship it"). Any phase can fail to `agent:failed`.
+
+### Conversational Interface
+
+Queue issues for the pipeline and manage them conversationally:
+
+```
+"queue #9 and #8"           → Labels agent:queue, spawns parallel plan agents
+"approve both"              → Labels agent:approved, spawns implement agents
+"pipeline status"           → Checks GitHub labels, reports per-phase status
+"approve #9, hold #8"       → Selective approval
+"retry #9 from implement"   → Re-runs implement phase
+```
+
+### How It Works
+
+1. **Queue** — User says "queue #N". Claude applies `agent:queue` label and spawns a plan-phase Task agent (read-only, uses `scripts/prompts/plan.md` as reference). Multiple issues can be queued in parallel.
+2. **Plan review** — Plan completes, Claude applies `agent:plan-review`, shows the plan inline, and asks for approval. This is a human gate.
+3. **Implement** — User approves. Claude applies `agent:approved`, spawns an implement Task agent with `isolation: "worktree"` (uses `scripts/prompts/implement.md` as reference). The agent works in an isolated worktree, creates a branch, and pushes.
+4. **Review** — Implement completes. Claude applies `agent:reviewing`, spawns a review Task agent (read-only, uses `scripts/prompts/review.md` as reference). If review passes, moves to next phase automatically.
+5. **Ship** — Review passes. Claude applies `agent:ship`, creates a PR with `Closes #N` (uses `scripts/prompts/ship.md` as reference). Reports PR link inline.
+6. **Verify & merge** — User tests locally, then merges with: `gh pr merge <N> --squash --delete-branch`
+
+### GitHub Labels
+
+Labels track state for visibility on GitHub. The same label set as before:
+
+| Label | Meaning |
+|-------|---------|
+| `agent:queue` | Waiting to be planned |
+| `agent:planning` | Plan phase in progress |
+| `agent:plan-review` | Plan ready for human review |
+| `agent:approved` | Human approved, ready to implement |
+| `agent:implementing` | Implementation in progress |
+| `agent:reviewing` | Self-review in progress |
+| `agent:verify` | Ready for human testing |
+| `agent:ship` | PR created, ready to merge |
+| `agent:done` | Merged and complete |
+| `agent:failed` | Phase failed, needs retry |
+
+### Recovering from `agent:failed`
+
+Tell Claude which phase to retry:
+
+```
+"retry #9 from planning"    → Re-plans from scratch
+"retry #9 from implement"   → Keeps plan, re-runs implement
+"retry #9 from review"      → Re-runs review on existing branch
+"retry #9 from ship"        → Re-creates the PR
+```
+
+### Reference Files
+
+```
+scripts/prompts/
+├── plan.md           # Plan phase instructions
+├── implement.md      # Implement phase instructions
+├── review.md         # Review phase instructions
+└── ship.md           # Ship phase instructions
+```
+
+### Worktree Cleanup
+
+Implement phases create worktrees via `isolation: "worktree"`. After merging a PR:
+
+```bash
+# Remove a specific worktree
+git worktree remove .claude/worktrees/<branch>
+
+# Or clean up all merged worktrees at once
+git worktree list | grep '\.claude/worktrees' | while read dir rest; do
+  branch=$(git -C "$dir" branch --show-current 2>/dev/null)
+  if [ -n "$branch" ] && git branch -r --merged main | grep -q "$branch"; then
+    echo "Removing merged worktree: $dir"
+    git worktree remove "$dir"
+  fi
+done
+```

@@ -4,5 +4,22 @@ dist/
 *.tsbuildinfo
 .env
 .env.local
-# MCP server config may contain API keys/tokens added via the UI
+# MCP server config may contain API keys/tokens
+apps/demo/mcp-servers.json
 apps/demo/mcp-servers.local.json
+
+# Secrets / credentials
+*.pem
+*.key
+.npmrc
+
+# Editor / local
+*.code-workspace
+package-lock.json
+
+# Test artifacts
+test-results/
+
+# Agent daemon runtime files
+scripts/.locks/
+scripts/logs/

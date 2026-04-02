@@ -62,8 +62,8 @@ Then switch the session to the worktree directory.
 
 Start working on the issue. Follow all conventions in CLAUDE.md:
 - TypeScript for all code
-- `--mcpui-*` CSS custom properties
-- `mcpui-` tag prefix for components
+- `--burnish-*` CSS custom properties
+- `burnish-` tag prefix for components
 - Conventional commit messages
 
 ## Branch Naming Examples

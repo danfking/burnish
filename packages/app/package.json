@@ -1,0 +1,26 @@
+{
+  "name": "@burnish/app",
+  "version": "0.1.0",
+  "description": "Headless SDK for Burnish — navigation, sessions, streaming, and output transformation",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "peerDependencies": {
+    "idb-keyval": "^6.0.0"
+  },
+  "devDependencies": {
+    "idb-keyval": "^6.0.0",
+    "typescript": "^5.7.0"
+  }
+}

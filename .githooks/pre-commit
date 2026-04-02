@@ -1,7 +1,25 @@
 #!/bin/sh
 #
-# Pre-commit hook: run build to catch TypeScript errors
+# Pre-commit hook: run build and scan for secrets
 
+# --- Secret scanning ---
+# Patterns that should never appear in committed code
+SECRET_PATTERNS='ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----|sk-[A-Za-z0-9]{48}'
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -n "$STAGED" ]; then
+  MATCHES=$(echo "$STAGED" | xargs git diff --cached -U0 -- | grep -E "^\+" | grep -v "^+++" | grep -oE "$SECRET_PATTERNS" || true)
+  if [ -n "$MATCHES" ]; then
+    echo ""
+    echo "ERROR: Potential secrets detected in staged changes:"
+    echo "$MATCHES"
+    echo ""
+    echo "If this is a false positive, use a .env file or mcp-servers.local.json instead."
+    exit 1
+  fi
+fi
+
+# --- Build check ---
 echo "Running pnpm build..."
 pnpm build
 if [ $? -ne 0 ]; then
