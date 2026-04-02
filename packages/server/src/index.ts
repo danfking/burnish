@@ -28,14 +28,4 @@ export {
     type GuardResult,
 } from './guards.js';
 
-export {
-    getCatalog,
-    getPreset,
-    searchCatalog,
-    getPopularServers,
-    CATALOG,
-    type PresetServer,
-    type ServerCategory,
-} from './catalog.js';
-
 export { buildSystemPrompt } from './prompt-template.js';

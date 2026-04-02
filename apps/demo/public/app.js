@@ -988,36 +988,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('session-panel')?.classList.toggle('open');
     });
 
-    // ── Server modal ──
-    document.getElementById('btn-servers')?.addEventListener('click', () => openServerModal());
-    document.getElementById('btn-close-modal')?.addEventListener('click', () => closeServerModal());
-    document.querySelector('.burnish-modal-backdrop')?.addEventListener('click', () => closeServerModal());
-
-    // Catalog search
-    let catalogSearchTimer = null;
-    document.getElementById('catalog-search')?.addEventListener('input', () => {
-        clearTimeout(catalogSearchTimer);
-        catalogSearchTimer = setTimeout(() => refreshServerModal(), 150);
-    });
-
-    // Catalog item clicks (delegate on both popular and grid sections)
-    for (const containerId of ['catalog-grid', 'catalog-popular']) {
-        document.getElementById(containerId)?.addEventListener('click', (e) => {
-            const item = e.target.closest('.burnish-catalog-item');
-            if (item && !item.classList.contains('connected')) showSetupForm(item.dataset.presetId);
-        });
-    }
-
-    document.getElementById('connected-server-list')?.addEventListener('click', (e) => {
-        const btn = e.target.closest('.burnish-connected-server-disconnect');
-        if (btn) disconnectServer(btn.dataset.server);
-    });
-
-    // Custom server button
-    document.getElementById('btn-custom-server')?.addEventListener('click', () => showCustomServerForm());
-
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeServerModal(); });
-
     // ── Restore from IndexedDB ──
     const state = await loadState();
     if (state?.sessions?.length > 0) {
@@ -1540,17 +1510,13 @@ function escapeAttr(text) {
 function getEmptyState() {
     return `
         <div class="burnish-empty-state">
-            <h2>Welcome to Burnish</h2>
-            <p>Connect an MCP server to get started.</p>
+            <h2>Burnish</h2>
+            <p>Your universal interface for MCP servers</p>
             <div class="burnish-server-buttons" id="server-buttons">
                 <div class="burnish-suggestion-skeleton-pill"></div>
                 <div class="burnish-suggestion-skeleton-pill"></div>
             </div>
-            <div class="burnish-tool-shortcuts" id="tool-shortcuts">
-                <div class="burnish-suggestion-skeleton-pill"></div>
-                <div class="burnish-suggestion-skeleton-pill"></div>
-                <div class="burnish-suggestion-skeleton-pill"></div>
-            </div>
+            <div class="burnish-tool-shortcuts" id="tool-shortcuts"></div>
         </div>
     `;
 }
@@ -1561,7 +1527,6 @@ async function loadDynamicSuggestions(container) {
         const { servers } = await res.json();
 
         // Populate tool schema cache for fallback form generation
-        // Store under both plain name and MCP-prefixed name (mcp__server__tool)
         for (const s of servers) {
             for (const tool of s.tools) {
                 if (tool.inputSchema) {
@@ -1571,36 +1536,11 @@ async function loadDynamicSuggestions(container) {
             }
         }
 
-        // Render server buttons immediately
+        // Render connected server buttons
         const serverBtns = container.querySelector('#server-buttons');
         if (serverBtns) {
             if (servers.length === 0) {
-                serverBtns.innerHTML = `
-                    <button class="burnish-suggestion burnish-suggestion-server" id="btn-empty-add-server">
-                        + Connect a Server
-                        <span class="burnish-suggestion-sub">Browse the catalog</span>
-                    </button>
-                    <button class="burnish-suggestion burnish-suggestion-server" id="btn-empty-add-mcpfinder">
-                        MCP Finder
-                        <span class="burnish-suggestion-sub">Search 16,000+ servers</span>
-                    </button>
-                `;
-                serverBtns.querySelector('#btn-empty-add-server')?.addEventListener('click', () => openServerModal());
-                serverBtns.querySelector('#btn-empty-add-mcpfinder')?.addEventListener('click', async () => {
-                    try {
-                        const res = await fetch('/api/servers', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: 'mcpfinder', config: { command: 'npx', args: ['-y', '@iflow-mcp/mcpfinder-server'] } }),
-                        });
-                        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed'); }
-                        // Reload to show connected state
-                        const main = document.getElementById('dashboard-container');
-                        if (main) { main.innerHTML = getEmptyState(); loadDynamicSuggestions(main); }
-                    } catch (err) {
-                        alert('Failed to connect MCP Finder: ' + err.message);
-                    }
-                });
+                serverBtns.innerHTML = '<span class="burnish-no-servers">No servers connected</span>';
             } else {
                 serverBtns.innerHTML = servers.map(s => `
                     <button class="burnish-suggestion burnish-suggestion-server" data-prompt="${escapeAttr(`Show me what I can do with the connected ${s.name} tools. List the available operations as cards.`)}" data-label="${escapeAttr(s.name)}">
@@ -1647,304 +1587,9 @@ async function loadDynamicSuggestions(container) {
         }
     } catch {
         const serverBtns = container.querySelector('#server-buttons');
-        if (serverBtns) {
-            serverBtns.innerHTML = `
-                <button class="burnish-suggestion burnish-suggestion-server" id="fallback-connect-btn">
-                    + Connect a Server
-                    <span class="burnish-suggestion-sub">Browse the catalog</span>
-                </button>
-            `;
-            serverBtns.querySelector('#fallback-connect-btn')?.addEventListener('click', () => {
-                document.getElementById('btn-servers')?.click();
-            });
-        }
+        if (serverBtns) serverBtns.innerHTML = '';
         const toolSection = container.querySelector('#tool-shortcuts');
         if (toolSection) toolSection.innerHTML = '';
     }
 }
 
-// ── Server Config Modal ──
-async function openServerModal() {
-    const modal = document.getElementById('server-modal');
-    if (!modal) return;
-    modal.hidden = false;
-    await refreshServerModal();
-}
-
-function closeServerModal() {
-    const modal = document.getElementById('server-modal');
-    if (modal) modal.hidden = true;
-    document.querySelector('.burnish-setup-form')?.remove();
-}
-
-async function refreshServerModal() {
-    const [serversRes, catalogRes] = await Promise.all([
-        fetch('/api/servers'),
-        fetch('/api/servers/catalog'),
-    ]);
-    const { servers } = await serversRes.json();
-    const { catalog } = await catalogRes.json();
-
-    const connectedList = document.getElementById('connected-server-list');
-    if (connectedList) {
-        if (servers.length === 0) {
-            connectedList.innerHTML = '<div class="burnish-no-servers">No servers connected</div>';
-        } else {
-            connectedList.innerHTML = servers.map(s => `
-                <div class="burnish-connected-server">
-                    <span class="burnish-connected-server-dot"></span>
-                    <div class="burnish-connected-server-info">
-                        <div class="burnish-connected-server-name">${escapeHtml(s.name)}</div>
-                        <div class="burnish-connected-server-tools">${s.toolCount} tools</div>
-                    </div>
-                    <button class="burnish-connected-server-disconnect" data-server="${escapeHtml(s.name)}">Disconnect</button>
-                </div>
-            `).join('');
-        }
-    }
-
-    const connectedNames = new Set(servers.map(s => s.name));
-
-    // Get search query
-    const searchInput = document.getElementById('catalog-search');
-    const query = searchInput?.value?.toLowerCase() || '';
-
-    // Filter catalog by search
-    const filteredCatalog = query
-        ? catalog.filter(s =>
-            s.name.toLowerCase().includes(query) ||
-            s.description.toLowerCase().includes(query) ||
-            (s.tags || []).some(t => t.includes(query)) ||
-            s.category.includes(query))
-        : catalog;
-
-    // Popular section (only shown when not searching)
-    const popularEl = document.getElementById('catalog-popular');
-    if (popularEl) {
-        if (!query) {
-            const popular = [...catalog]
-                .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-                .slice(0, 6);
-            let html = '<div class="burnish-catalog-category-label">Popular</div>';
-            html += '<div class="burnish-catalog-grid">';
-            for (const item of popular) {
-                const isConnected = connectedNames.has(item.id);
-                html += renderCatalogItem(item, isConnected);
-            }
-            html += '</div>';
-            popularEl.innerHTML = html;
-            popularEl.hidden = false;
-        } else {
-            popularEl.innerHTML = '';
-            popularEl.hidden = true;
-        }
-    }
-
-    const categories = { databases: 'Databases', devtools: 'Developer Tools', productivity: 'Productivity', devops: 'DevOps', testing: 'Testing', saas: 'SaaS & APIs' };
-    const catalogGrid = document.getElementById('catalog-grid');
-    if (catalogGrid) {
-        let html = '';
-        for (const [cat, label] of Object.entries(categories)) {
-            const items = filteredCatalog.filter(s => s.category === cat);
-            if (items.length === 0) continue;
-            html += `<div class="burnish-catalog-category">`;
-            html += `<div class="burnish-catalog-category-label">${label}</div>`;
-            html += `<div class="burnish-catalog-grid">`;
-            for (const item of items) {
-                const isConnected = connectedNames.has(item.id);
-                html += renderCatalogItem(item, isConnected);
-            }
-            html += `</div></div>`;
-        }
-        if (query && filteredCatalog.length === 0) {
-            html = '<div class="burnish-no-servers">No servers match your search</div>';
-        }
-        catalogGrid.innerHTML = html;
-    }
-}
-
-function renderCatalogItem(item, isConnected) {
-    const verifiedBadge = item.verified ? '<span class="burnish-catalog-verified" title="Verified">&#10003;</span>' : '';
-    return `<div class="burnish-catalog-item${isConnected ? ' connected' : ''}" data-preset-id="${item.id}">
-        <div class="burnish-catalog-item-name">${escapeHtml(item.name)}${verifiedBadge}</div>
-        <div class="burnish-catalog-item-desc">${escapeHtml(item.description)}</div>
-    </div>`;
-}
-
-async function showSetupForm(presetId) {
-    const catalogRes = await fetch('/api/servers/catalog');
-    const { catalog } = await catalogRes.json();
-    const preset = catalog.find(s => s.id === presetId);
-    if (!preset) return;
-
-    document.querySelector('.burnish-setup-form')?.remove();
-
-    if (!preset.requiredFields || preset.requiredFields.length === 0) {
-        await connectPresetServer(preset, {});
-        return;
-    }
-
-    const form = document.createElement('div');
-    form.className = 'burnish-setup-form';
-    form.innerHTML = `
-        <h4>Configure ${escapeHtml(preset.name)}</h4>
-        ${preset.requiredFields.map(f => `
-            <div class="burnish-setup-field">
-                <label>${escapeHtml(f.label)}</label>
-                <input type="${f.key.toLowerCase().includes('token') || f.key.toLowerCase().includes('key') ? 'password' : 'text'}"
-                       data-field-key="${f.key}" placeholder="${escapeHtml(f.placeholder || '')}" />
-            </div>
-        `).join('')}
-        <div class="burnish-setup-status" id="setup-status"></div>
-        <div class="burnish-setup-actions">
-            <button class="burnish-setup-btn burnish-setup-btn-cancel" id="btn-setup-cancel">Cancel</button>
-            <button class="burnish-setup-btn burnish-setup-btn-primary" id="btn-setup-connect">Connect</button>
-        </div>
-    `;
-
-    document.querySelector('.burnish-modal-body')?.appendChild(form);
-    form.scrollIntoView({ behavior: 'smooth' });
-
-    form.querySelector('#btn-setup-cancel')?.addEventListener('click', () => form.remove());
-    form.querySelector('#btn-setup-connect')?.addEventListener('click', async () => {
-        const fields = {};
-        form.querySelectorAll('input[data-field-key]').forEach(input => {
-            fields[input.dataset.fieldKey] = input.value;
-        });
-        await connectPresetServer(preset, fields);
-    });
-}
-
-async function connectPresetServer(preset, fieldValues) {
-    const statusEl = document.getElementById('setup-status');
-    const config = JSON.parse(JSON.stringify(preset.config));
-    config.args = config.args.map(a => {
-        for (const [key, val] of Object.entries(fieldValues)) a = a.replace(`{${key}}`, val);
-        return a;
-    });
-    if (config.env) {
-        for (const envKey of Object.keys(config.env)) {
-            for (const [key, val] of Object.entries(fieldValues)) config.env[envKey] = config.env[envKey].replace(`{${key}}`, val);
-        }
-    }
-
-    if (statusEl) { statusEl.textContent = 'Connecting...'; statusEl.className = 'burnish-setup-status'; }
-
-    try {
-        const res = await fetch('/api/servers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: preset.id, config }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to connect');
-        if (statusEl) { statusEl.textContent = 'Connected!'; statusEl.className = 'burnish-setup-status success'; }
-        setTimeout(async () => { document.querySelector('.burnish-setup-form')?.remove(); await refreshServerModal(); }, 1000);
-    } catch (err) {
-        if (statusEl) { statusEl.textContent = `Error: ${err.message}`; statusEl.className = 'burnish-setup-status error'; }
-    }
-}
-
-function showCustomServerForm() {
-    document.querySelector('.burnish-setup-form')?.remove();
-
-    const form = document.createElement('div');
-    form.className = 'burnish-setup-form';
-    form.innerHTML = `
-        <h4>Connect Custom Server</h4>
-        <div class="burnish-setup-field">
-            <label>Server Name</label>
-            <input type="text" id="custom-server-name" placeholder="my-server" />
-        </div>
-        <div class="burnish-setup-field">
-            <label>Command</label>
-            <input type="text" id="custom-server-command" placeholder="npx" />
-        </div>
-        <div class="burnish-setup-field">
-            <label>Arguments (comma-separated)</label>
-            <input type="text" id="custom-server-args" placeholder="-y, @scope/mcp-server-name" />
-        </div>
-        <div class="burnish-setup-field">
-            <label>Environment Variables</label>
-            <div id="custom-env-rows"></div>
-            <button type="button" class="burnish-custom-env-add" id="btn-add-env">+ Add variable</button>
-        </div>
-        <div class="burnish-setup-status" id="setup-status"></div>
-        <div class="burnish-setup-actions">
-            <button class="burnish-setup-btn burnish-setup-btn-cancel" id="btn-setup-cancel">Cancel</button>
-            <button class="burnish-setup-btn burnish-setup-btn-primary" id="btn-setup-connect">Connect</button>
-        </div>
-    `;
-
-    document.querySelector('.burnish-modal-body')?.appendChild(form);
-    form.scrollIntoView({ behavior: 'smooth' });
-
-    const envRows = form.querySelector('#custom-env-rows');
-
-    function addEnvRow(key = '', value = '') {
-        const row = document.createElement('div');
-        row.className = 'burnish-custom-env-row';
-        row.innerHTML = `
-            <input type="text" placeholder="KEY" value="${escapeAttr(escapeHtml(key))}" class="env-key" />
-            <input type="text" placeholder="value" value="${escapeAttr(escapeHtml(value))}" class="env-val" />
-            <button type="button" class="burnish-custom-env-remove" title="Remove">&times;</button>
-        `;
-        row.querySelector('.burnish-custom-env-remove').addEventListener('click', () => row.remove());
-        envRows.appendChild(row);
-    }
-
-    form.querySelector('#btn-add-env').addEventListener('click', () => addEnvRow());
-    form.querySelector('#btn-setup-cancel').addEventListener('click', () => form.remove());
-    form.querySelector('#btn-setup-connect').addEventListener('click', async () => {
-        const name = form.querySelector('#custom-server-name').value.trim();
-        const command = form.querySelector('#custom-server-command').value.trim();
-        const argsRaw = form.querySelector('#custom-server-args').value.trim();
-
-        if (!name || !command) {
-            const statusEl = form.querySelector('#setup-status');
-            statusEl.textContent = 'Name and command are required';
-            statusEl.className = 'burnish-setup-status error';
-            return;
-        }
-
-        const args = argsRaw ? argsRaw.split(',').map(a => a.trim()).filter(Boolean) : [];
-        const env = {};
-        envRows.querySelectorAll('.burnish-custom-env-row').forEach(row => {
-            const k = row.querySelector('.env-key').value.trim();
-            const v = row.querySelector('.env-val').value.trim();
-            if (k) env[k] = v;
-        });
-
-        const config = { command, args };
-        if (Object.keys(env).length > 0) config.env = env;
-
-        const statusEl = form.querySelector('#setup-status');
-        statusEl.textContent = 'Connecting...';
-        statusEl.className = 'burnish-setup-status';
-
-        try {
-            const res = await fetch('/api/servers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, config }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to connect');
-            statusEl.textContent = 'Connected!';
-            statusEl.className = 'burnish-setup-status success';
-            setTimeout(async () => { form.remove(); await refreshServerModal(); }, 1000);
-        } catch (err) {
-            statusEl.textContent = `Error: ${err.message}`;
-            statusEl.className = 'burnish-setup-status error';
-        }
-    });
-}
-
-async function disconnectServer(name) {
-    try {
-        await fetch(`/api/servers/${encodeURIComponent(name)}`, { method: 'DELETE' });
-        await refreshServerModal();
-    } catch (err) {
-        console.error('Failed to disconnect:', err);
-    }
-}

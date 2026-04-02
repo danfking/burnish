@@ -12,8 +12,6 @@ import {
     McpHub,
     ConversationStore,
     LlmOrchestrator,
-    getCatalog,
-    type McpServerConfig,
 } from '@burnish/server';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -76,43 +74,6 @@ app.get('/api/chat/:id', (c) => {
 
 app.get('/api/servers', (c) => {
     return c.json({ servers: mcpHub.getServerInfo() });
-});
-
-app.get('/api/servers/catalog', (c) => {
-    return c.json({ catalog: getCatalog() });
-});
-
-const ALLOWED_COMMANDS = new Set(['npx', 'node', 'uvx', 'python', 'python3', 'docker', 'deno', 'bun']);
-const SERVER_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
-
-app.post('/api/servers', async (c) => {
-    const body = await c.req.json<{ name: string; config: McpServerConfig }>();
-
-    if (!body.name || !SERVER_NAME_RE.test(body.name)) {
-        return c.json({ error: 'Invalid server name: must be 1-64 alphanumeric/hyphen/underscore characters' }, 400);
-    }
-    if (!body.config?.command || !ALLOWED_COMMANDS.has(body.config.command)) {
-        return c.json({ error: `Invalid command: must be one of ${[...ALLOWED_COMMANDS].join(', ')}` }, 400);
-    }
-
-    try {
-        await mcpHub.addServer(body.name, body.config);
-        return c.json({ ok: true, servers: mcpHub.getServerInfo() });
-    } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        return c.json({ error: msg }, 500);
-    }
-});
-
-app.delete('/api/servers/:name', async (c) => {
-    const name = c.req.param('name');
-    try {
-        await mcpHub.removeServer(name);
-        return c.json({ ok: true, servers: mcpHub.getServerInfo() });
-    } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        return c.json({ error: msg }, 404);
-    }
 });
 
 app.post('/api/title', async (c) => {
@@ -242,21 +203,20 @@ async function start() {
         mcpConfigPath: configPath,
     });
 
-    try {
-        await mcpHub.initialize(configPath);
-    } catch (err) {
-        console.warn('[burnish] Could not initialize MCP servers:', err);
-        console.warn('[burnish] Starting without MCP server connections');
-    }
-
-    const serverInfo = mcpHub.getServerInfo();
-    console.log(`[burnish] Connected to ${serverInfo.length} MCP server(s)`);
-    for (const s of serverInfo) {
-        console.log(`  - ${s.name}: ${s.toolCount} tools (${s.tools.map(t => t.name).join(', ')})`);
-    }
-
     serve({ fetch: app.fetch, port }, () => {
         console.log(`[burnish] Demo server running at http://localhost:${port}`);
+    });
+
+    // Initialize MCP servers in the background so the HTTP server starts immediately
+    mcpHub.initialize(configPath).then(() => {
+        const serverInfo = mcpHub.getServerInfo();
+        console.log(`[burnish] Connected to ${serverInfo.length} MCP server(s)`);
+        for (const s of serverInfo) {
+            console.log(`  - ${s.name}: ${s.toolCount} tools (${s.tools.map(t => t.name).join(', ')})`);
+        }
+    }).catch(err => {
+        console.warn('[burnish] Could not initialize MCP servers:', err);
+        console.warn('[burnish] Starting without MCP server connections');
     });
 
     process.on('SIGINT', async () => {
