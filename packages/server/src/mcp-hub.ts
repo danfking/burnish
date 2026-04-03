@@ -9,6 +9,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve } from 'node:path';
+import { spawn } from 'node:child_process';
 
 export interface McpServerConfig {
     command?: string;       // stdio transport (local subprocess)
@@ -18,8 +19,16 @@ export interface McpServerConfig {
     headers?: Record<string, string>;  // optional auth headers for HTTP
 }
 
+export interface CliToolConfig {
+    command: string;
+    args?: string[];
+    description: string;
+    timeout?: number; // default 5000ms
+}
+
 export interface McpServersConfig {
     mcpServers: Record<string, McpServerConfig>;
+    cliTools?: Record<string, CliToolConfig>;
 }
 
 export interface ToolDef {
@@ -27,6 +36,12 @@ export interface ToolDef {
     description: string;
     inputSchema: Record<string, unknown>;
     serverName: string;
+}
+
+interface CliTool {
+    name: string;
+    config: CliToolConfig;
+    toolDef: ToolDef;
 }
 
 interface ConnectedServer {
@@ -42,6 +57,7 @@ interface ConnectedServer {
 
 export class McpHub {
     private servers: ConnectedServer[] = [];
+    private cliTools: CliTool[] = [];
     private configFilePath: string | undefined;
 
     /**
@@ -70,6 +86,10 @@ export class McpHub {
                 }
             }),
         );
+
+        if (config.cliTools && Object.keys(config.cliTools).length > 0) {
+            this.registerCliTools(config.cliTools);
+        }
     }
 
     private async connectServer(
@@ -169,20 +189,38 @@ export class McpHub {
      * Get all available tools across all connected servers.
      */
     getAllTools(): ToolDef[] {
-        return this.servers.flatMap(s => s.tools);
+        const mcpTools = this.servers.flatMap(s => s.tools);
+        const cliToolDefs = this.cliTools.map(ct => ct.toolDef);
+        return [...mcpTools, ...cliToolDefs];
     }
 
     /**
      * Get connected server info.
      */
     getServerInfo(): Array<{ name: string; toolCount: number; status: string; lastError?: string; tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> }> {
-        return this.servers.map(s => ({
+        const serverInfo = this.servers.map(s => ({
             name: s.name,
             toolCount: s.tools.length,
             status: s.status,
             lastError: s.lastError,
             tools: s.tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
         }));
+
+        if (this.cliTools.length > 0) {
+            serverInfo.push({
+                name: 'cli',
+                toolCount: this.cliTools.length,
+                status: 'connected' as const,
+                lastError: undefined,
+                tools: this.cliTools.map(ct => ({
+                    name: ct.toolDef.name,
+                    description: ct.toolDef.description,
+                    inputSchema: ct.toolDef.inputSchema,
+                })),
+            });
+        }
+
+        return serverInfo;
     }
 
     /**
@@ -239,7 +277,64 @@ export class McpHub {
                 }
             }
         }
+        // Check CLI tools
+        const cliTool = this.cliTools.find(ct => ct.name === toolName);
+        if (cliTool) {
+            return this.executeCliTool(cliTool);
+        }
+
         throw new Error(`Tool "${toolName}" not found on any connected server`);
+    }
+
+    private registerCliTools(configs: Record<string, CliToolConfig>): void {
+        for (const [name, config] of Object.entries(configs)) {
+            const toolDef: ToolDef = {
+                name,
+                description: config.description,
+                inputSchema: { type: 'object', properties: {} },
+                serverName: 'cli',
+            };
+            this.cliTools.push({ name, config, toolDef });
+            console.log(`[mcp-hub] Registered CLI tool "${name}"`);
+        }
+    }
+
+    private executeCliTool(cliTool: CliTool): Promise<string> {
+        return new Promise((resolvePromise, reject) => {
+            const timeout = cliTool.config.timeout || 5000;
+            const cwd = this.configFilePath ? resolve(this.configFilePath, '..') : undefined;
+            // No shell: true — args are passed as argv array to prevent command injection.
+            // If shell features are needed, use command: "bash" with args: ["-c", "..."].
+            const proc = spawn(cliTool.config.command, cliTool.config.args || [], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                cwd,
+            });
+
+            let stdout = '';
+            let stderr = '';
+
+            const timer = setTimeout(() => {
+                proc.kill();
+                reject(new Error(`CLI tool "${cliTool.name}" timed out after ${timeout}ms`));
+            }, timeout);
+
+            proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
+            proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+
+            proc.on('close', (code) => {
+                clearTimeout(timer);
+                if (code === 0) {
+                    resolvePromise(stdout.trim() || '(no output)');
+                } else {
+                    reject(new Error(`CLI tool "${cliTool.name}" exited with code ${code}: ${stderr || stdout}`));
+                }
+            });
+
+            proc.on('error', (err) => {
+                clearTimeout(timer);
+                reject(new Error(`CLI tool "${cliTool.name}" failed to start: ${err.message}`));
+            });
+        });
     }
 
     /**
@@ -252,5 +347,6 @@ export class McpHub {
             } catch { /* ignore cleanup errors */ }
         }
         this.servers.length = 0;
+        this.cliTools.length = 0;
     }
 }

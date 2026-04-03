@@ -8,6 +8,7 @@ export {
 
 export {
     McpHub,
+    type CliToolConfig,
     type McpServerConfig,
     type McpServersConfig,
     type ToolDef,
