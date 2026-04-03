@@ -6,6 +6,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm --filter demo dev",
     "dev:cli": "pnpm --filter demo dev:cli",
+    "dev:local": "pnpm --filter demo dev:local",
     "clean": "pnpm -r clean",
     "prepare": "git config core.hooksPath .githooks"
   },

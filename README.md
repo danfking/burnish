@@ -45,9 +45,17 @@ pnpm dev:cli
 
 # Option 2: Use direct Anthropic API key
 ANTHROPIC_API_KEY=sk-ant-... pnpm dev
+
+# Option 3: Use local model via Ollama (no API key needed)
+ollama pull qwen2.5:7b
+pnpm dev:local
 ```
 
 The demo app starts at `http://localhost:3000`. Configure your MCP servers in `apps/demo/mcp-servers.json`, then ask a question.
+
+### Local Model Support
+
+Burnish supports local models via any OpenAI-compatible API (Ollama, llama.cpp, vLLM, LM Studio). The `dev:local` script is pre-configured for Ollama with Qwen 2.5 7B, which offers the best balance of tool-calling reliability and component output quality. Other tested models include Llama 3.1 8B (highest component accuracy) and Llama 3.2 3B (lowest resource usage). See `CLAUDE.md` for the full benchmark table.
 
 ### Prerequisites
 
@@ -196,11 +204,12 @@ const prompt = buildSystemPrompt('Your additional domain-specific instructions h
 
 ### LLM Backend
 
-| Mode | Env Var                        | Description                                                           |
-|------|--------------------------------|-----------------------------------------------------------------------|
-| API  | `ANTHROPIC_API_KEY=sk-ant-...` | Direct Anthropic SDK with streaming tool-call loop (5 rounds max)     |
-| CLI  | `LLM_BACKEND=cli`              | Spawns Claude CLI subprocess; uses your Claude Code subscription auth |
-| Auto | *(none)*                       | Defaults to CLI if no API key is set                                  |
+| Mode   | Env Var                        | Description                                                             |
+|--------|--------------------------------|-------------------------------------------------------------------------|
+| API    | `ANTHROPIC_API_KEY=sk-ant-...` | Direct Anthropic SDK with streaming tool-call loop (8 rounds max)       |
+| CLI    | `LLM_BACKEND=cli`              | Spawns Claude CLI subprocess; uses your Claude Code subscription auth   |
+| OpenAI | `LLM_BACKEND=openai`           | OpenAI-compatible API (Ollama, llama.cpp, vLLM, LM Studio, OpenAI)     |
+| Auto   | *(none)*                        | Defaults to CLI if no API key is set                                    |
 
 ### MCP Servers
 
@@ -217,7 +226,7 @@ Configure connected MCP servers in `apps/demo/mcp-servers.json`:
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
     }
   }
