@@ -9,6 +9,57 @@ export interface TransformOutputOptions {
     domParser?: { parseFromString(str: string, type: string): Document };
 }
 
+/**
+ * Repair malformed JSON in burnish-* component attributes.
+ * LLMs sometimes produce trailing commas, single-quoted strings,
+ * or unquoted keys. We fix these before DOM parsing so components
+ * receive valid JSON and don't have to degrade.
+ */
+function repairJsonAttributes(html: string): string {
+    const jsonAttrs = ['items', 'meta', 'columns', 'rows', 'fields', 'actions', 'config'];
+    // Match single-quoted attributes: attr='...'
+    const singleQuotePattern = new RegExp(
+        `((?:${jsonAttrs.join('|')})\\s*=\\s*')((?:[^'\\\\]|\\\\.)*)(')`,'g'
+    );
+    // Match double-quoted attributes: attr="..."
+    const doubleQuotePattern = new RegExp(
+        `((?:${jsonAttrs.join('|')})\\s*=\\s*")((?:[^"\\\\]|\\\\.)*)(")`, 'g'
+    );
+
+    function tryRepair(match: string, prefix: string, json: string, suffix: string): string {
+        // Unescape HTML entities that the LLM may have emitted
+        let decoded = json
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>');
+
+        try {
+            JSON.parse(decoded);
+            return match; // Already valid
+        } catch {
+            let repaired = decoded;
+            // Fix trailing commas before ] or }
+            repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+            // Fix single-quoted values inside JSON → double quotes
+            repaired = repaired.replace(/'/g, '"');
+            // Fix unquoted keys
+            repaired = repaired.replace(/(\{|,)\s*([a-zA-Z_]\w*)\s*:/g, '$1"$2":');
+            try {
+                JSON.parse(repaired);
+                return prefix + repaired + suffix;
+            } catch {
+                return match; // Can't fix, leave as-is
+            }
+        }
+    }
+
+    html = html.replace(singleQuotePattern, tryRepair);
+    html = html.replace(doubleQuotePattern, tryRepair);
+    return html;
+}
+
 const STATUS_COLOR_MAP: Record<string, string> = {
     success: 'var(--burnish-success, #16a34a)',
     healthy: 'var(--burnish-success, #16a34a)',
@@ -29,6 +80,9 @@ export function transformOutput(html: string, options?: TransformOutputOptions):
         console.warn('transformOutput: input exceeds maximum size, truncating');
         html = html.slice(0, MAX_HTML_INPUT_SIZE);
     }
+
+    // Repair malformed JSON attributes before DOM parsing
+    html = repairJsonAttributes(html);
 
     if (!options?.domParser && typeof DOMParser === 'undefined') {
         // No DOMParser available (Node.js) and none injected — return html unchanged
