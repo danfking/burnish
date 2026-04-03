@@ -32,6 +32,8 @@ export interface AppNode {
     _toolHint?: { toolName: string; title: string } | null;
     _progressLog?: Array<{ stage: string; detail?: string; meta?: Record<string, string>; timestamp: number }>;
     _nodeIds?: string[];
+    feedback?: 'up' | 'down' | null;
+    _regenerateCount?: number;
     [key: string]: unknown;
 }
 

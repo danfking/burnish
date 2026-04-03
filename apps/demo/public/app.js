@@ -369,6 +369,8 @@ function createNodeEl(node) {
                 ${ICON_FOCUS}
             </button>
             <button class="burnish-node-refresh" title="Regenerate">${ICON_REFRESH}</button>
+            <button class="burnish-feedback-btn${node.feedback === 'up' ? ' active' : ''}" data-feedback="up" title="Good response">&#9650;</button>
+            <button class="burnish-feedback-btn${node.feedback === 'down' ? ' active' : ''}" data-feedback="down" title="Poor response">&#9660;</button>
             <button class="burnish-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
         </div>
         <div class="burnish-node-content"></div>
@@ -376,7 +378,7 @@ function createNodeEl(node) {
 
     const header = div.querySelector('.burnish-node-header');
     header.addEventListener('click', (e) => {
-        if (e.target.closest('.burnish-node-delete') || e.target.closest('.burnish-node-maximize') || e.target.closest('.burnish-node-info') || e.target.closest('.burnish-node-refresh')) return;
+        if (e.target.closest('.burnish-node-delete') || e.target.closest('.burnish-node-maximize') || e.target.closest('.burnish-node-info') || e.target.closest('.burnish-node-refresh') || e.target.closest('.burnish-feedback-btn')) return;
         toggleNode(node.id);
     });
     header.addEventListener('keydown', (e) => {
@@ -403,6 +405,18 @@ function createNodeEl(node) {
         e.stopPropagation();
         toggleDiagnosticPanel(node.id);
     });
+    header.querySelectorAll('.burnish-feedback-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const value = btn.dataset.feedback;
+            node.feedback = node.feedback === value ? null : value;
+            header.querySelectorAll('.burnish-feedback-btn').forEach(b => b.classList.remove('active'));
+            if (node.feedback) {
+                header.querySelector(`.burnish-feedback-btn[data-feedback="${node.feedback}"]`)?.classList.add('active');
+            }
+            saveState();
+        });
+    });
     return div;
 }
 
@@ -411,6 +425,9 @@ async function regenerateNode(nodeId) {
     if (!session) return;
     const node = session.nodes.find(n => n.id === nodeId);
     if (!node || streamingNodeId) return;
+
+    // Track regeneration count as implicit negative signal
+    node._regenerateCount = (node._regenerateCount || 0) + 1;
 
     // Clear existing response and re-submit
     node.response = null;

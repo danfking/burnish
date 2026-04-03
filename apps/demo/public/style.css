@@ -864,11 +864,32 @@ body {
 }
 .burnish-node-header:hover .burnish-node-refresh { opacity: 1; }
 .burnish-node-refresh:hover { color: var(--burnish-accent, #4f6df5); }
+/* Feedback buttons */
+.burnish-feedback-btn {
+    opacity: 0.3;
+    font-size: 11px;
+    padding: 2px 4px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.burnish-feedback-btn:hover { opacity: 0.7; }
+.burnish-feedback-btn.active { opacity: 1; background: rgba(79, 109, 245, 0.1); }
+.burnish-feedback-btn.active[data-feedback="up"] { color: var(--burnish-success, #22c55e); }
+.burnish-feedback-btn.active[data-feedback="down"] { color: var(--burnish-error, #ef4444); }
+.burnish-node-header:hover .burnish-feedback-btn { opacity: 0.5; }
+.burnish-node-header:hover .burnish-feedback-btn.active { opacity: 1; }
 /* Always show action buttons on expanded nodes */
 .burnish-node[data-collapsed="false"] .burnish-node-maximize,
 .burnish-node[data-collapsed="false"] .burnish-node-refresh,
 .burnish-node[data-collapsed="false"] .burnish-node-delete,
 .burnish-node[data-collapsed="false"] .burnish-node-info { opacity: 1; }
+.burnish-node[data-collapsed="false"] .burnish-feedback-btn { opacity: 0.5; }
+.burnish-node[data-collapsed="false"] .burnish-feedback-btn.active { opacity: 1; }
 .burnish-node-header:hover .burnish-node-delete { opacity: 1; }
 /* Inline status text in node header during streaming */
 .burnish-node-status {
