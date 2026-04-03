@@ -299,7 +299,19 @@ body {
     font-size: 13px;
     padding: 10px 20px;
     text-transform: capitalize;
+    display: inline-flex;
+    align-items: center;
 }
+.burnish-server-status {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+.burnish-server-status.connected { background: var(--burnish-success, #22c55e); }
+.burnish-server-status.disconnected { background: var(--burnish-error, #ef4444); }
 .burnish-tool-shortcuts {
     display: flex;
     gap: 8px;

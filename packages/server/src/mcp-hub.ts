@@ -35,6 +35,9 @@ interface ConnectedServer {
     transport: StdioClientTransport | StreamableHTTPClientTransport;
     tools: ToolDef[];
     config: McpServerConfig;
+    status: 'connected' | 'disconnected';
+    lastError?: string;
+    lastErrorTime?: number;
 }
 
 export class McpHub {
@@ -111,7 +114,55 @@ export class McpHub {
             serverName: name,
         }));
 
-        this.servers.push({ name, client, transport, tools, config });
+        this.servers.push({ name, client, transport, tools, config, status: 'connected' });
+    }
+
+    /**
+     * Check if a named server is healthy by issuing a listTools ping.
+     */
+    async checkHealth(name: string): Promise<boolean> {
+        const server = this.servers.find(s => s.name === name);
+        if (!server) return false;
+        try {
+            await server.client.listTools();
+            server.status = 'connected';
+            server.lastError = undefined;
+            return true;
+        } catch (err) {
+            server.status = 'disconnected';
+            server.lastError = err instanceof Error ? err.message : String(err);
+            server.lastErrorTime = Date.now();
+            return false;
+        }
+    }
+
+    /**
+     * Attempt to reconnect a disconnected server using its saved config.
+     */
+    private async reconnectServer(name: string): Promise<boolean> {
+        const idx = this.servers.findIndex(s => s.name === name);
+        if (idx === -1) return false;
+        const server = this.servers[idx];
+
+        console.log(`[mcp-hub] Attempting to reconnect "${name}"...`);
+        try {
+            try { await server.client.close(); } catch { /* ignore */ }
+
+            // Re-connect using the saved config (connectServer pushes a new entry)
+            await this.connectServer(name, server.config);
+
+            // Remove the old entry (connectServer already appended a fresh one)
+            this.servers.splice(idx, 1);
+
+            console.log(`[mcp-hub] Reconnected to "${name}"`);
+            return true;
+        } catch (err) {
+            console.error(`[mcp-hub] Failed to reconnect to "${name}":`, err);
+            server.status = 'disconnected';
+            server.lastError = err instanceof Error ? err.message : String(err);
+            server.lastErrorTime = Date.now();
+            return false;
+        }
     }
 
     /**
@@ -124,10 +175,12 @@ export class McpHub {
     /**
      * Get connected server info.
      */
-    getServerInfo(): Array<{ name: string; toolCount: number; tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> }> {
+    getServerInfo(): Array<{ name: string; toolCount: number; status: string; lastError?: string; tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> }> {
         return this.servers.map(s => ({
             name: s.name,
             toolCount: s.tools.length,
+            status: s.status,
+            lastError: s.lastError,
             tools: s.tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
         }));
     }
@@ -142,18 +195,48 @@ export class McpHub {
         for (const server of this.servers) {
             const tool = server.tools.find(t => t.name === toolName);
             if (tool) {
-                const result = await server.client.callTool({
-                    name: toolName,
-                    arguments: args,
-                });
+                try {
+                    const result = await server.client.callTool({
+                        name: toolName,
+                        arguments: args,
+                    });
 
-                // Extract text content from result
-                if (result.content && Array.isArray(result.content)) {
-                    return result.content
-                        .map((c: any) => (c.type === 'text' ? c.text : JSON.stringify(c)))
-                        .join('\n');
+                    server.status = 'connected'; // Mark healthy on success
+
+                    // Extract text content from result
+                    if (result.content && Array.isArray(result.content)) {
+                        return result.content
+                            .map((c: any) => (c.type === 'text' ? c.text : JSON.stringify(c)))
+                            .join('\n');
+                    }
+                    return JSON.stringify(result);
+                } catch (err) {
+                    // Mark disconnected and attempt reconnect
+                    server.status = 'disconnected';
+                    server.lastError = err instanceof Error ? err.message : String(err);
+                    server.lastErrorTime = Date.now();
+                    console.warn(`[mcp-hub] Tool call failed on "${server.name}", attempting reconnect...`);
+
+                    const reconnected = await this.reconnectServer(server.name);
+                    if (reconnected) {
+                        // Retry the tool call once after reconnect
+                        const retryServer = this.servers.find(s => s.name === server.name);
+                        if (retryServer) {
+                            const retryResult = await retryServer.client.callTool({
+                                name: toolName,
+                                arguments: args,
+                            });
+                            // Extract text content from retry result
+                            if (retryResult.content && Array.isArray(retryResult.content)) {
+                                return retryResult.content
+                                    .map((c: any) => (c.type === 'text' ? c.text : JSON.stringify(c)))
+                                    .join('\n');
+                            }
+                            return JSON.stringify(retryResult);
+                        }
+                    }
+                    throw err; // Reconnect failed or retry server not found
                 }
-                return JSON.stringify(result);
             }
         }
         throw new Error(`Tool "${toolName}" not found on any connected server`);
