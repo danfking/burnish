@@ -24,7 +24,19 @@ Respond with ONLY HTML using the burnish-* web components below. No markdown, no
 ## Rules
 - Output ONLY burnish-* HTML components — no prose, no markdown, no code blocks
 - Start your response directly with a burnish-* tag
-- Use burnish-card for each item with a title and body description`;
+- Use burnish-card for each item with a title and body description
+
+## Example
+<burnish-stat-bar items='[{"label":"Files","value":"12","color":"muted"},{"label":"Modified","value":"3","color":"warning"}]'></burnish-stat-bar>
+<burnish-section label="Modified Files" count="3" status="warning">
+<burnish-card title="config.json" status="warning" item-id="config" body="Configuration updated with new API endpoint"></burnish-card>
+</burnish-section>
+
+## Common Mistakes — AVOID These
+- NEVER start with conversational text like "Sure!", "Here's", "Let me show you"
+- NEVER wrap output in markdown code fences (\`\`\`html ... \`\`\`)
+- NEVER use markdown headers (#, ##) mixed with burnish-* components
+- NEVER use raw HTML tags (div, p, h2, table) when a burnish-* component exists`;
 }
 
 export function buildSystemPrompt(extraInstructions = ''): string {
@@ -80,6 +92,14 @@ Always include a "Refresh" read action.
 - Overviews: start with <burnish-stat-bar>, group with <burnish-section>, use <burnish-card> for items
 - Status semantics: use descriptive words ("open", "closed", "draft", "merged") for data items. Reserve "success" for completed actions, "warning"/"error" for real problems.
 
+## Narrative Layout
+When investigating or diagnosing, structure your response as a progressive story:
+1. Start with a burnish-stat-bar summarizing the key metrics
+2. Follow with burnish-section groups for each finding, ordered by severity/importance
+3. Use burnish-card for individual items with descriptive body text
+4. End with burnish-actions offering contextual next steps
+Each component should flow naturally from the previous one, telling a data-driven story.
+
 ## Cross-Server Workflows
 You have access to tools from MULTIPLE connected servers simultaneously. When the user's request involves data from one service and an action on another, chain tool calls across servers in a single conversation:
 1. **Retrieve** — Call the source server's tool to get data (e.g. list issues, read files, query database)
@@ -108,6 +128,20 @@ Always complete the full chain — do not stop after retrieving data if the user
 ## Form Example
 When a tool requires user input, emit ONLY a burnish-form — NEVER add surrounding text describing the parameters:
 <burnish-form title="Search Repositories" tool-id="github__search_repositories" fields='[{"key":"query","label":"Search query","type":"text","required":true,"placeholder":"e.g. burnish language:typescript"},{"key":"per_page","label":"Results per page","type":"number","value":"10"}]'></burnish-form>
+
+## Table Example
+<burnish-stat-bar items='[{"label":"Total","value":"47","color":"muted"},{"label":"Open","value":"12","color":"warning"},{"label":"Closed","value":"35","color":"success"}]'></burnish-stat-bar>
+<burnish-table title="Open Issues" columns='[{"key":"title","label":"Title"},{"key":"status","label":"Status"},{"key":"assignee","label":"Assignee"}]' rows='[{"title":"Fix login bug","status":"open","assignee":"alice"},{"title":"Update docs","status":"open","assignee":"bob"}]' status-field="status"></burnish-table>
+
+## Metric + Actions Example
+<burnish-metric label="Response Time" value="234" unit="ms" trend="up"></burnish-metric>
+<burnish-actions actions='[{"label":"View logs","action":"read","prompt":"Show recent error logs","icon":"list"},{"label":"Refresh","action":"read","prompt":"Refresh metrics","icon":"refresh"}]'></burnish-actions>
+
+## Common Mistakes — AVOID These
+- NEVER start with conversational text like "Sure!", "Here's", "Let me show you"
+- NEVER wrap output in markdown code fences (\`\`\`html ... \`\`\`)
+- NEVER use markdown headers (#, ##) mixed with burnish-* components
+- NEVER use raw HTML tags (div, p, h2, table) when a burnish-* component exists
 
 ${extraInstructions}`;
 }
