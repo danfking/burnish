@@ -43,6 +43,9 @@ const mcpHub = new McpHub();
 const conversations = new ConversationStore(1000);
 const llm = new LlmOrchestrator(mcpHub, conversations);
 
+let activeModelName = 'sonnet'; // Set during start()
+let activeBackend = 'cli';
+
 // --- Validation helpers ---
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -318,6 +321,32 @@ app.get('/api/servers', (c) => {
     }
 });
 
+app.get('/api/models', async (c) => {
+    let available: { id: string; name: string }[] = [];
+
+    if (activeBackend === 'openai') {
+        try {
+            const baseUrl = (process.env.OPENAI_BASE_URL || 'http://localhost:11434/v1').replace('/v1', '');
+            const resp = await fetch(baseUrl + '/api/tags');
+            if (resp.ok) {
+                const data = await resp.json() as { models?: { name: string }[] };
+                available = (data.models || []).map((m) => ({
+                    id: m.name,
+                    name: m.name,
+                }));
+            }
+        } catch { /* Ollama not reachable */ }
+    } else {
+        available = [
+            { id: 'sonnet', name: 'Sonnet' },
+            { id: 'haiku', name: 'Haiku (Fast)' },
+            { id: 'opus', name: 'Opus (Detailed)' },
+        ];
+    }
+
+    return c.json({ models: available, current: activeModelName, backend: activeBackend });
+});
+
 app.post('/api/title', async (c) => {
     try {
         let body: { prompt: string; response: string };
@@ -529,6 +558,9 @@ async function start() {
             console.warn('[burnish] Then pull a model: ollama pull ' + modelName);
         }
     }
+
+    activeModelName = modelName;
+    activeBackend = llmBackend;
 
     llm.configure({
         backend: llmBackend,

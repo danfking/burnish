@@ -41,7 +41,7 @@ const ICON_REFRESH = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none
 const SAFE_ATTRS = new Set(PURIFY_CONFIG.ADD_ATTR);
 
 // ── State ──
-let fastMode = localStorage.getItem('burnish:fastMode') === 'true';
+let selectedModel = localStorage.getItem('burnish:selectedModel') || '';
 let searchQuery = '';
 let searchDebounceTimer = null;
 let dashboardMode = localStorage.getItem('burnish:dashboardMode') === 'true';
@@ -978,14 +978,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('dashboard-container');
     const breadcrumb = document.getElementById('breadcrumb');
 
-    // ── Fast mode toggle ──
-    const fastToggle = document.getElementById('fast-toggle');
-    if (fastToggle) {
-        if (fastMode) fastToggle.classList.add('active');
-        fastToggle.addEventListener('click', () => {
-            fastMode = !fastMode;
-            fastToggle.classList.toggle('active', fastMode);
-            localStorage.setItem('burnish:fastMode', String(fastMode));
+    // ── Model selector ──
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+        fetch('/api/models')
+            .then(r => r.json())
+            .then(({ models, current }) => {
+                if (models.length === 0) {
+                    modelSelect.innerHTML = '<option value="">No models</option>';
+                    return;
+                }
+                const activeModel = selectedModel || current;
+                modelSelect.innerHTML = models.map(m =>
+                    `<option value="${escapeAttr(m.id)}"${m.id === activeModel ? ' selected' : ''}>${escapeHtml(m.name)}</option>`
+                ).join('');
+                if (!selectedModel) selectedModel = current;
+            })
+            .catch(() => {
+                modelSelect.innerHTML = '<option value="">Default</option>';
+            });
+
+        modelSelect.addEventListener('change', () => {
+            selectedModel = modelSelect.value;
+            localStorage.setItem('burnish:selectedModel', selectedModel);
         });
     }
 
@@ -1595,7 +1610,7 @@ function submitPrompt(prompt, existingConversationId, onChunk, onDone, onError, 
         '', // same origin
         prompt,
         existingConversationId,
-        fastMode ? 'haiku' : undefined,
+        selectedModel || undefined,
         { onChunk, onDone, onError, onProgress, onStats, onWorkflowTrace },
     ).catch(onError);
 }
