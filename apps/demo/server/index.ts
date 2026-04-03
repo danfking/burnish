@@ -75,12 +75,16 @@ function validateModel(model: unknown): string | null {
 }
 
 // --- Token bucket rate limiter ---
-// NOTE: x-forwarded-for is trivially spoofable; not production-grade behind proxies.
-// Use a proper reverse proxy rate limiter (e.g., nginx, Cloudflare) in production.
+// By default, all requests share a single rate-limit bucket ('local').
+// Set TRUST_PROXY=true (or '1') to use the X-Forwarded-For header for per-IP
+// rate limiting — only enable this when running behind a trusted reverse proxy
+// that sets X-Forwarded-For reliably (e.g., nginx, Cloudflare, AWS ALB).
+// Without a trusted proxy, X-Forwarded-For is trivially spoofable.
 
 const RATE_LIMIT_MAX = 10;          // requests per window
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_BUCKET_MAX_ENTRIES = 10_000;
+const TRUST_PROXY = process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1';
 
 interface RateBucket {
     tokens: number;
@@ -90,12 +94,14 @@ interface RateBucket {
 const rateBuckets = new Map<string, RateBucket>();
 
 function getClientIp(req: Request, headers: Headers): string {
-    // x-forwarded-for is not reliable without trusted proxy config — see note above
-    const forwarded = headers.get('x-forwarded-for');
-    if (forwarded) {
-        return forwarded.split(',')[0].trim();
+    if (TRUST_PROXY) {
+        const forwarded = headers.get('x-forwarded-for');
+        if (forwarded) {
+            return forwarded.split(',')[0].trim();
+        }
     }
-    return 'unknown';
+    // Without TRUST_PROXY, use a single global bucket to prevent header spoofing bypass
+    return 'local';
 }
 
 function evictOldestBucket(): void {
