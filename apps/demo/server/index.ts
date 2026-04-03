@@ -182,7 +182,12 @@ app.use('/api/lookup', async (c, next) => {
 
 app.post('/api/chat', async (c) => {
     try {
-        const body = await c.req.json<{ prompt: string; conversationId?: string; model?: string }>();
+        let body: { prompt: string; conversationId?: string; model?: string };
+        try {
+            body = await c.req.json();
+        } catch {
+            return c.json({ error: 'Invalid request body' }, 400);
+        }
 
         // Validate prompt
         const promptErr = validatePrompt(body.prompt);
@@ -285,7 +290,13 @@ app.get('/api/servers', (c) => {
 
 app.post('/api/title', async (c) => {
     try {
-        const { prompt, response } = await c.req.json<{ prompt: string; response: string }>();
+        let body: { prompt: string; response: string };
+        try {
+            body = await c.req.json();
+        } catch {
+            return c.json({ error: 'Invalid request body' }, 400);
+        }
+        const { prompt, response } = body;
 
         // Validate prompt
         const promptErr = validatePrompt(prompt);
@@ -320,7 +331,13 @@ function evictLookupCache(): void {
 
 app.post('/api/lookup', async (c) => {
     try {
-        const { prompt } = await c.req.json<{ prompt: string }>();
+        let body: { prompt: string };
+        try {
+            body = await c.req.json();
+        } catch {
+            return c.json({ error: 'Invalid request body' }, 400);
+        }
+        const { prompt } = body;
 
         // Validate prompt
         const promptErr = validatePrompt(prompt);
