@@ -1097,6 +1097,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // ── Global keyboard shortcuts ──
+    document.addEventListener('keydown', (e) => {
+        // Escape: cancel streaming
+        if (e.key === 'Escape' && streamOrchestrator.isStreaming) {
+            streamOrchestrator.cancel();
+            submitBtn.classList.remove('cancel');
+            submitBtn.innerHTML = ICON_SEND;
+            return;
+        }
+        // Don't trigger shortcuts when typing in an input/textarea/select/contenteditable
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) return;
+        // Ctrl/Cmd+K: focus session search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            document.getElementById('session-search')?.focus();
+            return;
+        }
+        // /: focus prompt input
+        if (e.key === '/') {
+            e.preventDefault();
+            promptInput.focus();
+            return;
+        }
+    });
+
     // ── Card drill-down ──
     // ── Stat-bar filter — click chip to show/hide sections ──
     container.addEventListener('burnish-filter', (e) => {
