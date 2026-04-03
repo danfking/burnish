@@ -206,7 +206,7 @@ app.use('/api/lookup', async (c, next) => {
 
 app.post('/api/chat', async (c) => {
     try {
-        let body: { prompt: string; conversationId?: string; model?: string };
+        let body: { prompt: string; conversationId?: string; model?: string; noTools?: boolean };
         try {
             body = await c.req.json();
         } catch {
@@ -230,9 +230,10 @@ app.post('/api/chat', async (c) => {
         const conv = conversations.getOrCreate(body.conversationId);
         conversations.addMessage(conv.id, 'user', body.prompt);
         const modelParam = body.model ? `?model=${encodeURIComponent(body.model)}` : '';
+        const noToolsParam = body.noTools ? `${modelParam ? '&' : '?'}noTools=true` : '';
         return c.json({
             conversationId: conv.id,
-            streamUrl: `/api/chat/${conv.id}/stream${modelParam}`,
+            streamUrl: `/api/chat/${conv.id}/stream${modelParam}${noToolsParam}`,
         });
     } catch (err) {
         console.error('[burnish] POST /api/chat error:', err);
@@ -254,12 +255,13 @@ app.get('/api/chat/:id/stream', async (c) => {
             const modelErr = validateModel(requestModel);
             if (modelErr) return c.json({ error: modelErr }, 400);
         }
+        const noTools = c.req.query('noTools') === 'true';
 
         const stream = new ReadableStream({
             async start(controller) {
                 const encoder = new TextEncoder();
                 try {
-                    for await (const chunk of llm.streamResponse(id, requestModel)) {
+                    for await (const chunk of llm.streamResponse(id, requestModel, noTools)) {
                         const data = JSON.stringify(chunk);
                         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                     }

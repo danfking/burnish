@@ -1093,7 +1093,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const btn = e.target.closest('.burnish-suggestion');
         if (btn?.dataset.prompt) {
             promptInput.value = btn.dataset.prompt;
-            handleSubmit(btn.dataset.label || undefined);
+            const noTools = btn.dataset.noTools === 'true';
+            handleSubmit(btn.dataset.label || undefined, noTools);
         }
     });
 
@@ -1289,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // ── Submit handler ──
-    async function handleSubmit(displayLabel) {
+    async function handleSubmit(displayLabel, noTools) {
         const prompt = promptInput.value.trim();
         if (!prompt) {
             promptInput.classList.add('burnish-prompt-shake');
@@ -1566,7 +1567,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // onWorkflowTrace
             (steps) => {
                 updateWorkflowTrace(contentEl, steps);
-            }
+            },
+            noTools
         );
 
         promptInput.disabled = true;
@@ -1611,13 +1613,14 @@ function updateWorkflowTrace(contentEl, steps) {
 
 // ── SSE Streaming (via StreamOrchestrator) ──
 
-function submitPrompt(prompt, existingConversationId, onChunk, onDone, onError, onProgress, onStats, onWorkflowTrace) {
+function submitPrompt(prompt, existingConversationId, onChunk, onDone, onError, onProgress, onStats, onWorkflowTrace, noTools) {
     streamOrchestrator.submitPrompt(
         '', // same origin
         prompt,
         existingConversationId,
         selectedModel || undefined,
         { onChunk, onDone, onError, onProgress, onStats, onWorkflowTrace },
+        noTools,
     ).catch(onError);
 }
 
@@ -1697,7 +1700,7 @@ async function loadDynamicSuggestions(container) {
                     const moreText = s.tools.length > 15 ? ` and ${s.tools.length - 15} more` : '';
                     const prompt = `You have access to a ${s.name} server with these operations: ${toolList}${moreText}. Generate a burnish-card for each operation showing its name and a brief description. Do NOT call any tools. Just output burnish-card HTML components describing what each operation does.`;
                     return `
-                    <button class="burnish-suggestion burnish-suggestion-server" data-prompt="${escapeAttr(prompt)}" data-label="${escapeAttr(s.name)}">
+                    <button class="burnish-suggestion burnish-suggestion-server" data-prompt="${escapeAttr(prompt)}" data-label="${escapeAttr(s.name)}" data-no-tools="true">
                         ${escapeHtml(s.name)}
                         <span class="burnish-suggestion-sub">${s.toolCount} tools</span>
                     </button>
