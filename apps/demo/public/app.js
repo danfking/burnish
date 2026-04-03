@@ -67,6 +67,25 @@ let streamingNodeId = null;
 // Track tool hint for drill-down fallback form generation
 let drillDownToolHint = null;
 
+// Curated starter prompts per MCP server type
+const STARTER_PROMPTS = {
+    filesystem: [
+        { label: 'List my files', prompt: 'List the files and directories in my home folder' },
+        { label: 'Find large files', prompt: 'Find the 10 largest files in my home directory' },
+        { label: 'Recent changes', prompt: 'Show files modified in the last 24 hours' },
+    ],
+    github: [
+        { label: 'Open issues', prompt: 'Show all open issues in my repositories' },
+        { label: 'Recent PRs', prompt: 'List recent pull requests across my repos' },
+        { label: 'Search repos', prompt: 'Search for my most popular repositories' },
+    ],
+    // Generic fallback for unknown servers
+    _default: [
+        { label: 'Available tools', prompt: 'What tools do I have available?' },
+        { label: 'Get started', prompt: 'Show me what I can do with the connected services' },
+    ],
+};
+
 // Cache of tool schemas keyed by tool name (populated from /api/servers)
 const toolSchemaCache = {};
 
@@ -1669,6 +1688,7 @@ function getEmptyState() {
                 <div class="burnish-suggestion-skeleton-pill"></div>
             </div>
             <div class="burnish-tool-shortcuts" id="tool-shortcuts"></div>
+            <div class="burnish-starter-prompts" id="starter-prompts"></div>
             <div class="burnish-empty-hint" id="empty-hint"></div>
         </div>
     `;
@@ -1745,6 +1765,24 @@ async function loadDynamicSuggestions(container) {
             }
         }
 
+        // Render curated starter prompt chips based on connected server types
+        const starterSection = container.querySelector('#starter-prompts');
+        if (starterSection && servers.length > 0) {
+            const starters = [];
+            for (const s of servers) {
+                const serverPrompts = STARTER_PROMPTS[s.name] || STARTER_PROMPTS._default;
+                starters.push(...serverPrompts.slice(0, 2)); // Max 2 per server
+            }
+            const limited = starters.slice(0, 6);
+            if (limited.length > 0) {
+                starterSection.innerHTML = limited.map(s => `
+                    <button class="burnish-suggestion" data-prompt="${escapeAttr(s.prompt)}" data-label="${escapeAttr(s.label)}">
+                        ${escapeHtml(s.label)}
+                    </button>
+                `).join('');
+            }
+        }
+
         const hintEl = container.querySelector('#empty-hint');
         if (hintEl && servers.length > 0) {
             hintEl.innerHTML = '<span class="burnish-hint-text">Try asking: "What tools do I have?" or "List my files"</span>';
@@ -1754,6 +1792,8 @@ async function loadDynamicSuggestions(container) {
         if (serverBtns) serverBtns.innerHTML = '';
         const toolSection = container.querySelector('#tool-shortcuts');
         if (toolSection) toolSection.innerHTML = '';
+        const starterSection = container.querySelector('#starter-prompts');
+        if (starterSection) starterSection.innerHTML = '';
     }
 }
 
