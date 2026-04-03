@@ -7,6 +7,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { spawn } from 'node:child_process';
 import { writeFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -40,6 +41,11 @@ export const ALLOWED_MODELS = new Set([
     'claude-haiku-4-5-20251001',
     'claude-opus-4-6',
     'claude-sonnet-4-5-20250514',
+    // OpenAI models
+    'gpt-4o',
+    'gpt-4o-mini',
+    'gpt-4-turbo',
+    'gpt-3.5-turbo',
 ]);
 
 function extractServerName(toolName: string): string | undefined {
@@ -48,7 +54,7 @@ function extractServerName(toolName: string): string | undefined {
 }
 
 export interface LlmOrchestratorOptions {
-    backend?: 'api' | 'cli';
+    backend?: 'api' | 'cli' | 'openai';
     apiKey?: string;
     model?: string;
     /** Working directory for CLI subprocess (typically the demo app root) */
@@ -57,11 +63,14 @@ export interface LlmOrchestratorOptions {
     mcpConfigPath?: string;
     /** Maximum tool-call rounds per request (default 8) */
     maxToolRounds?: number;
+    /** Base URL for OpenAI-compatible API (e.g., http://localhost:11434/v1 for Ollama) */
+    openaiBaseUrl?: string;
 }
 
 export class LlmOrchestrator {
-    private backend: 'api' | 'cli' = 'api';
+    private backend: 'api' | 'cli' | 'openai' = 'api';
     private client: Anthropic | null = null;
+    private openaiClient: OpenAI | null = null;
     private model = 'sonnet';
     private cwd: string | undefined;
     private mcpConfigPath: string | undefined;
@@ -75,7 +84,8 @@ export class LlmOrchestrator {
     configure(options: LlmOrchestratorOptions): void {
         this.backend = options.backend ?? 'api';
         if (options.model) {
-            if (!ALLOWED_MODELS.has(options.model)) {
+            // For the openai backend, allow any model name (local servers use arbitrary names)
+            if (this.backend !== 'openai' && !ALLOWED_MODELS.has(options.model)) {
                 throw new Error(`Invalid model: ${options.model}. Allowed: ${[...ALLOWED_MODELS].join(', ')}`);
             }
             this.model = options.model;
@@ -93,9 +103,16 @@ export class LlmOrchestrator {
         if (this.backend === 'api') {
             if (!options.apiKey) throw new Error('ANTHROPIC_API_KEY required for api backend');
             this.client = new Anthropic({ apiKey: options.apiKey });
+        } else if (this.backend === 'openai') {
+            this.openaiClient = new OpenAI({
+                apiKey: options.apiKey || 'not-needed',
+                baseURL: options.openaiBaseUrl || 'http://localhost:11434/v1',
+            });
         }
 
-        console.log(`[llm] Backend: ${this.backend}, Model: ${this.model}`);
+        const baseUrlSuffix = this.backend === 'openai' && options.openaiBaseUrl
+            ? `, Base URL: ${options.openaiBaseUrl}` : '';
+        console.log(`[llm] Backend: ${this.backend}, Model: ${this.model}${baseUrlSuffix}`);
     }
 
     /**
@@ -106,12 +123,15 @@ export class LlmOrchestrator {
         conversationId: string,
         requestModel?: string,
     ): AsyncGenerator<StreamChunk> {
-        if (requestModel && !ALLOWED_MODELS.has(requestModel)) {
+        // For openai backend, allow any model; for others, validate against allowlist
+        if (requestModel && this.backend !== 'openai' && !ALLOWED_MODELS.has(requestModel)) {
             throw new Error(`Invalid model: ${requestModel}`);
         }
         const useModel = requestModel || this.model;
         if (this.backend === 'cli') {
             yield* this.streamResponseCli(conversationId, useModel);
+        } else if (this.backend === 'openai') {
+            yield* this.streamResponseOpenai(conversationId, useModel);
         } else {
             yield* this.streamResponseApi(conversationId, useModel);
         }
@@ -470,6 +490,175 @@ export class LlmOrchestrator {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // OpenAI-compatible Backend — Ollama, llama.cpp, vLLM, LM Studio, OpenAI
+    // ═══════════════════════════════════════════════════════════════
+
+    private async *streamResponseOpenai(
+        conversationId: string,
+        useModel = this.model,
+    ): AsyncGenerator<StreamChunk> {
+        if (!this.openaiClient) throw new Error('OpenAI client not configured — call configure() first');
+
+        const conv = this.conversations.get(conversationId);
+        if (!conv) return;
+
+        const systemPrompt = buildSystemPrompt();
+        const messages: OpenAI.ChatCompletionMessageParam[] = [
+            { role: 'system', content: systemPrompt },
+        ];
+
+        // Build message history
+        for (let i = 0; i < conv.messages.length; i++) {
+            const m = conv.messages[i];
+            if (m.role === 'assistant' && i < conv.messages.length - 1 && m.content.length > 200) {
+                messages.push({ role: 'assistant', content: '[Previous dashboard response]' });
+            } else {
+                messages.push({ role: m.role, content: m.content });
+            }
+        }
+
+        // Convert MCP tools to OpenAI function calling format
+        const mcpTools = this.mcpHub.getAllTools();
+        const tools: OpenAI.ChatCompletionTool[] = mcpTools.map(t => ({
+            type: 'function' as const,
+            function: {
+                name: t.name,
+                description: t.description || '',
+                parameters: (t.inputSchema as Record<string, unknown>) || { type: 'object', properties: {} },
+            },
+        }));
+
+        let fullResponse = '';
+        const apiStartTime = Date.now();
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
+        const workflowSteps: WorkflowStep[] = [];
+
+        yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } };
+
+        for (let round = 0; round < this.maxToolRounds; round++) {
+            if (round === 0) {
+                yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
+            }
+
+            const params: OpenAI.ChatCompletionCreateParams = {
+                model: useModel,
+                max_tokens: 4096,
+                messages,
+                stream: true,
+                ...(tools.length > 0 ? { tools } : {}),
+            };
+
+            const stream = await this.openaiClient.chat.completions.create(params);
+
+            let textAccumulator = '';
+            // Accumulate tool calls from streaming deltas
+            const toolCallAccumulator = new Map<number, { id: string; name: string; arguments: string }>();
+
+            for await (const chunk of stream) {
+                const choice = chunk.choices?.[0];
+                if (!choice) continue;
+
+                const delta = choice.delta;
+
+                // Text content
+                if (delta?.content) {
+                    fullResponse += delta.content;
+                    textAccumulator += delta.content;
+                    yield { type: 'content', text: delta.content };
+                }
+
+                // Tool call deltas — streamed incrementally
+                if (delta?.tool_calls) {
+                    for (const tc of delta.tool_calls) {
+                        const idx = tc.index;
+                        if (!toolCallAccumulator.has(idx)) {
+                            toolCallAccumulator.set(idx, {
+                                id: tc.id || '',
+                                name: tc.function?.name || '',
+                                arguments: '',
+                            });
+                        }
+                        const acc = toolCallAccumulator.get(idx)!;
+                        if (tc.id) acc.id = tc.id;
+                        if (tc.function?.name) acc.name = tc.function.name;
+                        if (tc.function?.arguments) acc.arguments += tc.function.arguments;
+                    }
+                }
+
+                // Accumulate usage from the final chunk
+                if (chunk.usage) {
+                    totalPromptTokens += chunk.usage.prompt_tokens || 0;
+                    totalCompletionTokens += chunk.usage.completion_tokens || 0;
+                }
+            }
+
+            const pendingToolCalls = [...toolCallAccumulator.values()].filter(tc => tc.name);
+
+            if (pendingToolCalls.length === 0) break;
+
+            // Build assistant message with tool calls for the conversation
+            const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
+                role: 'assistant',
+                content: textAccumulator || null,
+                tool_calls: pendingToolCalls.map((tc, i) => ({
+                    id: tc.id || `call_${round}_${i}`,
+                    type: 'function' as const,
+                    function: { name: tc.name, arguments: tc.arguments },
+                })),
+            };
+            messages.push(assistantMsg);
+
+            // Execute each tool call and add results
+            for (const tc of pendingToolCalls) {
+                const server = extractServerName(tc.name) || 'unknown';
+                const shortName = tc.name.replace(/^mcp__\w+__/, '');
+                const step: WorkflowStep = { server, tool: shortName, status: 'running' };
+                workflowSteps.push(step);
+                yield { type: 'workflow_trace', steps: [...workflowSteps] };
+
+                let resultContent: string;
+                try {
+                    yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: { server } };
+                    console.log(`[llm-openai] Executing tool: ${tc.name}`);
+
+                    let args: Record<string, unknown> = {};
+                    try { args = JSON.parse(tc.arguments || '{}'); } catch { /* empty args */ }
+
+                    const result = await this.mcpHub.executeTool(tc.name, args);
+                    step.status = 'success';
+                    resultContent = typeof result === 'string' ? result : JSON.stringify(result);
+                } catch (err) {
+                    step.status = 'error';
+                    resultContent = `Error: ${err instanceof Error ? err.message : String(err)}`;
+                }
+
+                yield { type: 'workflow_trace', steps: [...workflowSteps] };
+
+                messages.push({
+                    role: 'tool',
+                    tool_call_id: tc.id || `call_${round}`,
+                    content: resultContent,
+                });
+            }
+
+            yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
+            textAccumulator = '';
+        }
+
+        yield {
+            type: 'stats',
+            durationMs: Date.now() - apiStartTime,
+            inputTokens: totalPromptTokens,
+            outputTokens: totalCompletionTokens,
+        };
+
+        if (fullResponse) {
+            this.conversations.addMessage(conversationId, 'assistant', fullResponse);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // Title Generation — lightweight LLM call to auto-title sessions
     // ═══════════════════════════════════════════════════════════════
 
@@ -487,6 +676,8 @@ export class LlmOrchestrator {
 
         if (this.backend === 'cli') {
             return this.generateTitleCli(userMessage);
+        } else if (this.backend === 'openai') {
+            return this.generateTitleOpenai(userMessage);
         } else {
             return this.generateTitleApi(userMessage);
         }
@@ -507,6 +698,21 @@ export class LlmOrchestrator {
             .map(b => b.text)
             .join('');
         return text.trim();
+    }
+
+    private async generateTitleOpenai(userMessage: string): Promise<string> {
+        if (!this.openaiClient) throw new Error('OpenAI client not configured');
+
+        const result = await this.openaiClient.chat.completions.create({
+            model: this.model,
+            max_tokens: 30,
+            messages: [
+                { role: 'system', content: LlmOrchestrator.TITLE_SYSTEM_PROMPT },
+                { role: 'user', content: userMessage },
+            ],
+        });
+
+        return (result.choices?.[0]?.message?.content || '').trim();
     }
 
     private async generateTitleCli(userMessage: string): Promise<string> {
@@ -564,6 +770,11 @@ export class LlmOrchestrator {
     ): AsyncGenerator<StreamChunk> {
         if (this.backend === 'cli') {
             yield* this.streamResponseCli(conversationId, this.model);
+            return;
+        }
+        if (this.backend === 'openai') {
+            // For openai backend, reuse the main streaming method for lookups
+            yield* this.streamResponseOpenai(conversationId, this.model);
             return;
         }
 

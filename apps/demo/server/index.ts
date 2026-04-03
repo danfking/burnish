@@ -67,7 +67,12 @@ function validateUuid(value: string, fieldName: string): string | null {
 
 function validateModel(model: unknown): string | null {
     if (model !== undefined && model !== null && model !== '') {
-        if (typeof model !== 'string' || !ALLOWED_MODELS.has(model)) {
+        if (typeof model !== 'string') {
+            return 'model must be a string';
+        }
+        // For OpenAI-compatible backends, allow any model name (local servers use arbitrary names)
+        const currentBackend = process.env.LLM_BACKEND || (process.env.ANTHROPIC_API_KEY ? 'api' : (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) ? 'openai' : 'cli');
+        if (currentBackend !== 'openai' && !ALLOWED_MODELS.has(model)) {
             return `model must be one of: ${[...ALLOWED_MODELS].join(', ')}`;
         }
     }
@@ -447,12 +452,15 @@ app.use('/*', serveStatic({ root: resolve(demoRoot, 'public') }));
 async function start() {
     const port = parseInt(process.env.PORT || '3000', 10);
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    const modelName = process.env.ANTHROPIC_MODEL || 'sonnet';
-    const llmBackend = (process.env.LLM_BACKEND || (apiKey ? 'api' : 'cli')) as 'api' | 'cli';
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const openaiBaseUrl = process.env.OPENAI_BASE_URL;
+    const modelName = process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || 'sonnet';
+    const llmBackend = (process.env.LLM_BACKEND || (apiKey ? 'api' : (openaiKey || openaiBaseUrl) ? 'openai' : 'cli')) as 'api' | 'cli' | 'openai';
 
     if (llmBackend === 'api' && !apiKey) {
         console.error('[burnish] ANTHROPIC_API_KEY required for api backend.');
         console.error('[burnish] Set LLM_BACKEND=cli to use your Claude Code subscription instead.');
+        console.error('[burnish] Or set LLM_BACKEND=openai with OPENAI_BASE_URL for local models.');
         process.exit(1);
     }
 
@@ -484,10 +492,11 @@ async function start() {
 
     llm.configure({
         backend: llmBackend,
-        apiKey,
+        apiKey: llmBackend === 'openai' ? (openaiKey || undefined) : apiKey,
         model: modelName,
         cwd: resolve(__dirname, '..'),
         mcpConfigPath: configPath,
+        openaiBaseUrl,
     });
 
     serve({ fetch: app.fetch, port }, () => {
