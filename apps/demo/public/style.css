@@ -29,8 +29,10 @@ body {
 .burnish-header-right { display: flex; align-items: center; gap: 8px; }
 .burnish-logo { font-weight: 700; font-size: 16px; letter-spacing: 1px; }
 .burnish-breadcrumb { font-size: 13px; opacity: 0.7; }
-.burnish-crumb { cursor: pointer; transition: opacity 0.15s; }
+.burnish-crumb { cursor: pointer; transition: opacity var(--burnish-transition-fast); }
 .burnish-crumb:hover { text-decoration: underline; opacity: 1; }
+.burnish-crumb-active { cursor: default; font-weight: 600; }
+.burnish-crumb-active:hover { text-decoration: none; }
 .burnish-crumb-ellipsis { cursor: default; }
 .burnish-crumb-ellipsis:hover { text-decoration: none; }
 .burnish-crumb-sep { margin: 0 2px; opacity: 0.5; }

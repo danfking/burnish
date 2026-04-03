@@ -161,6 +161,8 @@ function escapeHtml(text) {
 function updateBreadcrumb() {
     const breadcrumb = document.getElementById('breadcrumb');
     if (!breadcrumb) return;
+    breadcrumb.setAttribute('role', 'navigation');
+    breadcrumb.setAttribute('aria-label', 'Breadcrumb');
     const session = getActiveSession();
     if (!session) { breadcrumb.textContent = 'Dashboard'; return; }
 
@@ -193,8 +195,12 @@ function updateBreadcrumb() {
 
     // Render as clickable spans
     breadcrumb.innerHTML = displaySegments.map((seg, i) => {
-        const sep = i > 0 ? ' <span class="burnish-crumb-sep">&gt;</span> ' : '';
+        const sep = i > 0 ? ' <span class="burnish-crumb-sep">\u203A</span> ' : '';
         if (seg.ellipsis) return sep + '<span class="burnish-crumb burnish-crumb-ellipsis">\u2026</span>';
+        const isActive = i === displaySegments.length - 1 && seg.nodeId;
+        if (isActive) {
+            return sep + `<span class="burnish-crumb burnish-crumb-active" aria-current="location">${escapeHtml(seg.label)}</span>`;
+        }
         const attrs = seg.nodeId ? ` data-node-id="${escapeHtml(seg.nodeId)}"` : ' data-scroll-top="true"';
         return sep + `<span class="burnish-crumb"${attrs}>${escapeHtml(seg.label)}</span>`;
     }).join('');
