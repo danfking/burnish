@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "tsx watch server/index.ts",
     "dev:cli": "cross-env LLM_BACKEND=cli tsx watch server/index.ts",
+    "dev:local": "cross-env LLM_BACKEND=openai OPENAI_BASE_URL=http://localhost:11434/v1 OPENAI_MODEL=qwen2.5:7b tsx watch server/index.ts",
     "build": "echo 'demo app - no build step'",
     "clean": "echo 'nothing to clean'"
   },
