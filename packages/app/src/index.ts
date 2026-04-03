@@ -39,3 +39,8 @@ export {
     generateSummary,
     formatTimeAgo,
 } from './summary.js';
+
+export {
+    scoreResponse,
+    type QualityScore,
+} from './quality-scorer.js';

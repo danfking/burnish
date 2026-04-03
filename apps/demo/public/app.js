@@ -10,6 +10,7 @@ import {
     isWriteTool, getDrillDownPrompt, generateFallbackForm,
     StreamOrchestrator,
     generateSummary, formatTimeAgo,
+    scoreResponse,
 } from '@burnish/app';
 import {
     findStreamElements, appendStreamElement, extractHtmlContent, containsTags as containsBurnishTags,
@@ -496,6 +497,10 @@ async function regenerateNode(nodeId) {
             node.response = trimmed;
             node.type = containsBurnishTags(trimmed) ? 'components' : 'text';
 
+            // Score the response quality
+            const score = scoreResponse(node.response || '');
+            node._qualityScore = score.total;
+
             if (!trimmed) {
                 contentEl.innerHTML = '<div class="burnish-text-response" style="color: var(--burnish-text-muted, #9ca3af); font-style: italic;">No response received. Try regenerating.</div>';
                 node.type = 'text';
@@ -775,6 +780,11 @@ function toggleDiagnosticPanel(nodeId) {
         if (node.stats.costUsd) {
             metrics.push(`<span class="burnish-diag-metric"><strong>Cost</strong> $${node.stats.costUsd.toFixed(4)}</span>`);
         }
+    }
+
+    // Quality score
+    if (node._qualityScore != null) {
+        metrics.push(`<span class="burnish-diag-metric"><strong>Quality</strong> ${node._qualityScore}/10</span>`);
     }
 
     // Extract model from progress log
@@ -1464,6 +1474,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const trimmed = fullText.trim();
                 node.response = trimmed;
                 node.type = containsBurnishTags(trimmed) ? 'components' : 'text';
+
+                // Score the response quality
+                const score = scoreResponse(node.response || '');
+                node._qualityScore = score.total;
 
                 if (!trimmed) {
                     contentEl.innerHTML = '<div class="burnish-text-response" style="color: var(--burnish-text-muted, #9ca3af); font-style: italic;">No response received. Try regenerating.</div>';
