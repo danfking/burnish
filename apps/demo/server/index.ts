@@ -65,13 +65,21 @@ function validateUuid(value: string, fieldName: string): string | null {
     return null;
 }
 
+/** Auto-detect which LLM backend to use based on environment variables. */
+function detectBackend(): 'api' | 'cli' | 'openai' {
+    if (process.env.LLM_BACKEND) return process.env.LLM_BACKEND as 'api' | 'cli' | 'openai';
+    if (process.env.ANTHROPIC_API_KEY) return 'api';
+    if (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) return 'openai';
+    return 'cli';
+}
+
 function validateModel(model: unknown): string | null {
     if (model !== undefined && model !== null && model !== '') {
         if (typeof model !== 'string') {
             return 'model must be a string';
         }
         // For OpenAI-compatible backends, allow any model name (local servers use arbitrary names)
-        const currentBackend = process.env.LLM_BACKEND || (process.env.ANTHROPIC_API_KEY ? 'api' : (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) ? 'openai' : 'cli');
+        const currentBackend = detectBackend();
         if (currentBackend !== 'openai' && !ALLOWED_MODELS.has(model)) {
             return `model must be one of: ${[...ALLOWED_MODELS].join(', ')}`;
         }
@@ -455,7 +463,7 @@ async function start() {
     const openaiKey = process.env.OPENAI_API_KEY;
     const openaiBaseUrl = process.env.OPENAI_BASE_URL;
     const modelName = process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || 'sonnet';
-    const llmBackend = (process.env.LLM_BACKEND || (apiKey ? 'api' : (openaiKey || openaiBaseUrl) ? 'openai' : 'cli')) as 'api' | 'cli' | 'openai';
+    const llmBackend = detectBackend();
 
     if (llmBackend === 'api' && !apiKey) {
         console.error('[burnish] ANTHROPIC_API_KEY required for api backend.');

@@ -32,6 +32,9 @@ export type StreamChunk =
 
 const DEFAULT_MAX_TOOL_ROUNDS = 8;
 
+/** Default max tokens for OpenAI-compatible completions. Can be overridden via a future config option. */
+const OPENAI_MAX_TOKENS = 4096;
+
 /** Allowed model name allowlist for CLI subprocess argument validation. */
 export const ALLOWED_MODELS = new Set([
     'sonnet',
@@ -543,7 +546,7 @@ export class LlmOrchestrator {
 
             const params: OpenAI.ChatCompletionCreateParams = {
                 model: useModel,
-                max_tokens: 4096,
+                max_tokens: OPENAI_MAX_TOKENS,
                 messages,
                 stream: true,
                 ...(tools.length > 0 ? { tools } : {}),
@@ -623,7 +626,7 @@ export class LlmOrchestrator {
                     console.log(`[llm-openai] Executing tool: ${tc.name}`);
 
                     let args: Record<string, unknown> = {};
-                    try { args = JSON.parse(tc.arguments || '{}'); } catch { /* empty args */ }
+                    try { args = JSON.parse(tc.arguments || '{}'); } catch { console.warn('[llm-openai] Failed to parse tool call arguments:', tc.arguments); }
 
                     const result = await this.mcpHub.executeTool(tc.name, args);
                     step.status = 'success';
