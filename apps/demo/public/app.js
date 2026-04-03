@@ -1195,7 +1195,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Submit handler ──
     async function handleSubmit(displayLabel) {
         const prompt = promptInput.value.trim();
-        if (!prompt) return;
+        if (!prompt) {
+            promptInput.classList.add('burnish-prompt-shake');
+            promptInput.setAttribute('placeholder', 'Type a message first...');
+            promptInput.addEventListener('animationend', () => {
+                promptInput.classList.remove('burnish-prompt-shake');
+                promptInput.setAttribute('placeholder', 'Ask about your data...');
+            }, { once: true });
+            return;
+        }
         promptInput.value = '';
         promptInput.style.height = '';
 
