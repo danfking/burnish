@@ -1553,7 +1553,7 @@ function getEmptyState() {
     return `
         <div class="burnish-empty-state">
             <h2>Burnish</h2>
-            <p>Your universal interface for MCP servers</p>
+            <p>Explore your data visually through connected services</p>
             <div class="burnish-server-buttons" id="server-buttons">
                 <div class="burnish-suggestion-skeleton-pill"></div>
                 <div class="burnish-suggestion-skeleton-pill"></div>
