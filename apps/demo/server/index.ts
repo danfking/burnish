@@ -170,6 +170,14 @@ app.use('/api/chat/:id/stream', async (c, next) => {
     await next();
 });
 
+app.use('/api/title', async (c, next) => {
+    const ip = getClientIp(c.req.raw, c.req.raw.headers);
+    if (!checkRateLimit(ip)) {
+        return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+    }
+    await next();
+});
+
 app.use('/api/lookup', async (c, next) => {
     const ip = getClientIp(c.req.raw, c.req.raw.headers);
     if (!checkRateLimit(ip)) {
