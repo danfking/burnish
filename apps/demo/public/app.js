@@ -1701,6 +1701,7 @@ async function loadDynamicSuggestions(container) {
                     const prompt = `You have access to a ${s.name} server with these operations: ${toolList}${moreText}. Generate a burnish-card for each operation showing its name and a brief description. Do NOT call any tools. Just output burnish-card HTML components describing what each operation does.`;
                     return `
                     <button class="burnish-suggestion burnish-suggestion-server" data-prompt="${escapeAttr(prompt)}" data-label="${escapeAttr(s.name)}" data-no-tools="true">
+                        <span class="burnish-server-status ${s.status === 'connected' ? 'connected' : 'disconnected'}"></span>
                         ${escapeHtml(s.name)}
                         <span class="burnish-suggestion-sub">${s.toolCount} tools</span>
                     </button>
