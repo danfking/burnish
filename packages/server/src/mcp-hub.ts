@@ -5,14 +5,17 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve } from 'node:path';
 
 export interface McpServerConfig {
-    command: string;
+    command?: string;       // stdio transport (local subprocess)
     args?: string[];
     env?: Record<string, string>;
+    url?: string;           // streamable HTTP transport (remote server)
+    headers?: Record<string, string>;  // optional auth headers for HTTP
 }
 
 export interface McpServersConfig {
@@ -29,7 +32,7 @@ export interface ToolDef {
 interface ConnectedServer {
     name: string;
     client: Client;
-    transport: StdioClientTransport;
+    transport: StdioClientTransport | StreamableHTTPClientTransport;
     tools: ToolDef[];
     config: McpServerConfig;
 }
@@ -70,12 +73,31 @@ export class McpHub {
         name: string,
         config: McpServerConfig,
     ): Promise<void> {
-        const transport = new StdioClientTransport({
-            command: config.command,
-            args: config.args,
-            env: { ...process.env, ...config.env } as Record<string, string>,
-            cwd: this.configFilePath ? resolve(this.configFilePath, '..') : undefined,
-        });
+        let transport: StdioClientTransport | StreamableHTTPClientTransport;
+        if (config.url) {
+            // Streamable HTTP transport for remote servers
+            // TRUST: headers come from the local mcp-servers.json config file,
+            // not from user input. If config is ever sourced from untrusted input,
+            // headers must be validated to prevent SSRF.
+            const opts: { requestInit?: RequestInit } = {};
+            if (config.headers) {
+                opts.requestInit = { headers: config.headers };
+            }
+            transport = new StreamableHTTPClientTransport(
+                new URL(config.url),
+                opts,
+            );
+        } else if (config.command) {
+            // Stdio transport for local servers
+            transport = new StdioClientTransport({
+                command: config.command,
+                args: config.args,
+                env: { ...process.env, ...config.env } as Record<string, string>,
+                cwd: this.configFilePath ? resolve(this.configFilePath, '..') : undefined,
+            });
+        } else {
+            throw new Error(`Server "${name}" must have either "command" (stdio) or "url" (HTTP) in config`);
+        }
 
         const client = new Client({ name: `burnish-${name}`, version: '0.1.0' });
         await client.connect(transport);
