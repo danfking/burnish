@@ -447,7 +447,10 @@ async function regenerateNode(nodeId) {
                     contentEl.innerHTML = '';
                     node.type = 'components';
                 }
-                const elements = findStreamElements(trimmed);
+                // Strip any preamble text before the first burnish tag
+                const componentStart = trimmed.indexOf('<burnish-');
+                const componentHtml = componentStart > 0 ? trimmed.substring(componentStart) : trimmed;
+                const elements = findStreamElements(componentHtml);
                 while (renderedCount < elements.length) {
                     const el = elements[renderedCount];
                     appendElement(contentEl, containerStack, el);
@@ -457,9 +460,9 @@ async function regenerateNode(nodeId) {
                     }
                     renderedCount++;
                 }
-            } else {
-                contentEl.innerHTML = `<div class="burnish-text-response burnish-streaming">${renderMarkdown(trimmed)}</div>`;
             }
+            // Don't render plain text during streaming — buffer it.
+            // If the stream ends without burnish tags, onDone renders it as text.
         },
         async (fullText, newConversationId) => {
             stopProgressTimer();
@@ -1409,7 +1412,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         contentEl.innerHTML = '';
                         node.type = 'components';
                     }
-                    const elements = findStreamElements(trimmed);
+                    // Strip any preamble text before the first burnish tag
+                    const componentStart = trimmed.indexOf('<burnish-');
+                    const componentHtml = componentStart > 0 ? trimmed.substring(componentStart) : trimmed;
+                    const elements = findStreamElements(componentHtml);
                     while (renderedCount < elements.length) {
                         const el = elements[renderedCount];
                         appendElement(contentEl, containerStack, el);
@@ -1419,9 +1425,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                         renderedCount++;
                     }
-                } else {
-                    contentEl.innerHTML = `<div class="burnish-text-response burnish-streaming">${renderMarkdown(trimmed)}</div>`;
                 }
+                // Don't render plain text during streaming — buffer it.
+                // If the stream ends without burnish tags, onDone renders it as text.
             },
             // onDone
             async (fullText, newConversationId) => {
