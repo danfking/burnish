@@ -1043,10 +1043,22 @@ body {
 }
 
 /* ── Responsive ── */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .burnish-session-panel { left: -260px; transition: left var(--burnish-transition-normal); }
     .burnish-session-panel.open { left: 0; }
     .burnish-content { margin-left: 0; }
     .burnish-mobile-only { display: flex; }
+}
+
+@media (max-width: 768px) {
     .burnish-skeleton-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+    .burnish-empty-state { padding: 40px 16px 40px; }
+    .burnish-empty-state h2 { font-size: 22px; }
+    .burnish-server-buttons { flex-direction: column; align-items: center; }
+    .burnish-tool-shortcuts { flex-direction: column; align-items: center; }
+    .burnish-prompt-bar { padding: 0 12px; }
+    .burnish-prompt-container { max-width: 100%; }
 }
