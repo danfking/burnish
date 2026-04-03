@@ -1054,6 +1054,17 @@ body {
     .burnish-skeleton-grid { grid-template-columns: 1fr; }
 }
 
+/* ── Empty prompt shake ── */
+@keyframes promptShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+}
+.burnish-prompt-container .burnish-prompt-input.burnish-prompt-shake {
+    animation: promptShake 0.4s ease-out;
+    border-color: var(--burnish-warning, #eab308);
+}
+
 @media (max-width: 480px) {
     .burnish-empty-state { padding: 40px 16px 40px; }
     .burnish-empty-state h2 { font-size: 22px; }
