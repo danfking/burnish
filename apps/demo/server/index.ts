@@ -251,13 +251,26 @@ app.get('/tokens.css', async (c) => {
     return c.body(css);
 });
 
+// Serve index.html as a template with cache-busting query strings injected
+app.get('/', async (c) => {
+    let html = await readFile(resolve(demoRoot, 'public/index.html'), 'utf-8');
+    // Inject cache buster into all local script/link tags (not CDN urls)
+    html = html.replace(/(src|href)="(\/[^"]+\.(js|css))"/g, `$1="$2?${CACHE_BUSTER}"`);
+    // Also inject a build version marker into the page
+    html = html.replace('</head>', `<meta name="burnish-version" content="${CACHE_BUSTER}"></head>`);
+    c.header('Content-Type', 'text/html');
+    c.header('Cache-Control', 'no-store');
+    return c.body(html);
+});
+
 // Serve public files with cache-busting headers
 app.use('/*', async (c, next) => {
     await next();
-    if (c.res.headers.get('Content-Type')?.includes('javascript') ||
-        c.res.headers.get('Content-Type')?.includes('css')) {
-        c.res.headers.set('Cache-Control', 'no-cache, must-revalidate');
-        c.res.headers.set('ETag', CACHE_BUSTER);
+    const ct = c.res.headers.get('Content-Type') || '';
+    if (ct.includes('javascript') || ct.includes('css')) {
+        c.res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        c.res.headers.set('Pragma', 'no-cache');
+        c.res.headers.set('Expires', '0');
     }
 });
 app.use('/*', serveStatic({ root: resolve(demoRoot, 'public') }));

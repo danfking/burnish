@@ -3,6 +3,19 @@
  * Browse tools, fill forms, execute tools, render results, chain to next action.
  */
 
+// Version-based cache clearing: if the server restarted with new code, clear stale IndexedDB
+(() => {
+    const versionMeta = document.querySelector('meta[name="burnish-version"]');
+    const buildVersion = versionMeta?.getAttribute('content') || '';
+    const storedVersion = localStorage.getItem('burnish:buildVersion');
+    if (buildVersion && storedVersion && storedVersion !== buildVersion) {
+        console.log('[burnish] Build version changed, clearing stale sessions');
+        indexedDB.deleteDatabase('burnish-sessions');
+        indexedDB.deleteDatabase('burnish-nodes');
+    }
+    if (buildVersion) localStorage.setItem('burnish:buildVersion', buildVersion);
+})();
+
 import {
     getNodeById, getChildren, getRootNodes, getAncestryPath, getActivePath, getDescendantIds,
     SessionStore,

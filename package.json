@@ -4,7 +4,7 @@
   "description": "Universal UI layer for MCP servers",
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --filter demo dev",
+    "dev": "pnpm -r build && pnpm --filter demo dev",
     "clean": "pnpm -r clean",
     "prepare": "git config core.hooksPath .githooks"
   },
