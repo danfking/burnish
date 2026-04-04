@@ -39,7 +39,6 @@ const PURIFY_CONFIG = {
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
 };
 
-const ICON_SEND = `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10l7-7v4h9v6H9v4z" transform="rotate(-90 10 10)"/></svg>`;
 const ICON_FOCUS = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4,1 1,1 1,4"/><polyline points="12,1 15,1 15,4"/><polyline points="4,15 1,15 1,12"/><polyline points="12,15 15,15 15,12"/></svg>`;
 const ICON_RESTORE = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,4 4,4 4,1"/><polyline points="12,1 12,4 15,4"/><polyline points="1,12 4,12 4,15"/><polyline points="12,15 12,12 15,12"/></svg>`;
 const ICON_REFRESH = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8a7 7 0 0 1 13-3.5M15 8a7 7 0 0 1-13 3.5"/><polyline points="1,1 1,5 5,5"/><polyline points="15,15 15,11 11,11"/></svg>`;
@@ -75,7 +74,7 @@ const STARTER_PROMPTS = {
         { label: 'Search repos', tool: 'search_repositories', args: { query: 'stars:>100' } },
     ],
     _default: [
-        { label: 'Available tools', prompt: null },
+        { label: 'Available tools', action: 'list-servers' },
     ],
 };
 
@@ -99,7 +98,7 @@ async function loadState() {
 async function createSession() {
     const session = {
         id: generateId(),
-        title: 'New conversation',
+        title: 'New session',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         conversationId: null,
@@ -303,7 +302,7 @@ function renderSessionList() {
             html += `
                 <div class="burnish-session-item${active}" data-session-id="${s.id}">
                     <div class="burnish-session-title">${escapeHtml(s.title)}</div>
-                    <div class="burnish-session-meta">${stepCount} step${stepCount !== 1 ? 's' : ''} \u2022 ${formatTimeAgo(s.updatedAt || s.createdAt)}</div>
+                    <div class="burnish-session-meta">${stepCount} result${stepCount !== 1 ? 's' : ''} \u2022 ${formatTimeAgo(s.updatedAt || s.createdAt)}</div>
                     ${matchSnippet ? `<div class="burnish-session-match">${matchSnippet}</div>` : ''}
                     <button class="burnish-session-delete" data-delete-id="${s.id}" title="Delete">\u00d7</button>
                 </div>
@@ -348,8 +347,6 @@ function createNodeEl(node) {
                 ${ICON_FOCUS}
             </button>
             <button class="burnish-node-refresh" title="Regenerate">${ICON_REFRESH}</button>
-            <button class="burnish-feedback-btn${node.feedback === 'up' ? ' active' : ''}" data-feedback="up" title="Good response">&#9650;</button>
-            <button class="burnish-feedback-btn${node.feedback === 'down' ? ' active' : ''}" data-feedback="down" title="Poor response">&#9660;</button>
             <button class="burnish-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
         </div>
         <div class="burnish-node-content"></div>
@@ -357,7 +354,7 @@ function createNodeEl(node) {
 
     const header = div.querySelector('.burnish-node-header');
     header.addEventListener('click', (e) => {
-        if (e.target.closest('.burnish-node-delete') || e.target.closest('.burnish-node-maximize') || e.target.closest('.burnish-node-info') || e.target.closest('.burnish-node-refresh') || e.target.closest('.burnish-feedback-btn')) return;
+        if (e.target.closest('.burnish-node-delete') || e.target.closest('.burnish-node-maximize') || e.target.closest('.burnish-node-info') || e.target.closest('.burnish-node-refresh')) return;
         toggleNode(node.id);
     });
     header.addEventListener('keydown', (e) => {
@@ -383,18 +380,6 @@ function createNodeEl(node) {
     header.querySelector('.burnish-node-info')?.addEventListener('click', (e) => {
         e.stopPropagation();
         toggleDiagnosticPanel(node.id);
-    });
-    header.querySelectorAll('.burnish-feedback-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const value = btn.dataset.feedback;
-            node.feedback = node.feedback === value ? null : value;
-            header.querySelectorAll('.burnish-feedback-btn').forEach(b => b.classList.remove('active'));
-            if (node.feedback) {
-                header.querySelector(`.burnish-feedback-btn[data-feedback="${node.feedback}"]`)?.classList.add('active');
-            }
-            saveState();
-        });
     });
     return div;
 }
@@ -721,8 +706,6 @@ function renderTreeNode(container, session, node, activePath) {
 
 // ── Main ──
 document.addEventListener('DOMContentLoaded', async () => {
-    const promptInput = document.getElementById('prompt-input');
-    const submitBtn = document.getElementById('btn-submit');
     const container = document.getElementById('dashboard-container');
     const breadcrumb = document.getElementById('breadcrumb');
 
@@ -782,27 +765,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateBreadcrumb();
 
-    // ── Submit on Enter or button click ──
-    promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey && !promptInput.disabled) {
-            e.preventDefault();
-            handleSubmit();
-        }
-    });
-
-    submitBtn.addEventListener('click', () => {
-        handleSubmit();
-    });
-
-    promptInput.addEventListener('input', () => {
-        promptInput.style.height = '';
-        promptInput.style.height = Math.min(promptInput.scrollHeight, 150) + 'px';
-    });
-
     // Suggestion buttons
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('.burnish-suggestion');
         if (!btn) return;
+
+        // Handle action-based buttons (e.g., list-servers)
+        if (btn.dataset.action === 'list-servers') {
+            if (cachedServers && cachedServers.length > 0) {
+                const first = cachedServers[0];
+                renderDeterministicToolListing(first.name, first.tools);
+            }
+            return;
+        }
 
         // Deterministic tool execution for starter prompts with data-tool
         const starterTool = btn.dataset.tool;
@@ -822,10 +797,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // For any other suggestion, show a hint to use tools
+        // For any other suggestion, show available servers
         if (btn.dataset.prompt) {
-            promptInput.value = btn.dataset.prompt;
-            handleSubmit(btn.dataset.label || undefined);
+            if (cachedServers && cachedServers.length > 0) {
+                const first = cachedServers[0];
+                renderDeterministicToolListing(first.name, first.tools);
+            }
         }
     });
 
@@ -855,12 +832,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
             document.getElementById('session-search')?.focus();
-            return;
-        }
-        // /: focus prompt input
-        if (e.key === '/') {
-            e.preventDefault();
-            promptInput.focus();
             return;
         }
     });
@@ -1181,24 +1152,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.state?.nodeId) scrollToNode(e.state.nodeId);
     });
 
-    // ── Submit handler ──
-    function handleSubmit(displayLabel) {
-        const prompt = promptInput.value.trim();
-        if (!prompt) {
-            promptInput.classList.add('burnish-prompt-shake');
-            promptInput.setAttribute('placeholder', 'Type a message first...');
-            promptInput.addEventListener('animationend', () => {
-                promptInput.classList.remove('burnish-prompt-shake');
-                promptInput.setAttribute('placeholder', 'Ask about your data...');
-            }, { once: true });
-            return;
-        }
-        promptInput.value = '';
-        promptInput.style.height = '';
-        renderDeterministicNode(displayLabel || prompt.substring(0, 40),
-            '<burnish-card title="Use the tools above" status="info" body="Select a server, browse its tools, and fill forms to execute them directly. No LLM needed."></burnish-card>'
-        );
-    }
 });
 
 // ── Helpers ──
@@ -1295,7 +1248,7 @@ function renderDeterministicToolListing(serverName, tools) {
     session.activeNodeId = nodeId;
     session.updatedAt = Date.now();
 
-    if (!session.title || session.title === 'New conversation') {
+    if (!session.title || session.title === 'New session') {
         session.title = `${serverName} tools`;
     }
 
@@ -1338,7 +1291,7 @@ function renderDeterministicNode(label, html) {
     session.activeNodeId = nodeId;
     session.updatedAt = Date.now();
 
-    if (!session.title || session.title === 'New conversation') {
+    if (!session.title || session.title === 'New session') {
         session.title = label.substring(0, 60);
     }
 
@@ -1786,8 +1739,9 @@ async function loadDynamicSuggestions(container) {
                         argsAttr = ` data-args="${escapeAttr(JSON.stringify(s.args || {}))}"`;
                     }
                     const promptAttr = s.prompt ? ` data-prompt="${escapeAttr(s.prompt)}"` : '';
+                    const actionAttr = s.action ? ` data-action="${escapeAttr(s.action)}"` : '';
                     return `
-                        <button class="burnish-suggestion"${promptAttr}${toolAttr}${argsAttr} data-label="${escapeAttr(s.label)}">
+                        <button class="burnish-suggestion"${promptAttr}${toolAttr}${argsAttr}${actionAttr} data-label="${escapeAttr(s.label)}">
                             ${escapeHtml(s.label)}
                         </button>
                     `;
