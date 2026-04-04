@@ -14,7 +14,7 @@ export class BurnishTable extends LitElement {
             background: var(--burnish-surface, #fff);
             border-radius: var(--burnish-radius-md, 8px);
             box-shadow: var(--burnish-shadow-sm);
-            overflow: hidden;
+            overflow-x: auto;
         }
         .table-title {
             padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px);
