@@ -40,12 +40,15 @@ npx playwright test
 ```
 All existing tests must pass. **Playwright must run in headless mode (default). Never use --headed.**
 
-## 6. Visual Verification
+## 6. Visual Verification (if applicable)
+Skip this step for non-visual changes (e.g., backend-only, docs, config).
+
 For visual/UI fixes, take a Playwright screenshot verifying the fix:
 - Write a small Playwright script that navigates to the affected area
 - Save screenshot to `tests/visual/screenshots/verify-$ARGUMENTS.png`
 - Analyze the screenshot to confirm the fix looks correct
 - **All Playwright runs must be headless.**
+- Screenshots are gitignored — they exist only for PR verification, not committed.
 
 ## 7. Commit
 Use conventional commit format:

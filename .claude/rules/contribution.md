@@ -58,11 +58,13 @@ These must pass before creating a PR:
 2. `npx playwright test` — all tests pass in headless mode
 
 ### Visual Verification
-For any change that affects the UI:
+For any change that affects the UI (skip for non-visual changes):
 1. Take a Playwright screenshot (headless) of the affected area
 2. Save to `tests/visual/screenshots/verify-<issue>.png`
 3. Reference the screenshot in the PR body
 4. Analyze the screenshot to confirm the fix looks correct
+
+Note: `tests/visual/screenshots/` is gitignored. Screenshots exist for PR verification only and are not committed to the repo.
 
 ## Code Review
 - PRs are NEVER auto-merged

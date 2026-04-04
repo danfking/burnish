@@ -19,6 +19,7 @@ package-lock.json
 
 # Test artifacts
 test-results/
+tests/visual/screenshots/
 
 # Agent daemon runtime files
 scripts/.locks/
