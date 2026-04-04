@@ -31,14 +31,13 @@ export class BurnishCard extends LitElement {
             -webkit-line-clamp: unset;
         }
         .expand-btn {
-            position: absolute; top: 8px; right: 8px;
-            background: var(--burnish-surface, #fff); border: 1px solid var(--burnish-border, #e5e7eb);
-            border-radius: 3px; padding: 2px 6px; cursor: pointer;
-            font-size: 10px; color: var(--burnish-text-muted, #9ca3af);
-            opacity: 0; transition: opacity 0.15s ease; z-index: 1;
+            background: none; border: none; cursor: pointer;
+            padding: 2px; color: var(--burnish-text-muted, #9ca3af);
+            opacity: 0; transition: opacity 0.15s ease;
+            display: flex; align-items: center;
         }
-        .card:hover .expand-btn { opacity: 1; }
-        .expand-btn:hover { background: var(--burnish-surface-alt, #f5f6f8); color: var(--burnish-text); }
+        .card:hover .expand-btn { opacity: 0.7; }
+        .expand-btn:hover { opacity: 1; color: var(--burnish-accent, #4f6df5); }
         .card {
             background: var(--burnish-surface, #fff);
             border-radius: var(--burnish-radius-md, 4px);
@@ -257,10 +256,16 @@ export class BurnishCard extends LitElement {
         return html`
             <div class="card" data-status="${statusColor}" role="article" aria-label="${this.title || ''}"
                  @click=${this._handleClick} @keydown=${this._handleKeydown}>
-                <button class="expand-btn" @click=${this._toggleExpand} title="${this._expanded ? 'Collapse' : 'Expand'}">${this._expanded ? '⊖' : '⊕'}</button>
                 <div class="card-header">
                     <span class="card-title">${this.title}</span>
                     <span class="card-badge" data-status="${statusColor}">${badgeText}</span>
+                    <button class="expand-btn" @click=${this._toggleExpand} title="${this._expanded ? 'Collapse' : 'Expand'}">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+                            ${this._expanded
+                                ? html`<polyline points="4,10 1,10 1,7"/><polyline points="10,4 13,4 13,7"/>`
+                                : html`<polyline points="10,1 13,1 13,4"/><polyline points="4,13 1,13 1,10"/>`}
+                        </svg>
+                    </button>
                 </div>
                 ${this.body ? html`<div class="card-body">${unsafeHTML(this._renderMarkdown(this.body))}</div>` : ''}
                 ${(() => {
