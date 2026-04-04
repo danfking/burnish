@@ -7,8 +7,9 @@ export class BurnishCard extends LitElement {
         status: { type: String },
         body: { type: String },
         meta: { type: String },
-        'item-id': { type: String },
+        'item-id': { type: String, attribute: 'item-id' },
         _parseError: { state: true },
+        _expanded: { state: true },
     };
 
     static styles = css`
@@ -20,6 +21,24 @@ export class BurnishCard extends LitElement {
             min-width: 200px;
             box-sizing: border-box;
         }
+        :host([expanded]) {
+            width: 100%;
+            flex: 1 1 100%;
+            grid-column: 1 / -1;
+        }
+        :host([expanded]) .card-body {
+            max-height: none;
+            -webkit-line-clamp: unset;
+        }
+        .expand-btn {
+            position: absolute; top: 8px; right: 8px;
+            background: var(--burnish-surface, #fff); border: 1px solid var(--burnish-border, #e5e7eb);
+            border-radius: 3px; padding: 2px 6px; cursor: pointer;
+            font-size: 10px; color: var(--burnish-text-muted, #9ca3af);
+            opacity: 0; transition: opacity 0.15s ease; z-index: 1;
+        }
+        .card:hover .expand-btn { opacity: 1; }
+        .expand-btn:hover { background: var(--burnish-surface-alt, #f5f6f8); color: var(--burnish-text); }
         .card {
             background: var(--burnish-surface, #fff);
             border-radius: var(--burnish-radius-md, 4px);
@@ -141,6 +160,7 @@ export class BurnishCard extends LitElement {
     declare meta: string;
     declare 'item-id': string;
     declare _parseError: boolean;
+    declare _expanded: boolean;
 
     constructor() {
         super();
@@ -168,6 +188,16 @@ export class BurnishCard extends LitElement {
                 bubbles: true,
                 composed: true,
             }));
+        }
+    }
+
+    private _toggleExpand(e: Event) {
+        e.stopPropagation();
+        this._expanded = !this._expanded;
+        if (this._expanded) {
+            this.setAttribute('expanded', '');
+        } else {
+            this.removeAttribute('expanded');
         }
     }
 
@@ -227,6 +257,7 @@ export class BurnishCard extends LitElement {
         return html`
             <div class="card" data-status="${statusColor}" role="article" aria-label="${this.title || ''}"
                  @click=${this._handleClick} @keydown=${this._handleKeydown}>
+                <button class="expand-btn" @click=${this._toggleExpand} title="${this._expanded ? 'Collapse' : 'Expand'}">${this._expanded ? '⊖' : '⊕'}</button>
                 <div class="card-header">
                     <span class="card-title">${this.title}</span>
                     <span class="card-badge" data-status="${statusColor}">${badgeText}</span>
