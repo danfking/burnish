@@ -33,7 +33,12 @@ export class BurnishTable extends LitElement {
             padding: 10px var(--burnish-space-lg, 16px);
             border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
             color: var(--burnish-text, #1f2937);
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
+        td:first-child { max-width: none; white-space: nowrap; }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: var(--burnish-surface-hover, #f9fafb); }
         .status-success, .status-healthy { color: var(--burnish-success); }

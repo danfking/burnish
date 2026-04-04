@@ -1522,19 +1522,40 @@ function renderCardsView(items, sourceToolName) {
 
 function renderTableView(items, label) {
     const allKeys = Object.keys(items[0]);
-    // Use ALL keys for table (no column limit) — table scrolls horizontally
-    const cols = allKeys.filter(k => {
-        // Skip deeply nested objects
+
+    // Priority columns — show these first if they exist
+    const priority = ['title','name','full_name','number','state','status',
+        'login','description','language','created_at','updated_at',
+        'stargazers_count','path','size','type','message','body'];
+
+    // Exclude URL/API fields and internal IDs
+    const excludePattern = /_url$|_id$|node_id|gravatar|avatar|_at$/i;
+    const isUrl = (v) => typeof v === 'string' && (v.startsWith('http') || v.startsWith('git://'));
+
+    const priorityCols = priority.filter(k => allKeys.includes(k));
+    const otherCols = allKeys.filter(k => {
+        if (priorityCols.includes(k)) return false;
+        if (excludePattern.test(k)) return false;
         const sample = items[0][k];
-        return typeof sample !== 'object' || sample === null;
-    }).map(k => ({ key: k, label: k.replace(/_/g, ' ') }));
+        if (typeof sample === 'object' && sample !== null) return false;
+        if (isUrl(sample)) return false;
+        return true;
+    });
+
+    const selectedKeys = [...priorityCols, ...otherCols].slice(0, 10);
+    const cols = selectedKeys.map(k => ({ key: k, label: k.replace(/_/g, ' ') }));
+
     const rows = items.slice(0, 50).map(item => {
         const row = {};
         for (const col of cols) {
-            const val = item[col.key];
-            row[col.key] = val == null ? ''
-                : typeof val === 'object' ? (val.login || val.name || val.label || val.title || JSON.stringify(val).substring(0, 60))
-                : String(val);
+            let val = item[col.key];
+            if (val == null) { row[col.key] = ''; continue; }
+            if (typeof val === 'object') {
+                val = val.login || val.name || val.label || val.title || '';
+            }
+            val = String(val);
+            if (val.length > 80) val = val.substring(0, 77) + '...';
+            row[col.key] = val;
         }
         return row;
     });
