@@ -2071,7 +2071,7 @@ function renderDeterministicToolListing(serverName, tools) {
         parentId,
         children: [],
         collapsed: false,
-        tags: Object.keys(groups),
+        tags: tools.map(t => (t.name.split(/[_-]/)[0] || 'other')).filter((v, i, a) => a.indexOf(v) === i),
         summary: `${serverName}: ${tools.length} tools`,
     };
 
@@ -2251,6 +2251,12 @@ function generateContextualActions(resultData, sourceToolName) {
         }
     }
 
+    // Sort: read actions first, then write actions
+    actions.sort((a, b) => {
+        if (a.action === 'read' && b.action !== 'read') return -1;
+        if (a.action !== 'read' && b.action === 'read') return 1;
+        return 0;
+    });
     return actions.slice(0, 6);
 }
 
