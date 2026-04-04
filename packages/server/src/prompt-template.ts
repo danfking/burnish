@@ -16,27 +16,49 @@ export function buildNoToolsPrompt(): string {
 Respond with ONLY HTML using the burnish-* web components below. No markdown, no code fences, no explanatory text, no preamble.
 
 ## Available Web Components
-- <burnish-card title="..." status="info" body="description text" item-id="unique-id"> — Card for each item
-- <burnish-stat-bar items='[{"label":"...","value":"...","color":"success|warning|error"}]'> — Summary bar
-- <burnish-section label="..." count="N"> — Group of cards
-- <burnish-table columns='[{"key":"...","label":"..."}]' rows='[...]'> — Data table
+- <burnish-stat-bar items='[{"label":"...","value":"...","color":"success|warning|error|info|muted"}]'> — Summary bar with counts
+- <burnish-section label="..." count="N" status="success|warning|error|muted"> — Collapsible group that wraps cards
+- <burnish-card title="..." status="info" body="description text" item-id="unique-id"> — Card for an individual item
+- <burnish-table columns='[{"key":"...","label":"..."}]' rows='[...]'> — Data table for structured rows
+- <burnish-metric label="..." value="..." unit="..." trend="up|down|flat"> — Single KPI display
+
+## CRITICAL: Component Variety
+You MUST use at least 3 different component types in every response:
+- ALWAYS start with <burnish-stat-bar> to summarize key counts
+- ALWAYS use <burnish-section> to group related items
+- Use <burnish-card> for individual items INSIDE sections
+- NEVER output bare cards without a section wrapper
 
 ## Rules
+- NEVER output burnish-card elements without wrapping them in a burnish-section
+- ALWAYS start with burnish-stat-bar before any sections
+- Start your response directly with a <burnish- tag — no text preamble
 - Output ONLY burnish-* HTML components — no prose, no markdown, no code blocks
-- Start your response directly with a burnish-* tag
-- Use burnish-card for each item with a title and body description
 
-## Example
-<burnish-stat-bar items='[{"label":"Files","value":"12","color":"muted"},{"label":"Modified","value":"3","color":"warning"}]'></burnish-stat-bar>
-<burnish-section label="Modified Files" count="3" status="warning">
-<burnish-card title="config.json" status="warning" item-id="config" body="Configuration updated with new API endpoint"></burnish-card>
+## Complete Example (follow this structure exactly)
+<burnish-stat-bar items='[{"label":"File Ops","value":"4","color":"success"},{"label":"Search","value":"3","color":"info"},{"label":"Admin","value":"2","color":"warning"}]'></burnish-stat-bar>
+<burnish-section label="File Operations" count="4" status="success">
+<burnish-card title="read_file" status="info" body="Read the contents of a file from disk" item-id="read_file"></burnish-card>
+<burnish-card title="write_file" status="info" body="Create or overwrite a file with new content" item-id="write_file"></burnish-card>
+<burnish-card title="list_directory" status="info" body="List all files and folders in a directory" item-id="list_directory"></burnish-card>
+<burnish-card title="search_files" status="info" body="Search for files matching a pattern recursively" item-id="search_files"></burnish-card>
+</burnish-section>
+<burnish-section label="Search Tools" count="3" status="info">
+<burnish-card title="grep" status="info" body="Search file contents for a text pattern" item-id="grep"></burnish-card>
+<burnish-card title="find" status="info" body="Find files by name or attributes" item-id="find"></burnish-card>
+<burnish-card title="locate" status="info" body="Quickly locate files using system index" item-id="locate"></burnish-card>
+</burnish-section>
+<burnish-section label="Admin" count="2" status="warning">
+<burnish-card title="permissions" status="warning" body="View and modify file permissions" item-id="permissions"></burnish-card>
+<burnish-card title="disk_usage" status="warning" body="Check disk space usage for a path" item-id="disk_usage"></burnish-card>
 </burnish-section>
 
 ## Common Mistakes — AVOID These
 - NEVER start with conversational text like "Sure!", "Here's", "Let me show you"
 - NEVER wrap output in markdown code fences (\`\`\`html ... \`\`\`)
 - NEVER use markdown headers (#, ##) mixed with burnish-* components
-- NEVER use raw HTML tags (div, p, h2, table) when a burnish-* component exists`;
+- NEVER use raw HTML tags (div, p, h2, table) when a burnish-* component exists
+- NEVER output only burnish-card elements — always include burnish-stat-bar and burnish-section`;
 }
 
 export function buildSystemPrompt(extraInstructions = ''): string {
