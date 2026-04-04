@@ -1407,31 +1407,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 renderMainContent();
 
-                // Parse result and render with deterministic component mapping
-                let resultHtml = '';
-                try {
-                    const parsed = JSON.parse(data.result);
-                    if (Array.isArray(parsed)) {
-                        if (parsed.length > 0 && typeof parsed[0] === 'object') {
-                            // Array of objects -> table
-                            const keys = Object.keys(parsed[0]);
-                            const cols = keys.map(k => ({ key: k, label: k }));
-                            resultHtml = `<burnish-table title="${escapeAttr(displayLabel)}" columns='${escapeAttr(JSON.stringify(cols))}' rows='${escapeAttr(JSON.stringify(parsed.slice(0, 50)))}'></burnish-table>`;
-                        } else {
-                            // Array of primitives -> cards
-                            resultHtml = parsed.map(item => `<burnish-card title="${escapeAttr(String(item))}" status="info"></burnish-card>`).join('');
-                        }
-                    } else if (typeof parsed === 'object' && parsed !== null) {
-                        // Single object -> card with meta
-                        const meta = Object.entries(parsed).slice(0, 10).map(([k, v]) => ({ label: k, value: String(v) }));
-                        resultHtml = `<burnish-card title="${escapeAttr(displayLabel)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'></burnish-card>`;
-                    } else {
-                        resultHtml = `<burnish-card title="${escapeAttr(displayLabel)}" status="success" body="${escapeAttr(String(parsed))}"></burnish-card>`;
-                    }
-                } catch {
-                    // Plain text result
-                    resultHtml = `<burnish-card title="${escapeAttr(displayLabel)}" status="success" body="${escapeAttr(data.result.substring(0, 500))}"></burnish-card>`;
-                }
+                // Render result with deterministic component mapping
+                const resultHtml = buildResultHtml(data.result, displayLabel);
 
                 node.response = resultHtml;
                 const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
@@ -2060,27 +2037,74 @@ async function executeToolDirect(toolName, args, label) {
 function buildResultHtml(result, label) {
     try {
         const parsed = JSON.parse(result);
-        if (Array.isArray(parsed)) {
-            if (parsed.length > 0 && typeof parsed[0] === 'object') {
-                // Array of objects -> table
-                const keys = Object.keys(parsed[0]);
-                const cols = keys.map(k => ({ key: k, label: k }));
-                return `<burnish-table title="${escapeAttr(label)}" columns='${escapeAttr(JSON.stringify(cols))}' rows='${escapeAttr(JSON.stringify(parsed.slice(0, 50)))}'></burnish-table>`;
-            } else {
-                // Array of primitives -> cards
-                return parsed.map(item => `<burnish-card title="${escapeAttr(String(item))}" status="info"></burnish-card>`).join('');
-            }
-        } else if (typeof parsed === 'object' && parsed !== null) {
-            // Single object -> card with meta
-            const meta = Object.entries(parsed).slice(0, 10).map(([k, v]) => ({ label: k, value: String(v) }));
-            return `<burnish-card title="${escapeAttr(label)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'></burnish-card>`;
-        } else {
-            return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(String(parsed))}"></burnish-card>`;
-        }
+        return renderParsedResult(parsed, label);
     } catch {
-        // Plain text result
-        return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 500))}"></burnish-card>`;
+        return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"></burnish-card>`;
     }
+}
+
+function renderParsedResult(parsed, label) {
+    if (Array.isArray(parsed)) {
+        if (parsed.length === 0) {
+            return `<burnish-card title="${escapeAttr(label)}" status="muted" body="No results"></burnish-card>`;
+        }
+        if (typeof parsed[0] === 'object') {
+            // Array of objects → table with smart column selection
+            const allKeys = Object.keys(parsed[0]);
+            const preferred = ['name','full_name','title','login','description','language',
+                'stargazers_count','stars','state','status','path','size','type',
+                'html_url','created_at','updated_at','message','body'];
+            const selected = preferred.filter(k => allKeys.includes(k)).slice(0, 6);
+            const cols = (selected.length > 0 ? selected : allKeys.slice(0, 6))
+                .map(k => ({ key: k, label: k.replace(/_/g, ' ') }));
+            const rows = parsed.slice(0, 50).map(item => {
+                const row = {};
+                for (const col of cols) {
+                    const val = item[col.key];
+                    row[col.key] = val == null ? ''
+                        : typeof val === 'object' ? (val.login || val.name || val.label || val.title || JSON.stringify(val).substring(0, 60))
+                        : String(val);
+                }
+                return row;
+            });
+            return `<burnish-stat-bar items='${escapeAttr(JSON.stringify([{label:"Results",value:String(parsed.length),color:"info"}]))}'></burnish-stat-bar>` +
+                `<burnish-table title="${escapeAttr(label)}" columns='${escapeAttr(JSON.stringify(cols))}' rows='${escapeAttr(JSON.stringify(rows))}'></burnish-table>`;
+        }
+        return parsed.slice(0, 20).map(item =>
+            `<burnish-card title="${escapeAttr(String(item))}" status="info"></burnish-card>`
+        ).join('');
+    }
+
+    if (typeof parsed === 'object' && parsed !== null) {
+        // Wrapper pattern: object with a nested array (items, results, data, etc.)
+        const arrayKeys = ['items','results','data','entries','records','rows','nodes',
+            'repositories','issues','files','commits','pull_requests','comments'];
+        const nestedKey = arrayKeys.find(k => Array.isArray(parsed[k]) && parsed[k].length > 0);
+
+        if (nestedKey && typeof parsed[nestedKey][0] === 'object') {
+            const scalarFields = Object.entries(parsed)
+                .filter(([k, v]) => k !== nestedKey && typeof v !== 'object')
+                .slice(0, 5);
+            let html = '';
+            if (scalarFields.length > 0) {
+                const statItems = scalarFields.map(([k, v]) => ({
+                    label: k.replace(/_/g, ' '), value: String(v), color: 'info'
+                }));
+                html += `<burnish-stat-bar items='${escapeAttr(JSON.stringify(statItems))}'></burnish-stat-bar>`;
+            }
+            html += renderParsedResult(parsed[nestedKey], nestedKey);
+            return html;
+        }
+
+        // Simple object → card with meta (filter out nested objects to avoid [object Object])
+        const meta = Object.entries(parsed)
+            .filter(([, v]) => typeof v !== 'object' || v === null)
+            .slice(0, 10)
+            .map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v ?? '') }));
+        return `<burnish-card title="${escapeAttr(label)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'></burnish-card>`;
+    }
+
+    return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(String(parsed))}"></burnish-card>`;
 }
 
 async function loadDynamicSuggestions(container) {
