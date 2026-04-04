@@ -103,6 +103,22 @@ export class BurnishCard extends LitElement {
             font-weight: 500;
         }
         .card-link:hover { text-decoration: underline; }
+        .card-links {
+            padding: var(--burnish-space-xs, 4px) var(--burnish-space-lg, 16px) var(--burnish-space-sm, 8px);
+            display: flex; gap: 6px; flex-wrap: wrap;
+        }
+        .link-btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border: 1px solid var(--burnish-border, #e5e7eb);
+            border-radius: 3px; font-size: 11px; text-decoration: none;
+            color: var(--burnish-link, #3b82f6); background: none;
+            cursor: pointer; transition: all 0.15s ease;
+        }
+        .link-btn:hover {
+            background: rgba(59, 130, 246, 0.06);
+            border-color: var(--burnish-link, #3b82f6);
+        }
+        .link-icon { font-size: 10px; }
         .error-state {
             display: flex; align-items: center; justify-content: center; gap: 8px;
             min-height: 60px; padding: var(--burnish-space-lg);
@@ -188,19 +204,32 @@ export class BurnishCard extends LitElement {
                     <span class="card-badge" data-status="${statusColor}">${badgeText}</span>
                 </div>
                 ${this.body ? html`<div class="card-body">${this.body}</div>` : ''}
-                ${metaData.length > 0 ? html`
-                    <div class="card-meta">
-                        ${metaData.map(m => html`
-                            <span class="meta-item">
-                                <span class="meta-label">${m.label}:</span>
-                                ${this._isUrl(m.value)
-                                    ? html`<a class="card-link" href="${m.value.startsWith('http') ? m.value : 'https://' + m.value}" target="_blank" rel="noopener">${m.value}</a>`
-                                    : html`<span class="meta-value">${m.value}</span>`
-                                }
-                            </span>
-                        `)}
-                    </div>
-                ` : ''}
+                ${(() => {
+                    const regularMeta = metaData.filter(m => !this._isUrl(m.value));
+                    const linkMeta = metaData.filter(m => this._isUrl(m.value));
+                    return html`
+                        ${regularMeta.length > 0 ? html`
+                            <div class="card-meta">
+                                ${regularMeta.map(m => html`
+                                    <span class="meta-item">
+                                        <span class="meta-label">${m.label}:</span>
+                                        <span class="meta-value">${m.value}</span>
+                                    </span>
+                                `)}
+                            </div>
+                        ` : ''}
+                        ${linkMeta.length > 0 ? html`
+                            <div class="card-links">
+                                ${linkMeta.map(m => html`
+                                    <a class="link-btn" href="${m.value.startsWith('http') ? m.value : 'https://' + m.value}"
+                                       target="_blank" rel="noopener" title="${m.value}">
+                                        <span class="link-icon">🔗</span> ${m.label}
+                                    </a>
+                                `)}
+                            </div>
+                        ` : ''}
+                    `;
+                })()}
                 ${this['item-id'] ? html`<div class="card-action" role="button" tabindex="0">Explore \u2192</div>` : ''}
             </div>
         `;

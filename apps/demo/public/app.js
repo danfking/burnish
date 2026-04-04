@@ -1013,10 +1013,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const meta = Object.entries(row)
             .filter(([k, v]) => v != null && typeof v !== 'object'
-                && !/_url$|^url$|node_id|_id$|avatar|gravatar/.test(k)
-                && !(typeof v === 'string' && v.startsWith('http'))
-                && String(v).length < 100 && k !== '__itemIndex')
-            .slice(0, 8)
+                && !/node_id|_id$|avatar|gravatar/.test(k)
+                && String(v).length < 300 && k !== '__itemIndex')
+            .slice(0, 12)
             .map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v) }));
 
         const rawBody = row.description || row.body || '';
