@@ -80,19 +80,21 @@ export function resolveIntent(
     scored.sort((a, b) => b.score - a.score);
 
     const best = scored[0];
-    if (!best || best.score < 0.3) return null;
+    if (!best || best.score < 0.2) return null;
 
-    // Check ambiguity -- if top two are close, bail
-    if (scored.length > 1 && scored[1].score > best.score * 0.8) return null;
+    // Check ambiguity — only bail if the top two have VERY close scores
+    // AND both matched via the same method (e.g., both verb-only)
+    if (scored.length > 1 && scored[1].score > best.score * 0.95
+        && best.matchType === scored[1].matchType) return null;
 
     // Stage C: Extract parameters
     const params = extractParams(prompt, best.tool);
 
-    // Calculate confidence
+    // Calculate confidence — weight score higher since param extraction is best-effort
     const paramCompleteness = calculateParamCompleteness(params, best.tool);
-    const confidence = Math.min(1.0, best.score * 0.6 + paramCompleteness * 0.4);
+    const confidence = Math.min(1.0, best.score * 0.7 + paramCompleteness * 0.3);
 
-    if (confidence < 0.5) return null;
+    if (confidence < 0.4) return null;
 
     return {
         tool: best.tool,
@@ -200,7 +202,9 @@ function scoreToolMatch(prompt: string, tool: ToolDef): ScoredTool {
         }
     }
     if (toolWords.length > 0 && toolWordMatches > 0) {
-        const wordScore = (toolWordMatches / toolWords.length) * 0.6;
+        // More matched words = exponentially better score (verb+noun >> verb-only)
+        const matchRatio = toolWordMatches / toolWords.length;
+        const wordScore = matchRatio >= 1.0 ? 0.8 : matchRatio >= 0.5 ? 0.5 : 0.25;
         if (wordScore > score) {
             score = wordScore;
             matchType = toolWordMatches === toolWords.length ? 'verb+noun' : 'partial_name';

@@ -524,7 +524,7 @@ export class LlmOrchestrator {
         const serverNames = this.mcpHub.getServerInfo().map(s => s.name);
 
         const resolution = resolveIntent(lastMsg.content, tools, serverNames);
-        if (!resolution || resolution.confidence < 0.7) return;
+        if (!resolution || resolution.confidence < 0.5) return;
 
         console.log(`[intent] Resolved: ${resolution.tool.name} (${resolution.confidence.toFixed(2)}) — ${resolution.reason}`);
 
