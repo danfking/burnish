@@ -1501,7 +1501,7 @@ function renderViewSwitcher(dataId, activeView, count) {
 }
 
 function renderCardsView(items, sourceToolName) {
-    let html = '';
+    let html = '<div class="burnish-cards-grid">';
     for (const item of items.slice(0, 50)) {
         const title = item.full_name || item.name || item.title || item.login || 'Item';
         const body = item.description || item.body || item.message || '';
@@ -1516,6 +1516,7 @@ function renderCardsView(items, sourceToolName) {
             meta='${escapeAttr(JSON.stringify(meta))}'
             item-id='${escapeAttr(JSON.stringify(item))}'></burnish-card>`;
     }
+    html += '</div>';
     return html;
 }
 

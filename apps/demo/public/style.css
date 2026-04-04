@@ -970,6 +970,11 @@ body {
 .burnish-view-count {
     font-size: 12px; color: var(--burnish-text-muted, #9ca3af); margin-left: 8px;
 }
+.burnish-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--burnish-space-md, 12px);
+}
 .burnish-json-view {
     background: var(--burnish-surface-alt, #f8f9fa); padding: 16px; border-radius: 4px;
     font-size: 11px; font-family: var(--burnish-font-mono, 'SF Mono', monospace);
