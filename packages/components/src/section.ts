@@ -33,11 +33,12 @@ export class BurnishSection extends LitElement {
         .count { font-size: var(--burnish-font-size-md, 14px); font-weight: 600; color: var(--burnish-text-muted); }
         .content { overflow: hidden; transition: max-height var(--burnish-transition-normal); }
         .grid {
-            display: flex; flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: var(--burnish-space-md, 12px);
         }
         :host([collapsed]) .content { max-height: 0 !important; }
-        @media (max-width: 768px) { .grid { flex-direction: column; } }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
     `;
 
     declare label: string;
