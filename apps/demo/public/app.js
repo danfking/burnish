@@ -1772,8 +1772,9 @@ async function loadDynamicSuggestions(container) {
                 const verb = (tool.name.match(/^(\w+?)_/) || [])[1] || tool.name;
                 if (!readPattern.test(tool.name) || usedVerbs.has(verb)) continue;
                 usedVerbs.add(verb);
-                const label = tool.description
-                    ? tool.description.split(/[.!]/)[0].substring(0, 40)
+                const firstSentence = tool.description ? tool.description.split(/[.!]/)[0] : '';
+                const label = firstSentence
+                    ? firstSentence.substring(0, 40) + (firstSentence.length > 40 ? '...' : '')
                     : tool.name.replace(/_/g, ' ');
                 shortcuts.push({
                     label,
