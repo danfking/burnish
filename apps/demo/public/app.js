@@ -119,6 +119,7 @@ async function createSession() {
     persistence.markLoaded(session.id);
     renderSessionList();
     renderMainContent();
+    updateBreadcrumb();
 
     // Reset submit button state in case it was stuck from a previous session
     const submitBtn = document.getElementById('btn-submit');
@@ -439,6 +440,68 @@ async function regenerateNode(nodeId) {
     if (!session) return;
     const node = session.nodes.find(n => n.id === nodeId);
     if (!node || streamingNodeId) return;
+
+    // Deterministic regeneration — re-execute the same tool call
+    if (node._executionMode === 'deterministic' && node._toolCall) {
+        if (node._toolCall.toolName === '__listing__') {
+            // Re-render tool listing
+            const serverData = cachedServers?.find(s => s.name === node._toolCall.args.serverName);
+            if (serverData) {
+                node.response = '';
+                const html = generateToolListingHtml(node._toolCall.args.serverName, serverData.tools);
+                node.response = html;
+                node.type = 'components';
+                const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
+                if (contentEl) contentEl.innerHTML = DOMPurify.sanitize(html, PURIFY_CONFIG);
+                await saveState();
+                return;
+            }
+        } else {
+            // Re-execute tool directly
+            try {
+                const res = await fetch('/api/tools/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ toolName: node._toolCall.toolName, args: node._toolCall.args }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const resultHtml = buildResultHtml(data.result, node.promptDisplay, node._toolCall.toolName);
+                    node.response = resultHtml;
+                    node.type = 'components';
+                    const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
+                    if (contentEl) contentEl.innerHTML = DOMPurify.sanitize(resultHtml, PURIFY_CONFIG);
+                    node.timestamp = Date.now();
+                    updateNodeSummary(nodeId);
+                    updateBreadcrumb();
+                    renderSessionList();
+                    await saveState();
+                    return;
+                }
+            } catch (err) {
+                console.error('Deterministic regeneration failed:', err);
+            }
+        }
+    }
+
+    // If no LLM available and not deterministic, show friendly message
+    if (!window._llmAvailable) {
+        const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
+        if (contentEl) {
+            contentEl.innerHTML = DOMPurify.sanitize(
+                '<burnish-card title="Cannot regenerate" status="warning" body="No LLM configured. Close this node and re-run the tool from its form."></burnish-card>',
+                PURIFY_CONFIG
+            );
+        }
+        const submitBtn = document.getElementById('btn-submit');
+        if (submitBtn) {
+            submitBtn.classList.remove('cancel');
+            submitBtn.innerHTML = ICON_SEND;
+        }
+        const promptInput = document.getElementById('prompt-input');
+        if (promptInput) promptInput.disabled = false;
+        return;
+    }
 
     // Track regeneration count as implicit negative signal
     node._regenerateCount = (node._regenerateCount || 0) + 1;
@@ -1346,8 +1409,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .map(([, v]) => v)
                     .join(', ');
                 const displayLabel = keyValues ? `${toolShortName}: ${keyValues}` : toolShortName;
-                const resultHtml = buildResultHtml(data.result, displayLabel);
-                renderDeterministicNode(displayLabel, resultHtml);
+                const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+                const writeNode = renderDeterministicNode(displayLabel, resultHtml);
+                if (writeNode) {
+                    writeNode._executionMode = 'deterministic';
+                    writeNode._toolCall = { toolName: toolId, args: { ...values }, label: displayLabel };
+                }
                 return;
             } catch (err) {
                 console.error('Write tool execution failed:', err.message);
@@ -1396,6 +1463,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     tags: [],
                     summary: displayLabel,
                 };
+                node._executionMode = 'deterministic';
+                node._toolCall = { toolName: toolId, args: { ...values }, label: displayLabel };
 
                 // Add to parent's children
                 if (parentId) {
@@ -1408,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderMainContent();
 
                 // Render result with deterministic component mapping
-                const resultHtml = buildResultHtml(data.result, displayLabel);
+                const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
 
                 node.response = resultHtml;
                 const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
@@ -1448,6 +1517,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.addEventListener('burnish-action', (e) => {
         const { label, action, prompt } = e.detail || {};
         if (!prompt) return;
+
+        // Check for deterministic direct execution marker
+        try {
+            const parsed = JSON.parse(prompt);
+            if (parsed._directExec) {
+                const nodeEl = e.target.closest('.burnish-node');
+                if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
+
+                const schema = toolSchemaCache[parsed.toolName] || toolSchemaCache[`mcp__${parsed.toolName}`];
+                const hasRequiredUnfilled = schema?.required?.some(k => !parsed.args[k]);
+
+                if (hasRequiredUnfilled && schema) {
+                    // Show form with pre-filled values
+                    const formHtml = generateFallbackForm(parsed.toolName, schema);
+                    renderDeterministicNode(label, formHtml);
+                } else {
+                    executeToolDirect(parsed.toolName, parsed.args, label);
+                }
+                return;
+            }
+        } catch { /* not JSON, fall through to existing handler */ }
+
+        // Existing LLM action handler
         promptInput.value = prompt + '. Use ONLY burnish-* web components.';
         const contextSummary = prompt.split(/[.!]/)[0].substring(0, 60);
         const displayLabel = contextSummary.length > label.length ? contextSummary : label;
@@ -1905,11 +1997,7 @@ function getEmptyState() {
 
 // ── Deterministic Rendering Helpers (no LLM required) ──
 
-function renderDeterministicToolListing(serverName, tools) {
-    const nodeId = generateId();
-    const session = getActiveSession();
-    if (!session) return;
-
+function generateToolListingHtml(serverName, tools) {
     // Group tools by verb prefix
     const groups = {};
     for (const tool of tools) {
@@ -1936,6 +2024,16 @@ function renderDeterministicToolListing(serverName, tools) {
         html += `</burnish-section>`;
     }
 
+    return html;
+}
+
+function renderDeterministicToolListing(serverName, tools) {
+    const nodeId = generateId();
+    const session = getActiveSession();
+    if (!session) return;
+
+    const html = generateToolListingHtml(serverName, tools);
+
     const parentId = session.activeNodeId || (session.nodes.length > 0 ? session.nodes[session.nodes.length - 1].id : null);
     const node = {
         id: nodeId,
@@ -1950,6 +2048,9 @@ function renderDeterministicToolListing(serverName, tools) {
         tags: Object.keys(groups),
         summary: `${serverName}: ${tools.length} tools`,
     };
+
+    node._executionMode = 'deterministic';
+    node._toolCall = { toolName: '__listing__', args: { serverName }, label: serverName };
 
     if (parentId) {
         const parent = session.nodes.find(n => n.id === parentId);
@@ -1993,6 +2094,8 @@ function renderDeterministicNode(label, html) {
         summary: label,
     };
 
+    node._executionMode = 'deterministic';
+
     if (parentId) {
         const parent = session.nodes.find(n => n.id === parentId);
         if (parent) parent.children.push(nodeId);
@@ -2015,6 +2118,7 @@ function renderDeterministicNode(label, html) {
     renderSessionList();
     saveState();
     branchFromNodeId = null;
+    return node;
 }
 
 async function executeToolDirect(toolName, args, label) {
@@ -2027,23 +2131,80 @@ async function executeToolDirect(toolName, args, label) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Execution failed');
 
-        const resultHtml = buildResultHtml(data.result, label);
-        renderDeterministicNode(label, resultHtml);
+        const resultHtml = buildResultHtml(data.result, label, toolName);
+        const node = renderDeterministicNode(label, resultHtml);
+        if (node) {
+            node._executionMode = 'deterministic';
+            node._toolCall = { toolName, args: { ...args }, label };
+        }
     } catch (err) {
         renderDeterministicNode(label, `<burnish-card title="Error" status="error" body="${escapeAttr(err.message)}"></burnish-card>`);
     }
 }
 
-function buildResultHtml(result, label) {
+function buildResultHtml(result, label, sourceToolName) {
     try {
         const parsed = JSON.parse(result);
-        return renderParsedResult(parsed, label);
+        return renderParsedResult(parsed, label, sourceToolName);
     } catch {
         return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"></burnish-card>`;
     }
 }
 
-function renderParsedResult(parsed, label) {
+function generateContextualActions(resultData, sourceToolName) {
+    if (!cachedServers || !sourceToolName) return [];
+
+    const items = Array.isArray(resultData) ? resultData :
+        (resultData?.items || resultData?.results || resultData?.data || []);
+    if (items.length === 0 || typeof items[0] !== 'object') return [];
+
+    const firstItem = items[0];
+    const actions = [];
+
+    // Find the server that owns this tool
+    const serverName = sourceToolName.replace(/^mcp__/, '').split('__')[0];
+    const server = cachedServers?.find(s => s.name === serverName);
+    if (!server) return actions;
+
+    // For items with owner/repo fields (GitHub repos)
+    if (firstItem.full_name && firstItem.full_name.includes('/')) {
+        const [owner, repo] = firstItem.full_name.split('/');
+        for (const tool of server.tools) {
+            const props = tool.inputSchema?.properties || {};
+            if (props.owner && props.repo && !sourceToolName.includes(tool.name)) {
+                const toolId = tool.name;
+                const shortName = tool.name.replace(/_/g, ' ');
+                const isWrite = /^(create|update|delete|push|write|edit|move|fork|merge|add)/.test(tool.name);
+                actions.push({
+                    label: shortName,
+                    action: isWrite ? 'write' : 'read',
+                    prompt: JSON.stringify({ _directExec: true, toolName: toolId, args: { owner, repo } }),
+                    icon: isWrite ? 'edit' : 'search',
+                });
+            }
+        }
+    }
+
+    // For items with path field (filesystem)
+    if (firstItem.path || firstItem.name) {
+        // Add "explore" action for filesystem items
+        for (const tool of server.tools) {
+            const props = tool.inputSchema?.properties || {};
+            if (props.path && !sourceToolName.includes(tool.name) && /^(list|read|get|directory)/.test(tool.name)) {
+                actions.push({
+                    label: tool.name.replace(/_/g, ' '),
+                    action: 'read',
+                    prompt: JSON.stringify({ _directExec: true, toolName: tool.name, args: {} }),
+                    icon: 'list',
+                });
+            }
+        }
+    }
+
+    return actions.slice(0, 6);
+}
+
+function renderParsedResult(parsed, label, sourceToolName) {
     if (Array.isArray(parsed)) {
         if (parsed.length === 0) {
             return `<burnish-card title="${escapeAttr(label)}" status="muted" body="No results"></burnish-card>`;
@@ -2067,8 +2228,13 @@ function renderParsedResult(parsed, label) {
                 }
                 return row;
             });
-            return `<burnish-stat-bar items='${escapeAttr(JSON.stringify([{label:"Results",value:String(parsed.length),color:"info"}]))}'></burnish-stat-bar>` +
+            let html = `<burnish-stat-bar items='${escapeAttr(JSON.stringify([{label:"Results",value:String(parsed.length),color:"info"}]))}'></burnish-stat-bar>` +
                 `<burnish-table title="${escapeAttr(label)}" columns='${escapeAttr(JSON.stringify(cols))}' rows='${escapeAttr(JSON.stringify(rows))}'></burnish-table>`;
+            const actions = generateContextualActions(parsed, sourceToolName);
+            if (actions.length > 0) {
+                html += `<burnish-actions actions='${escapeAttr(JSON.stringify(actions))}'></burnish-actions>`;
+            }
+            return html;
         }
         return parsed.slice(0, 20).map(item =>
             `<burnish-card title="${escapeAttr(String(item))}" status="info"></burnish-card>`
@@ -2083,7 +2249,7 @@ function renderParsedResult(parsed, label) {
 
         if (nestedKey && typeof parsed[nestedKey][0] === 'object') {
             const scalarFields = Object.entries(parsed)
-                .filter(([k, v]) => k !== nestedKey && typeof v !== 'object')
+                .filter(([k, v]) => k !== nestedKey && typeof v !== 'object' && typeof v !== 'boolean')
                 .slice(0, 5);
             let html = '';
             if (scalarFields.length > 0) {
@@ -2092,7 +2258,7 @@ function renderParsedResult(parsed, label) {
                 }));
                 html += `<burnish-stat-bar items='${escapeAttr(JSON.stringify(statItems))}'></burnish-stat-bar>`;
             }
-            html += renderParsedResult(parsed[nestedKey], nestedKey);
+            html += renderParsedResult(parsed[nestedKey], nestedKey, sourceToolName);
             return html;
         }
 
