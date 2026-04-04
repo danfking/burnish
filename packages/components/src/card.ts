@@ -165,8 +165,14 @@ export class BurnishCard extends LitElement {
         }
 
         let metaData: Array<{ label: string; value: string }> = [];
-        try { metaData = JSON.parse(this.meta || '[]'); }
-        catch { this._parseError = true; return; }
+        try {
+            const parsed = JSON.parse(this.meta || '[]');
+            if (Array.isArray(parsed)) {
+                metaData = parsed;
+            } else if (parsed && typeof parsed === 'object') {
+                metaData = Object.entries(parsed).map(([label, value]) => ({ label, value: String(value) }));
+            }
+        } catch { this._parseError = true; return; }
 
         const s = this.status || 'muted';
         const badgeText = s.toUpperCase();
