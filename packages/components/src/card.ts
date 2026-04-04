@@ -75,6 +75,10 @@ export class BurnishCard extends LitElement {
             font-size: var(--burnish-font-size-base, 13px); color: var(--burnish-text-secondary);
             line-height: 1.4;
             overflow-wrap: anywhere; word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
         .card-meta {
             padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);

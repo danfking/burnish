@@ -1250,7 +1250,8 @@ function generateToolListingHtml(serverName, tools) {
         const label = verb.charAt(0).toUpperCase() + verb.slice(1) + ' Operations';
         html += `<burnish-section label="${escapeAttr(label)}" count="${items.length}" status="info">`;
         for (const tool of items) {
-            html += `<burnish-card title="${escapeAttr(tool.name)}" status="info" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
+            const toolIsWrite = /^(create|update|delete|push|write|edit|move|fork|merge|add|set|close|lock|assign)/.test(tool.name);
+            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${toolIsWrite ? 'warning' : 'success'}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
         }
         html += `</burnish-section>`;
     }
@@ -1520,8 +1521,32 @@ function renderViewSwitcher(dataId, activeView, count) {
     </div>`;
 }
 
+function stripMarkdown(text) {
+    return text
+        .replace(/#{1,6}\s*/g, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/`{1,3}[^`]*`{1,3}/g, '')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/\n{2,}/g, ' ')
+        .replace(/\n/g, ' ')
+        .trim();
+}
+
+function inferCardStatus(item, sourceToolName) {
+    // Infer from data state fields
+    if (item.state === 'closed' || item.state === 'merged') return 'success';
+    if (item.state === 'open') return 'info';
+    if (item.draft === true) return 'muted';
+    // Infer from source tool
+    if (sourceToolName) {
+        const base = sourceToolName.replace(/^mcp__\w+__/, '');
+        if (/^(create|update|delete|push|write|edit|move|fork|merge|add|set|close)/.test(base)) return 'warning';
+    }
+    return 'success';
+}
+
 function renderCardsView(items, sourceToolName) {
-    // Store items by index for safe drill-down (avoid JSON in HTML attributes)
     const viewId = 'cv-' + Date.now();
     window._cardItems = window._cardItems || {};
     window._cardItems[viewId] = items;
@@ -1530,16 +1555,19 @@ function renderCardsView(items, sourceToolName) {
     for (let i = 0; i < Math.min(items.length, 50); i++) {
         const item = items[i];
         const title = item.full_name || item.name || item.title || item.login || 'Item';
-        const body = item.description || item.body || item.message || '';
+        const rawBody = item.description || item.body || item.message || '';
+        const body = stripMarkdown(rawBody).substring(0, 150);
+        const status = inferCardStatus(item, sourceToolName);
         const meta = Object.entries(item)
             .filter(([k, v]) => typeof v !== 'object' && v != null
                 && !['description','body','message','name','full_name','title','login'].includes(k)
-                && String(v).length < 100)
+                && !/_url$|^url$|node_id|_id$|avatar|gravatar/.test(k)
+                && !(typeof v === 'string' && v.startsWith('http'))
+                && String(v).length < 80)
             .slice(0, 4)
             .map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v) }));
-        // Use viewId:index as item-id — resolved in card-action handler
-        html += `<burnish-card title="${escapeAttr(title)}" status="info"
-            body="${escapeAttr(body.substring(0, 200))}"
+        html += `<burnish-card title="${escapeAttr(title)}" status="${status}"
+            body="${escapeAttr(body)}"
             meta='${escapeAttr(JSON.stringify(meta))}'
             item-id="${escapeAttr(viewId + ':' + i)}"></burnish-card>`;
     }
