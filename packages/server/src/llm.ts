@@ -16,7 +16,8 @@ import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import type { McpHub } from './mcp-hub.js';
 import type { ConversationStore, Conversation } from './conversation.js';
-import { buildSystemPrompt, buildNoToolsPrompt } from './prompt-template.js';
+import { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt } from './prompt-template.js';
+import { resolveIntent } from './intent-resolver.js';
 import { isWriteTool } from './guards.js';
 
 export interface WorkflowStep {
@@ -497,6 +498,84 @@ export class LlmOrchestrator {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // Intent Resolver — deterministic tool selection for small models
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Try to resolve the user prompt deterministically and execute the tool
+     * directly, bypassing the LLM tool-call loop. If successful, streams
+     * the tool result through the LLM for formatting only.
+     *
+     * Yields nothing (returns without yielding) if resolution fails or
+     * confidence is too low — the caller should then fall back to the
+     * normal LLM tool-call loop.
+     */
+    private async *tryDirectExecution(
+        conversationId: string,
+        useModel: string,
+    ): AsyncGenerator<StreamChunk> {
+        const conv = this.conversations.get(conversationId);
+        if (!conv || conv.messages.length === 0) return;
+
+        const lastMsg = conv.messages[conv.messages.length - 1];
+        if (lastMsg.role !== 'user') return;
+
+        const tools = this.mcpHub.getAllTools();
+        const serverNames = this.mcpHub.getServerInfo().map(s => s.name);
+
+        const resolution = resolveIntent(lastMsg.content, tools, serverNames);
+        if (!resolution || resolution.confidence < 0.7) return;
+
+        console.log(`[intent] Resolved: ${resolution.tool.name} (${resolution.confidence.toFixed(2)}) — ${resolution.reason}`);
+
+        // Phase 1: Execute tool directly
+        yield { type: 'progress', stage: 'tool_call', detail: `Calling ${resolution.tool.name}...`, meta: { server: resolution.tool.serverName } };
+
+        let toolResult: string;
+        try {
+            toolResult = await this.mcpHub.executeTool(resolution.tool.name, resolution.params);
+        } catch (err) {
+            // Tool execution failed — fall back (caller will continue to LLM loop)
+            console.warn(`[intent] Direct execution failed for ${resolution.tool.name}:`, err);
+            return;
+        }
+
+        yield { type: 'workflow_trace', steps: [{ server: resolution.tool.serverName, tool: resolution.tool.name, status: 'success' }] };
+
+        // Phase 2: Ask LLM to format results (no tools, simple formatting task)
+        yield { type: 'progress', stage: 'thinking', detail: 'Formatting results...', meta: { model: useModel } };
+
+        const formattingPrompt = buildFormattingPrompt(resolution.tool.name, toolResult);
+        const apiStartTime = Date.now();
+
+        if (this.openaiClient) {
+            const stream = await this.openaiClient.chat.completions.create({
+                model: useModel,
+                messages: [
+                    { role: 'system', content: formattingPrompt },
+                    { role: 'user', content: 'Format the tool results above as burnish-* HTML components.' },
+                ],
+                max_tokens: OPENAI_MAX_TOKENS,
+                stream: true,
+            });
+
+            let fullResponse = '';
+            for await (const chunk of stream) {
+                const content = chunk.choices?.[0]?.delta?.content;
+                if (content) {
+                    fullResponse += content;
+                    yield { type: 'content', text: content };
+                }
+            }
+
+            // Store response
+            this.conversations.addMessage(conversationId, 'assistant', fullResponse);
+
+            yield { type: 'stats', durationMs: Date.now() - apiStartTime, inputTokens: 0, outputTokens: 0 };
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // OpenAI-compatible Backend — Ollama, llama.cpp, vLLM, LM Studio, OpenAI
     // ═══════════════════════════════════════════════════════════════
 
@@ -543,6 +622,16 @@ export class LlmOrchestrator {
         const workflowSteps: WorkflowStep[] = [];
 
         yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } };
+
+        // Try deterministic intent resolution first (for small model reliability)
+        if (!noTools) {
+            let directHandled = false;
+            for await (const chunk of this.tryDirectExecution(conversationId, useModel)) {
+                yield chunk;
+                directHandled = true;
+            }
+            if (directHandled) return;
+        }
 
         for (let round = 0; round < this.maxToolRounds; round++) {
             if (round === 0) {

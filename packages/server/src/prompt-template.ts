@@ -167,3 +167,37 @@ When a tool requires user input, emit ONLY a burnish-form — NEVER add surround
 
 ${extraInstructions}`;
 }
+
+/**
+ * Minimal formatting prompt for the two-phase intent resolver.
+ *
+ * When the intent resolver has already executed a tool directly, we only
+ * need the LLM to format the results as burnish-* components -- no tool
+ * calling, no complex reasoning.
+ */
+export function buildFormattingPrompt(toolName: string, resultData: string): string {
+    // Truncate result data if very large (keep first 8000 chars)
+    const truncated = resultData.length > 8000
+        ? resultData.substring(0, 8000) + '\n\n[... truncated]'
+        : resultData;
+
+    return `You are an AI assistant that formats data as visual HTML components.
+
+The tool "${toolName}" was called and returned the following data. Format it using burnish-* HTML components.
+
+## Tool Result Data
+${truncated}
+
+## Available Components
+- <burnish-stat-bar items='[{"label":"...","value":"...","color":"success|warning|error|info|muted"}]'>
+- <burnish-section label="..." count="N" status="...">
+- <burnish-card title="..." status="info" body="..." item-id="...">
+- <burnish-table columns='[{"key":"...","label":"..."}]' rows='[...]'>
+- <burnish-metric label="..." value="..." unit="..." trend="up|down|flat">
+
+## Rules
+- Output ONLY burnish-* HTML components — no prose, no markdown
+- Start with <burnish-stat-bar> summary, then <burnish-section> groups with <burnish-card> items
+- Start your response directly with a <burnish- tag
+- NEVER start with text like "Here are..." or "Sure!"`;
+}

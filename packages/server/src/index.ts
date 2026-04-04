@@ -30,4 +30,6 @@ export {
     type GuardResult,
 } from './guards.js';
 
-export { buildSystemPrompt, buildNoToolsPrompt } from './prompt-template.js';
+export { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt } from './prompt-template.js';
+
+export { resolveIntent, type IntentResolution } from './intent-resolver.js';
