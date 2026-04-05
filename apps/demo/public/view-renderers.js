@@ -174,7 +174,7 @@ export function renderParsedResult(parsed, label, sourceToolName) {
         }
 
         const meta = Object.entries(parsed)
-            .filter(([, v]) => typeof v !== 'object' || v === null)
+            .filter(([, v]) => (typeof v !== 'object' || v === null) && typeof v !== 'boolean')
             .slice(0, 10)
             .map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v ?? '') }));
         return `<burnish-card title="${escapeAttr(label)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'></burnish-card>`;

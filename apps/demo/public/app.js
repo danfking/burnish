@@ -162,6 +162,7 @@ async function switchSession(sessionId) {
 
     renderMainContent();
     renderSessionList();
+    updateBreadcrumb();
     await saveState();
 }
 
