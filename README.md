@@ -5,6 +5,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![npm: @burnish/components](https://img.shields.io/badge/npm-@burnish/components-cb3837.svg)](https://www.npmjs.com/package/@burnish/components)
 [![npm: @burnish/renderer](https://img.shields.io/badge/npm-@burnish/renderer-cb3837.svg)](https://www.npmjs.com/package/@burnish/renderer)
+[![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
 
 > Screenshots coming soon — run `pnpm dev:nomodel` to see it live.
 
@@ -66,6 +67,23 @@ LLM_BACKEND=openai OPENAI_BASE_URL=http://localhost:11434/v1 pnpm dev
 ```
 
 Configure your MCP servers in `apps/demo/mcp-servers.json`, then ask a question.
+
+## For MCP Server Owners
+
+Let your users explore your server instantly. Add this badge to your README:
+
+```markdown
+[![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
+```
+
+Then add a quick-start snippet so they can connect in seconds:
+
+```bash
+# Explore <your-server> with Burnish (no LLM required)
+npx burnish --server <your-server>
+```
+
+Replace `<your-server>` with your MCP server's npm package name or command.
 
 ## Key Features
 
