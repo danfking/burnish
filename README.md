@@ -76,14 +76,14 @@ Let your users explore your server instantly. Add this badge to your README:
 [![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
 ```
 
-Then add a quick-start snippet so they can connect in seconds:
+Then add a quick-start snippet so users can connect in one command:
 
 ```bash
-# Explore <your-server> with Burnish (no LLM required)
-npx burnish --server <your-server>
+# Explore your MCP server with Burnish (no LLM required)
+npx burnish -- npx @your-org/your-mcp-server
 ```
 
-Replace `<your-server>` with your MCP server's npm package name or command.
+Replace `@your-org/your-mcp-server` with your server's npm package or startup command.
 
 ## Key Features
 
