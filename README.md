@@ -1,153 +1,260 @@
 # Burnish
 
-**A universal UI layer for MCP servers.**
+**Explore any MCP server. No LLM required.**
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![npm: @burnish/components](https://img.shields.io/badge/npm-@burnish/components-cb3837.svg)](https://www.npmjs.com/package/@burnish/components)
 [![npm: @burnish/renderer](https://img.shields.io/badge/npm-@burnish/renderer-cb3837.svg)](https://www.npmjs.com/package/@burnish/renderer)
 
-> Demo screenshots coming soon.
+> Screenshots coming soon — run `pnpm dev:nomodel` to see it live.
 
 ---
 
-## What is this?
+## What is Burnish?
 
-Burnish is a component library, streaming renderer, and demo application that turns any [Model Context Protocol](https://modelcontextprotocol.io/) server into a navigable, interactive UI. Point it at an MCP server, ask a question in natural language, and get back dashboards, forms, data tables, charts, and action buttons -- not a wall of JSON. Read and write operations are both supported: view data with cards and tables, mutate it with forms.
+**Swagger UI for the MCP ecosystem.** Connect to any MCP server and immediately see every tool it exposes — with descriptions, auto-generated input forms, and results rendered as cards, tables, charts, and metrics. No LLM. No API key. No data leaving your machine.
 
-The core idea is simple: instead of teaching an LLM to generate complex framework-specific code, you give it a small vocabulary of web components via a system prompt. The LLM writes HTML using those components, and the renderer streams the output progressively into the browser. The components handle all styling, interaction, and drill-down navigation. This works with **any** MCP server -- filesystem, GitHub, databases, custom internal tools -- without writing a single line of server-specific UI code.
+Add an LLM and Burnish levels up: natural language queries, AI-generated insights streamed alongside structured data, and multi-tool orchestration across servers.
 
-Burnish ships as two independently publishable npm packages (`@burnish/components` and `@burnish/renderer`) plus a demo app that wires everything together with an LLM backend. You can use the components on their own, use the renderer for streaming, or run the full demo to see it all in action.
+## Two Modes
 
-## Key Features
+### Explorer Mode — no LLM required
 
-- **9 web components** built with [Lit 3](https://lit.dev/) -- cards, tables, charts, forms, action bars, metrics, and more
-- **Progressive streaming** -- components render as the LLM generates them, not after it finishes
-- **Drill-down navigation** -- click any card to trigger a contextual follow-up query; results append below with collapsible sections
-- **Works with any MCP server** -- filesystem, GitHub, SQLite, or your own custom tools
-- **Framework-agnostic** -- standard web components that work in React, Vue, Angular, Svelte, or vanilla HTML
-- **No build step required** -- import from CDN as ES modules, or install via npm
-- **Themeable** -- all styling via `--burnish-*` CSS custom properties
-- **LLM-as-the-mapper** -- the system prompt teaches the LLM which components to use; no brittle mapping code
-- **Two LLM backends** -- direct Anthropic API with streaming tool-call loop, or Claude CLI for zero-config auth
-- **Collapsible sections** with auto-summary, session persistence, and sidebar-to-section linking
+Connect. Browse. Execute. Everything is driven by the server's tool schemas.
+
+- **Instant tool discovery** — every tool listed with its description and input schema
+- **Auto-generated forms** — JSON Schema in, interactive form out
+- **Rich results** — responses rendered as cards, tables, charts, stat bars, not raw JSON
+- **Fully private** — runs locally, no external calls, no telemetry
+- **Zero config** — `pnpm dev:nomodel` and you're running
+
+### Copilot Mode — LLM-enhanced
+
+Everything from Explorer, plus:
+
+- **Natural language queries** — "show me the 10 largest files modified this week"
+- **AI-generated insights** — analysis streamed below structured data
+- **Contextual next steps** — suggested follow-up actions based on results
+- **Multi-tool orchestration** — LLM chains tools across multiple servers in a single query
+- **Drill-down navigation** — click any card to trigger a contextual follow-up; results append below
 
 ## Quick Start
 
+### Explorer Mode (no LLM, no API key)
+
 ```bash
-# Clone and install
 git clone https://github.com/danfking/burnish.git
 cd burnish
 pnpm install
 pnpm build
+pnpm dev:nomodel
+```
 
-# Option 1: Use Claude Code CLI auth (no API key needed)
-pnpm dev:cli
+Open `http://localhost:3000`. Your configured MCP servers appear with all their tools ready to use.
 
-# Option 2: Use direct Anthropic API key
+### Copilot Mode (with LLM)
+
+```bash
+# Option A: Claude Code CLI auth (no API key needed)
+LLM_BACKEND=cli pnpm dev
+
+# Option B: Direct Anthropic API
 ANTHROPIC_API_KEY=sk-ant-... pnpm dev
 
-# Option 3: Use local model via Ollama (no API key needed)
-ollama pull qwen2.5:7b
-pnpm dev:local
+# Option C: Local model via Ollama (fully offline)
+LLM_BACKEND=openai OPENAI_BASE_URL=http://localhost:11434/v1 pnpm dev
 ```
 
-The demo app starts at `http://localhost:3000`. Configure your MCP servers in `apps/demo/mcp-servers.json`, then ask a question.
+Configure your MCP servers in `apps/demo/mcp-servers.json`, then ask a question.
 
-### Local Model Support
+## Key Features
 
-Burnish supports local models via any OpenAI-compatible API (Ollama, llama.cpp, vLLM, LM Studio). The `dev:local` script is pre-configured for Ollama with Qwen 2.5 7B, which offers the best balance of tool-calling reliability and component output quality. Other tested models include Llama 3.1 8B (highest component accuracy) and Llama 3.2 3B (lowest resource usage). See `CLAUDE.md` for the full benchmark table.
+**Explorer (no LLM)**
+- Schema-driven tool discovery and form generation
+- 9 web components: cards, tables, charts, forms, stat bars, metrics, sections, messages, actions
+- DOMPurify-sanitized rendering
+- Works with any MCP server — filesystem, GitHub, databases, custom tools
+- Framework-agnostic — standard web components, no React/Vue/Angular lock-in
+- Themeable via `--burnish-*` CSS custom properties
+- No build step required — import from CDN as ES modules
 
-### Prerequisites
+**Copilot (LLM-enhanced)**
+- Progressive streaming — components render as the LLM generates them
+- Three LLM backends: Anthropic API (streaming tool-call loop), Claude CLI (zero-config auth), OpenAI-compatible (Ollama, llama.cpp, vLLM, LM Studio)
+- Drill-down navigation with collapsible sections and session persistence
+- Multi-server tool orchestration in a single query
 
-- Node.js 20+
-- [pnpm](https://pnpm.io/) 9+
-- For CLI backend: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
-- For API backend: an Anthropic API key
+## Recipes
 
-## Architecture
+Multi-server combinations that show Burnish at its best. Each recipe is a `mcp-servers.json` config plus a prompt.
 
+### Incident Triage
+
+Connect PagerDuty + GitHub + your database. Surface the alert, related commits, and recent error rates in one view.
+
+```json
+{
+  "mcpServers": {
+    "pagerduty": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-pagerduty"],
+      "env": { "PAGERDUTY_API_KEY": "${PAGERDUTY_API_KEY}" }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DATABASE_URL}"]
+    }
+  }
+}
 ```
-burnish/
-├── packages/
-│   ├── components/       @burnish/components — 9 Lit web components
-│   └── renderer/         @burnish/renderer  — streaming parser, sanitizer, component mapper
-├── apps/
-│   └── demo/
-│       ├── server/       Hono API + LLM orchestrator + MCP client hub
-│       └── public/       SPA shell (vanilla JS, no framework)
-└── package.json          pnpm workspace root
+
+**Prompt:** "Show open PagerDuty incidents, then for the highest-severity one, find related commits from the last 24 hours and query the error_logs table for matching stack traces."
+
+### Project Standup
+
+Connect GitHub + Linear (or Jira) + Slack. Get a daily digest without opening three tabs.
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" }
+    },
+    "linear": {
+      "command": "npx",
+      "args": ["-y", "mcp-linear"],
+      "env": { "LINEAR_API_KEY": "${LINEAR_API_KEY}" }
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-slack"],
+      "env": { "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}" }
+    }
+  }
+}
 ```
 
-**Layer 1: Components** (`@burnish/components`) -- Self-contained Lit elements with shadow DOM, CSS custom property theming, and JSON string attributes. Each component parses its own data, handles errors gracefully, and emits `CustomEvent`s for interactions.
+**Prompt:** "Summarize yesterday's merged PRs, open Linear issues assigned to me, and any unread Slack threads in #engineering."
 
-**Layer 2: Renderer** (`@burnish/renderer`) -- A streaming HTML parser that identifies component tags as they arrive from an LLM response. Container tags like `<burnish-section>` emit open/close events so their children can render individually as they stream in. Includes a DOMPurify-based sanitizer and a component mapper that can auto-infer the right component from raw JSON.
+### Research Brief
 
-**Layer 3: Demo App** -- A Hono backend that connects to MCP servers via `@modelcontextprotocol/sdk`, orchestrates tool-call loops with the Anthropic API (or Claude CLI), and streams results as SSE. The frontend progressively renders components, manages drill-down navigation with browser history, and persists sessions to localStorage.
+Connect web search + filesystem. Search, summarize, save.
+
+```json
+{
+  "mcpServers": {
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-brave-search"],
+      "env": { "BRAVE_API_KEY": "${BRAVE_API_KEY}" }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./research"]
+    }
+  }
+}
+```
+
+**Prompt:** "Search for recent benchmarks on MCP server performance, summarize the top 5 results, and save the summary to research/mcp-benchmarks.md."
 
 ## Component Reference
 
-| Component | Tag                | Key Attributes                                           | Purpose                           |
-|-----------|--------------------|----------------------------------------------------------|-----------------------------------|
-| Card      | `<burnish-card>`     | `title`, `status`, `body`, `meta` (JSON), `item-id`      | Individual items with drill-down  |
-| Stat Bar  | `<burnish-stat-bar>` | `items` (JSON: `[{label, value, color?}]`)               | Summary metrics / filter pills    |
-| Table     | `<burnish-table>`    | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring |
-| Chart     | `<burnish-chart>`    | `type` (line/bar/doughnut), `config` (JSON)              | Chart.js visualizations           |
-| Section   | `<burnish-section>`  | `label`, `count`, `status`, `collapsed`                  | Collapsible grouping container    |
-| Metric    | `<burnish-metric>`   | `label`, `value`, `unit`, `trend` (up/down/flat)         | Single KPI display                |
-| Message   | `<burnish-message>`  | `role` (user/assistant), `content`, `streaming`          | Chat bubbles                      |
-| Form      | `<burnish-form>`     | `title`, `tool-id`, `fields` (JSON)                      | User input for write operations   |
-| Actions   | `<burnish-actions>`  | `actions` (JSON: `[{label, action, prompt, icon?}]`)     | Contextual next-step buttons      |
+| Component | Tag | Key Attributes | Purpose |
+|-----------|-----|----------------|---------|
+| Card | `<burnish-card>` | `title`, `status`, `body`, `meta` (JSON), `item-id` | Individual items with drill-down |
+| Stat Bar | `<burnish-stat-bar>` | `items` (JSON: `[{label, value, color?}]`) | Summary metrics / filter pills |
+| Table | `<burnish-table>` | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring |
+| Chart | `<burnish-chart>` | `type` (line/bar/doughnut), `config` (JSON) | Chart.js visualizations |
+| Section | `<burnish-section>` | `label`, `count`, `status`, `collapsed` | Collapsible grouping container |
+| Metric | `<burnish-metric>` | `label`, `value`, `unit`, `trend` (up/down/flat) | Single KPI display |
+| Message | `<burnish-message>` | `role` (user/assistant), `content`, `streaming` | Chat bubbles |
+| Form | `<burnish-form>` | `title`, `tool-id`, `fields` (JSON) | User input / tool execution |
+| Actions | `<burnish-actions>` | `actions` (JSON: `[{label, action, prompt, icon?}]`) | Contextual next-step buttons |
 
-**Status values:** `success`, `warning`, `error`, `muted`, `info` -- mapped to semantic colors via CSS custom properties.
+**Status values:** `success`, `warning`, `error`, `muted`, `info` — mapped to semantic colors via CSS custom properties.
 
-**Action types** (on `burnish-actions`): `read` (auto-invoke, safe) and `write` (shows form, needs user input).
+**Action types:** `read` (auto-invoke, safe) and `write` (shows form, requires user confirmation).
 
 ## How It Works
 
 ```
-User prompt
-       │
-       ▼
-┌─────────────────────────────────────┐
-│  LLM (with system prompt that       │
-│  documents all burnish-* components)  │
-│                                     │
-│  1. Calls MCP tools to get data     │
-│  2. Generates HTML using            │
-│     burnish-* web components          │
-│  3. Streams the response via SSE    │
-└─────────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────┐
-│  Streaming Renderer                 │
-│                                     │
-│  • Parses tags as they arrive       │
-│  • Sanitizes via DOMPurify          │
-│  • Appends to DOM progressively     │
-└─────────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────┐
-│  Web Components                     │
-│                                     │
-│  • Parse JSON attributes            │
-│  • Render with shadow DOM           │
-│  • Emit events for drill-down       │
-└─────────────────────────────────────┘
+                    ┌──────────────────────────────────┐
+                    │        MCP Servers                │
+                    │  (filesystem, GitHub, DB, ...)    │
+                    └──────────────┬───────────────────┘
+                                   │ tool calls / results
+                                   │
+           ┌───────────────────────┴───────────────────────┐
+           │                                               │
+    Explorer Mode                                   Copilot Mode
+           │                                               │
+    ┌──────┴──────┐                              ┌─────────┴─────────┐
+    │ Schema      │                              │ LLM               │
+    │ Parser      │                              │ (Anthropic / CLI  │
+    │             │                              │  / OpenAI-compat) │
+    │ • List tools│                              │                   │
+    │ • Gen forms │                              │ • NL → tool calls │
+    │ • Map result│                              │ • Data → HTML     │
+    │   → comps   │                              │ • Streams via SSE │
+    └──────┬──────┘                              └─────────┬─────────┘
+           │                                               │
+           └───────────────────┬───────────────────────────┘
+                               │
+                               ▼
+                    ┌──────────────────────────┐
+                    │  Streaming Renderer      │
+                    │                          │
+                    │  • Parse tags on arrival  │
+                    │  • Sanitize (DOMPurify)  │
+                    │  • Append to DOM         │
+                    └──────────┬───────────────┘
+                               │
+                               ▼
+                    ┌──────────────────────────┐
+                    │  Web Components (Lit 3)  │
+                    │                          │
+                    │  • Shadow DOM isolation  │
+                    │  • JSON attribute parsing│
+                    │  • Event-driven drill-   │
+                    │    down navigation       │
+                    └──────────────────────────┘
 ```
 
-The system prompt is the key integration point. It teaches the LLM the component vocabulary -- which tags exist, what attributes they accept, and when to use each one. The LLM then generates the right HTML for whatever data it retrieves from MCP tools. This approach is more robust than rule-based mapping because the LLM can make contextual decisions about layout and grouping.
+**Explorer mode** reads the MCP server's tool list, generates forms from JSON Schema, and maps results directly to components — no LLM in the loop.
 
-When a user clicks a card's "Explore" button, the frontend dispatches a follow-up prompt with context about the clicked item. The LLM calls the appropriate tool, generates new components, and the renderer appends them below the previous results -- building up a navigable trail of exploration.
+**Copilot mode** adds an LLM that interprets natural language, orchestrates tool calls, and generates HTML using the burnish component vocabulary. The system prompt teaches the LLM which tags to use; the renderer streams them into the browser progressively.
+
+## Why Burnish?
+
+| | Burnish | MCP Inspector | Composio / Rube | Smithery | n8n |
+|---|---|---|---|---|---|
+| **Works without LLM** | Yes (Explorer) | Yes | No | N/A | No |
+| **Rich visualization** | Cards, tables, charts, metrics | Raw JSON | Limited | None (registry only) | Node output |
+| **Any MCP server** | Yes | Yes | 500 pre-wrapped apps | Registry, no execution | Via custom nodes |
+| **Auto-generated forms** | Yes (from schema) | Manual JSON input | Pre-built forms | No | Node config UI |
+| **Natural language** | Yes (Copilot) | No | Yes | No | No |
+| **Streaming results** | Progressive SSE | No | No | No | No |
+| **Local / private** | Yes, fully | Yes | Cloud-dependent | Cloud | Self-host (heavy) |
+| **Setup time** | `pnpm dev:nomodel` | `npx` | Account + config | Browse only | Docker + config |
+| **Composable** | Any server combo | Single server | Locked ecosystem | N/A | Workflow builder |
 
 ## Use in Your Own Project
 
 ### CDN (no build step)
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@burnish/components/dist/index.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@burnish/components/dist/tokens.css" />
+<script type="module"
+  src="https://cdn.jsdelivr.net/npm/@burnish/components/dist/index.js"></script>
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@burnish/components/dist/tokens.css" />
 
 <burnish-card
   title="API Gateway"
@@ -168,12 +275,12 @@ npm install @burnish/components
 import '@burnish/components';
 
 // Components auto-register with burnish-* prefix.
-// To use a custom prefix:
+// Custom prefix:
 import { BurnishCard } from '@burnish/components';
 customElements.define('my-card', class extends BurnishCard {});
 ```
 
-### Renderer (optional)
+### Renderer
 
 ```bash
 npm install @burnish/renderer
@@ -182,45 +289,34 @@ npm install @burnish/renderer
 ```javascript
 import { findStreamElements, appendStreamElement } from '@burnish/renderer';
 
-// Parse streaming LLM output into renderable elements
 const elements = findStreamElements(chunk);
 for (const el of elements) {
   appendStreamElement(container, stack, el, safeAttrs, sanitize);
 }
 ```
 
-### System Prompt
-
-The demo app includes an exportable system prompt template you can reuse or extend:
-
-```javascript
-// From within the repo or after copying prompt-template.ts to your project
-import { buildSystemPrompt } from './prompt-template.js';
-
-const prompt = buildSystemPrompt('Your additional domain-specific instructions here.');
-```
-
 ## Configuration
 
 ### LLM Backend
 
-| Mode   | Env Var                        | Description                                                             |
-|--------|--------------------------------|-------------------------------------------------------------------------|
-| API    | `ANTHROPIC_API_KEY=sk-ant-...` | Direct Anthropic SDK with streaming tool-call loop (8 rounds max)       |
-| CLI    | `LLM_BACKEND=cli`              | Spawns Claude CLI subprocess; uses your Claude Code subscription auth   |
-| OpenAI | `LLM_BACKEND=openai`           | OpenAI-compatible API (Ollama, llama.cpp, vLLM, LM Studio, OpenAI)     |
-| Auto   | *(none)*                        | Defaults to CLI if no API key is set                                    |
+| Mode | Env Var | Description |
+|------|---------|-------------|
+| None | `LLM_BACKEND=none` | Explorer only — no LLM, instant tool execution |
+| API | `ANTHROPIC_API_KEY=sk-ant-...` | Direct Anthropic SDK with streaming tool-call loop (8 rounds max) |
+| CLI | `LLM_BACKEND=cli` | Spawns Claude CLI subprocess; uses your Claude Code subscription auth |
+| OpenAI | `LLM_BACKEND=openai` | OpenAI-compatible API (Ollama, llama.cpp, vLLM, LM Studio) |
+| Auto | *(none)* | Defaults to CLI if no API key is set |
 
 ### MCP Servers
 
-Configure connected MCP servers in `apps/demo/mcp-servers.json`:
+Configure in `apps/demo/mcp-servers.json`:
 
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/directory"]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
     },
     "github": {
       "command": "npx",
@@ -233,19 +329,41 @@ Configure connected MCP servers in `apps/demo/mcp-servers.json`:
 }
 ```
 
-The demo app connects to all configured servers at startup and makes their tools available to the LLM.
+All configured servers connect at startup. Their tools are available immediately in Explorer mode and to the LLM in Copilot mode.
 
 ## Development
 
 ```bash
 pnpm install          # Install all dependencies
 pnpm build            # Build all packages
-pnpm dev              # Start demo app with file watcher
+pnpm dev:nomodel      # Explorer mode (no LLM)
+pnpm dev              # Copilot mode (auto-detect backend)
+pnpm test             # Run Playwright tests
 pnpm clean            # Clean all build artifacts
 ```
 
-The workspace uses pnpm workspaces. Changes to `packages/components` or `packages/renderer` require a rebuild (`pnpm build`) before the demo app picks them up.
+```
+burnish/
+├── packages/
+│   ├── components/       @burnish/components — 9 Lit web components
+│   ├── renderer/         @burnish/renderer  — streaming parser + sanitizer
+│   ├── app/              @burnish/app — drill-down logic + stream orchestration
+│   └── server/           @burnish/server — LLM orchestrator + MCP hub
+├── apps/
+│   └── demo/
+│       ├── server/       Hono API + dual-mode routing
+│       └── public/       SPA shell (ES modules, no framework)
+└── package.json          pnpm workspace root
+```
+
+### Prerequisites
+
+- Node.js 20+
+- [pnpm](https://pnpm.io/) 9+
+- For CLI backend: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
+- For API backend: an Anthropic API key
+- For local models: [Ollama](https://ollama.ai/) or any OpenAI-compatible server
 
 ## License
 
-[AGPL-3.0](LICENSE) -- Daniel King ([@danfking](https://github.com/danfking))
+[AGPL-3.0](LICENSE) — Daniel King ([@danfking](https://github.com/danfking))

@@ -3,32 +3,35 @@
 
 :root {
     /* ── Colors: Primary ── */
-    --burnish-primary: #1a1a2e;
+    --burnish-primary: #2D1F1F;
     --burnish-primary-hover: rgba(255, 255, 255, 0.1);
     --burnish-surface: #ffffff;
-    --burnish-surface-alt: #f5f6f8;
-    --burnish-surface-hover: #f9fafb;
-    --burnish-accent: #4f6df5;
-    --burnish-link: #3b82f6;
+    --burnish-surface-alt: #F8F5F5;
+    --burnish-surface-hover: #F3EDED;
+    --burnish-accent: #8B3A3A;
+    --burnish-accent-hover: #A04545;
+    --burnish-accent-light: #F5ECEC;
+    --burnish-accent-bright: #C45B5B;
+    --burnish-link: #7C3030;
 
     /* ── Colors: Status ── */
     --burnish-success: #22c55e;
     --burnish-warning: #eab308;
     --burnish-error: #ef4444;
-    --burnish-muted: #9ca3af;
+    --burnish-muted: #9C8F8F;
 
     /* ── Colors: Status Borders (lighter) ── */
     --burnish-border-success: #dcfce7;
     --burnish-border-warning: #fef9c3;
     --burnish-border-error: #fee2e2;
-    --burnish-border-muted: #e5e7eb;
+    --burnish-border-muted: #E5DDDD;
 
     /* ── Colors: Neutral ── */
-    --burnish-text: #1f2937;
-    --burnish-text-secondary: #6b7280;
-    --burnish-text-muted: #9ca3af;
-    --burnish-border: #e5e7eb;
-    --burnish-border-light: #f3f4f6;
+    --burnish-text: #2D1F1F;
+    --burnish-text-secondary: #6B5A5A;
+    --burnish-text-muted: #9C8F8F;
+    --burnish-border: #E5DDDD;
+    --burnish-border-light: #F0EAEA;
 
     /* ── Spacing ── */
     --burnish-space-xs: 4px;
@@ -41,13 +44,13 @@
     /* ── Typography ── */
     --burnish-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --burnish-font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
-    --burnish-font-size-xs: 11px;
-    --burnish-font-size-sm: 12px;
-    --burnish-font-size-base: 13px;
-    --burnish-font-size-md: 14px;
-    --burnish-font-size-lg: 16px;
-    --burnish-font-size-xl: 18px;
-    --burnish-font-size-2xl: 24px;
+    --burnish-font-size-xs: 12px;
+    --burnish-font-size-sm: 13px;
+    --burnish-font-size-base: 14px;
+    --burnish-font-size-md: 15px;
+    --burnish-font-size-lg: 17px;
+    --burnish-font-size-xl: 20px;
+    --burnish-font-size-2xl: 28px;
 
     /* ── Borders & Radius ── */
     --burnish-radius-sm: 4px;
@@ -67,4 +70,60 @@
 
     /* ── Layout ── */
     --burnish-chart-height: 300px;
+}
+
+/* Dark mode: respect system preference, allow explicit override */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --burnish-primary: #1A1212;
+        --burnish-surface: #1F1A1A;
+        --burnish-surface-alt: #2A2222;
+        --burnish-surface-hover: #332929;
+        --burnish-accent: #C45B5B;
+        --burnish-accent-hover: #D47070;
+        --burnish-accent-light: #3D2828;
+        --burnish-accent-bright: #E08080;
+        --burnish-link: #D47070;
+        --burnish-text: #E8E2E2;
+        --burnish-text-secondary: #A89999;
+        --burnish-text-muted: #7A6B6B;
+        --burnish-border: #3D3232;
+        --burnish-border-light: #332929;
+        --burnish-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --burnish-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --burnish-muted: #7A6B6B;
+        --burnish-border-muted: #3D3232;
+        --burnish-border-success: #1a3a24;
+        --burnish-border-warning: #3a3418;
+        --burnish-border-error: #3a1a1a;
+        --burnish-error-bg: #3a1a1a;
+        --burnish-success-bg: #1a3a24;
+    }
+}
+
+/* Explicit dark mode override */
+[data-theme="dark"] {
+    --burnish-primary: #1A1212;
+    --burnish-surface: #1F1A1A;
+    --burnish-surface-alt: #2A2222;
+    --burnish-surface-hover: #332929;
+    --burnish-accent: #C45B5B;
+    --burnish-accent-hover: #D47070;
+    --burnish-accent-light: #3D2828;
+    --burnish-accent-bright: #E08080;
+    --burnish-link: #D47070;
+    --burnish-text: #E8E2E2;
+    --burnish-text-secondary: #A89999;
+    --burnish-text-muted: #7A6B6B;
+    --burnish-border: #3D3232;
+    --burnish-border-light: #332929;
+    --burnish-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --burnish-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --burnish-muted: #7A6B6B;
+    --burnish-border-muted: #3D3232;
+    --burnish-border-success: #1a3a24;
+    --burnish-border-warning: #3a3418;
+    --burnish-border-error: #3a1a1a;
+    --burnish-error-bg: #3a1a1a;
+    --burnish-success-bg: #1a3a24;
 }

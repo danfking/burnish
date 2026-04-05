@@ -35,13 +35,13 @@ export class BurnishActions extends LitElement {
         }
         .action-btn {
             background: var(--burnish-surface, #fff);
-            border: 1px solid var(--burnish-border, #e5e7eb);
-            color: var(--burnish-text, #1f2937);
+            border: 1px solid var(--burnish-border, #E5DDDD);
+            color: var(--burnish-text, #2D1F1F);
         }
         .action-btn:hover {
-            border-color: var(--burnish-accent, #4f6df5);
-            color: var(--burnish-accent, #4f6df5);
-            background: rgba(79, 109, 245, 0.04);
+            border-color: var(--burnish-accent, #8B3A3A);
+            color: var(--burnish-accent, #8B3A3A);
+            background: rgba(139, 58, 58, 0.04);
         }
         .action-icon {
             font-size: 14px;

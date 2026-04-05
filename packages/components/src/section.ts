@@ -60,7 +60,7 @@ export class BurnishSection extends LitElement {
         if (s === 'warning') return 'var(--burnish-warning, #ca8a04)';
         if (s === 'success' || s === 'healthy') return 'var(--burnish-success, #16a34a)';
         if (s === 'info') return 'var(--burnish-info, #6366f1)';
-        return 'var(--burnish-muted, #9ca3af)';
+        return 'var(--burnish-muted, #9C8F8F)';
     }
 
     render() {

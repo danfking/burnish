@@ -80,7 +80,7 @@ export class McpHub {
             Object.entries(config.mcpServers).map(async ([name, serverConfig]) => {
                 try {
                     await this.connectServer(name, serverConfig);
-                    console.log(`[mcp-hub] Connected to "${name}"`);
+                    console.error(`[mcp-hub] Connected to "${name}"`);
                 } catch (err) {
                     console.error(`[mcp-hub] Failed to connect to "${name}":`, err);
                 }
@@ -164,7 +164,7 @@ export class McpHub {
         if (idx === -1) return false;
         const server = this.servers[idx];
 
-        console.log(`[mcp-hub] Attempting to reconnect "${name}"...`);
+        console.error(`[mcp-hub] Attempting to reconnect "${name}"...`);
         try {
             try { await server.client.close(); } catch { /* ignore */ }
 
@@ -174,7 +174,7 @@ export class McpHub {
             // Remove the old entry (connectServer already appended a fresh one)
             this.servers.splice(idx, 1);
 
-            console.log(`[mcp-hub] Reconnected to "${name}"`);
+            console.error(`[mcp-hub] Reconnected to "${name}"`);
             return true;
         } catch (err) {
             console.error(`[mcp-hub] Failed to reconnect to "${name}":`, err);
@@ -295,7 +295,7 @@ export class McpHub {
                 serverName: 'cli',
             };
             this.cliTools.push({ name, config, toolDef });
-            console.log(`[mcp-hub] Registered CLI tool "${name}"`);
+            console.error(`[mcp-hub] Registered CLI tool "${name}"`);
         }
     }
 

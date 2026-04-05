@@ -53,6 +53,16 @@
     <script type="module" src="/components/form.js"></script>
     <script type="module" src="/components/actions.js"></script>
 
+    <!-- Theme initialization (prevent flash of wrong theme) -->
+    <script>
+    (function initTheme() {
+        const stored = localStorage.getItem('burnish:theme');
+        if (stored) {
+            document.documentElement.setAttribute('data-theme', stored);
+        }
+    })();
+    </script>
+
     <!-- App -->
     <script type="module" src="/app.js"></script>
 </head>
@@ -61,7 +71,7 @@
     <aside id="session-panel" class="burnish-session-panel">
         <div class="burnish-session-panel-header">
             <span class="burnish-session-panel-title">Sessions</span>
-            <button id="btn-new-session" class="burnish-session-new-btn" title="New conversation">
+            <button id="btn-new-session" class="burnish-session-new-btn" title="New session">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
@@ -87,6 +97,11 @@
             <span class="burnish-breadcrumb" id="breadcrumb">Dashboard</span>
         </div>
         <div class="burnish-header-right">
+            <button id="theme-toggle" class="burnish-theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <svg class="burnish-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="burnish-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <div id="mode-toggle"></div>
             <button id="btn-dashboard-toggle" class="burnish-header-btn" title="Dashboard mode">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
                     <rect x="1" y="1" width="7" height="7" rx="1"/>
@@ -95,9 +110,6 @@
                     <rect x="10" y="10" width="7" height="7" rx="1"/>
                 </svg>
             </button>
-            <select id="model-select" class="burnish-model-select" title="Select model">
-                <option value="">Loading...</option>
-            </select>
         </div>
     </header>
 
@@ -114,33 +126,15 @@
                     </div>
                     <h2>Welcome to Burnish</h2>
                     <p>Explore your data visually through connected services.</p>
-                    <div class="burnish-suggestions">
-                        <button class="burnish-suggestion" data-prompt="What tools are available?">Available tools</button>
-                        <button class="burnish-suggestion" data-prompt="Show me an overview of the data">Data overview</button>
-                        <button class="burnish-suggestion" data-prompt="List everything you can access">List resources</button>
-                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Prompt bar -->
-    <footer class="burnish-prompt-bar">
-        <div class="burnish-prompt-container">
-            <textarea
-                id="prompt-input"
-                class="burnish-prompt-input"
-                placeholder="Ask about your data..."
-                rows="1"
-                autocomplete="off"
-            ></textarea>
-            <button id="btn-submit" class="burnish-prompt-submit" title="Send">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M2 10l7-7v4h9v6H9v4z" transform="rotate(-90 10 10)"/>
-                </svg>
-            </button>
-        </div>
-    </footer>
+    <!-- Copilot prompt bar (hidden unless copilot mode active) -->
+    <div id="copilot-prompt-bar">
+        <input type="text" placeholder="Ask a question in natural language..." id="copilot-input">
+    </div>
 
 </body>
 </html>

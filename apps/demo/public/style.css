@@ -5,8 +5,8 @@ body, h1, h2, h3, h4, p, ul, ol, figure, blockquote { margin: 0; padding: 0; }
 
 body {
     font-family: var(--burnish-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-    background: var(--burnish-surface-alt, #f5f6f8);
-    color: var(--burnish-text, #1f2937);
+    background: var(--burnish-surface-alt, #F8F5F5);
+    color: var(--burnish-text, #2D1F1F);
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -16,7 +16,7 @@ body {
 /* ── Header ── */
 .burnish-header {
     height: 48px;
-    background: var(--burnish-primary, #1a1a2e);
+    background: var(--burnish-primary, #2D1F1F);
     color: white;
     display: flex;
     align-items: center;
@@ -62,10 +62,10 @@ body {
     position: fixed;
     left: 0;
     top: 48px;
-    bottom: 60px;
+    bottom: 0;
     width: 260px;
-    background: #f9fafb;
-    border-right: 1px solid var(--burnish-border, #e5e7eb);
+    background: var(--burnish-surface-hover, #F3EDED);
+    border-right: 1px solid var(--burnish-border, #E5DDDD);
     display: flex;
     flex-direction: column;
     z-index: 5;
@@ -73,7 +73,7 @@ body {
 }
 .burnish-session-panel-header {
     padding: 12px 16px;
-    border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
     display: flex; align-items: center; justify-content: space-between;
     flex-shrink: 0;
 }
@@ -82,15 +82,15 @@ body {
     text-transform: uppercase; letter-spacing: 0.5px;
 }
 .burnish-session-new-btn {
-    background: none; border: 1px solid var(--burnish-border, #e5e7eb);
+    background: none; border: 1px solid var(--burnish-border, #E5DDDD);
     color: var(--burnish-text-secondary); cursor: pointer;
     padding: 4px 8px; border-radius: var(--burnish-radius-sm, 4px);
     display: flex; align-items: center;
     transition: all var(--burnish-transition-fast);
 }
 .burnish-session-new-btn:hover {
-    background: white; color: var(--burnish-text);
-    border-color: var(--burnish-accent, #4f6df5);
+    background: var(--burnish-surface, #fff); color: var(--burnish-text);
+    border-color: var(--burnish-accent, #8B3A3A);
 }
 /* ── Session Search ── */
 .burnish-session-search-wrap {
@@ -100,33 +100,33 @@ body {
 .burnish-session-search {
     width: 100%;
     padding: 7px 10px;
-    border: 1px solid var(--burnish-border, #e5e7eb);
+    border: 1px solid var(--burnish-border, #E5DDDD);
     border-radius: var(--burnish-radius-sm, 4px);
     font-size: 12px;
     font-family: inherit;
     color: var(--burnish-text);
-    background: white;
+    background: var(--burnish-surface, #fff);
     outline: none;
     transition: border-color var(--burnish-transition-fast);
     box-sizing: border-box;
 }
 .burnish-session-search:focus {
-    border-color: var(--burnish-accent, #4f6df5);
+    border-color: var(--burnish-accent, #8B3A3A);
 }
 .burnish-session-search::placeholder {
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
 }
 .burnish-session-match {
     font-size: 11px;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .burnish-session-match mark {
-    background: rgba(79, 109, 245, 0.15);
-    color: var(--burnish-accent, #4f6df5);
+    background: rgba(139, 58, 58, 0.15);
+    color: var(--burnish-accent, #8B3A3A);
     border-radius: 2px;
     padding: 0 1px;
 }
@@ -142,9 +142,9 @@ body {
     cursor: pointer; transition: all var(--burnish-transition-fast);
     position: relative; margin-bottom: 2px;
 }
-.burnish-session-item:hover { background: white; }
+.burnish-session-item:hover { background: var(--burnish-surface, #fff); }
 .burnish-session-item.active {
-    background: white; box-shadow: var(--burnish-shadow-sm);
+    background: var(--burnish-surface, #fff); box-shadow: var(--burnish-shadow-sm);
     position: relative;
 }
 .burnish-session-item.active::before {
@@ -152,7 +152,7 @@ body {
     position: absolute;
     top: 0; bottom: 0; left: 0;
     width: 3px;
-    background: var(--burnish-accent, #4f6df5);
+    background: var(--burnish-accent, #8B3A3A);
     border-radius: var(--burnish-radius-md, 4px) 0 0 var(--burnish-radius-md, 4px);
 }
 .burnish-session-title {
@@ -161,7 +161,7 @@ body {
     padding-right: 20px;
 }
 .burnish-session-meta {
-    font-size: 11px; color: var(--burnish-text-muted); margin-top: 2px;
+    font-size: 11px; color: var(--burnish-text-secondary); margin-top: 2px;
 }
 .burnish-session-delete {
     position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
@@ -185,21 +185,22 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--burnish-space-lg, 16px);
-    overflow-x: auto;
+    overflow-x: hidden; /* fallback for Safari <16 */
+    overflow-x: clip;
 }
 
 /* ── Inline Prompt Bubble ── */
 .burnish-node-prompt-bubble {
     display: flex; align-items: flex-start; gap: 10px;
     padding: 14px 16px 0;
-    border: 1px solid var(--burnish-border, #e5e7eb);
+    border: 1px solid var(--burnish-border, #E5DDDD);
     border-top: none;
     border-bottom: none;
-    background: var(--burnish-surface-alt, #f5f6f8);
+    background: var(--burnish-surface-alt, #F8F5F5);
 }
 .burnish-prompt-avatar {
     width: 28px; height: 28px; border-radius: var(--burnish-radius-round, 50%);
-    background: var(--burnish-accent, #4f6df5); color: white;
+    background: var(--burnish-accent, #8B3A3A); color: white;
     font-size: 11px; font-weight: 600;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
@@ -210,64 +211,17 @@ body {
 
 .burnish-mobile-only { display: none; }
 
-/* ── Prompt Bar ── */
-.burnish-prompt-bar {
-    height: 60px;
-    background: white;
-    border-top: 1px solid var(--burnish-border, #e5e7eb);
-    display: flex;
-    align-items: center;
-    padding: 0 24px;
-    flex-shrink: 0;
-    z-index: 10;
-}
-.burnish-prompt-container {
-    max-width: 800px;
-    margin: 0 auto;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--burnish-surface-alt, #f5f6f8);
-    border-radius: var(--burnish-radius-lg, 12px);
-    padding: 4px 8px 4px 16px;
-    border: 1px solid var(--burnish-border, #e5e7eb);
-    transition: border-color var(--burnish-transition-fast);
-}
-.burnish-prompt-container:focus-within { border-color: var(--burnish-accent, #4f6df5); }
-.burnish-prompt-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 14px;
-    font-family: inherit;
-    color: var(--burnish-text);
-    resize: none;
-    line-height: 1.4;
-    padding: 8px 0;
-}
-.burnish-prompt-submit {
-    width: 36px; height: 36px;
-    border-radius: var(--burnish-radius-md, 8px);
-    border: none;
-    background: var(--burnish-accent, #4f6df5);
-    color: white;
-    cursor: pointer;
+
+/* ── Empty State ── */
+.burnish-dashboard:has(.burnish-empty-state) {
+    min-height: calc(100vh - 48px);
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    transition: all var(--burnish-transition-fast);
 }
-.burnish-prompt-submit:hover { filter: brightness(1.1); }
-.burnish-prompt-submit.cancel { background: var(--burnish-error, #ef4444); }
-.burnish-prompt-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ── Empty State ── */
 .burnish-empty-state {
     text-align: center;
-    padding: 100px 20px 60px;
+    padding: 40px 20px;
     color: var(--burnish-text-secondary);
     max-width: 600px;
     margin: 0 auto;
@@ -280,14 +234,14 @@ body {
     margin-bottom: 6px;
     letter-spacing: -0.02em;
 }
-.burnish-empty-state p { font-size: 15px; margin-bottom: 32px; color: var(--burnish-text-muted, #9ca3af); }
+.burnish-empty-state p { font-size: 15px; margin-bottom: 32px; color: var(--burnish-text-muted, #9C8F8F); }
 
 .burnish-suggestions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .burnish-suggestion {
     padding: 8px 16px;
     border-radius: var(--burnish-radius-pill, 20px);
-    border: 1px solid var(--burnish-border, #e5e7eb);
-    background: white;
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    background: var(--burnish-surface, #fff);
     font-size: 13px;
     cursor: pointer;
     transition: all var(--burnish-transition-fast);
@@ -308,6 +262,8 @@ body {
     text-transform: capitalize;
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 .burnish-server-status {
     display: inline-block;
@@ -325,7 +281,7 @@ body {
     justify-content: center;
     flex-wrap: wrap;
     padding-top: 16px;
-    border-top: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-top: 1px solid var(--burnish-border-light, #F0EAEA);
 }
 .burnish-tool-shortcuts:empty { display: none; border: none; padding: 0; }
 .burnish-starter-prompts {
@@ -338,8 +294,9 @@ body {
 .burnish-starter-prompts:empty { display: none; padding: 0; }
 .burnish-suggestion-sub {
     display: block;
+    width: 100%;
     font-size: 11px;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     font-weight: 400;
     margin-top: 2px;
 }
@@ -347,21 +304,21 @@ body {
     width: 140px;
     height: 40px;
     border-radius: var(--burnish-radius-pill, 20px);
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(90deg, var(--burnish-border, #E5DDDD) 25%, var(--burnish-border-light, #F0EAEA) 50%, var(--burnish-border, #E5DDDD) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
 }
 .burnish-suggestion:hover {
-    border-color: var(--burnish-accent, #4f6df5);
+    border-color: var(--burnish-accent, #8B3A3A);
     color: var(--burnish-accent);
-    background: rgba(79, 109, 245, 0.04);
+    background: rgba(139, 58, 58, 0.04);
 }
 
 /* ── Empty State Hint ── */
 .burnish-empty-hint {
     margin-top: 24px;
     font-size: 13px;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
 }
 .burnish-hint-text {
     font-style: italic;
@@ -372,7 +329,7 @@ body {
 .burnish-skeleton-stat-bar { display: flex; gap: 12px; margin-bottom: 24px; }
 .burnish-skeleton-pill {
     width: 120px; height: 40px;
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(90deg, var(--burnish-border, #E5DDDD) 25%, var(--burnish-border-light, #F0EAEA) 50%, var(--burnish-border, #E5DDDD) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     border-radius: 20px;
@@ -384,83 +341,16 @@ body {
 }
 .burnish-skeleton-card {
     height: 120px;
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background: linear-gradient(90deg, var(--burnish-border, #E5DDDD) 25%, var(--burnish-border-light, #F0EAEA) 50%, var(--burnish-border, #E5DDDD) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     border-radius: 4px;
 }
-.burnish-progress-indicator {
-    text-align: center;
-    padding: 16px;
-    color: var(--burnish-text-muted);
-    font-size: 13px;
-}
-
 @keyframes shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
 
-/* ── Progress Audit Trail ── */
-.burnish-progress {
-    padding: 4px 0;
-    max-width: 600px;
-}
-.burnish-progress-trail {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 300px;
-    overflow-y: auto;
-}
-.burnish-progress-entry {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: var(--burnish-text-muted, #9ca3af);
-    animation: fadeSlideIn 0.2s ease-out;
-}
-.burnish-progress-entry.done {
-    color: var(--burnish-success, #22c55e);
-}
-.burnish-progress-entry.active {
-    color: var(--burnish-text, #1f2937);
-    font-weight: 500;
-}
-.burnish-progress-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin: 4px;
-}
-.burnish-progress-entry.done .burnish-progress-dot {
-    background: var(--burnish-success, #22c55e);
-}
-.burnish-progress-entry.active .burnish-progress-dot {
-    background: var(--burnish-accent, #4f6df5);
-    animation: pulse-dot 1.2s ease-in-out infinite;
-}
-@keyframes pulse-dot {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.6); opacity: 0.6; }
-}
-.burnish-progress-label { flex: 1; }
-.burnish-progress-time {
-    font-size: 11px;
-    color: var(--burnish-text-muted, #9ca3af);
-    font-variant-numeric: tabular-nums;
-    min-width: 36px;
-    text-align: right;
-    flex-shrink: 0;
-}
-.burnish-progress-entry.active .burnish-progress-time {
-    color: var(--burnish-accent, #4f6df5);
-}
-.burnish-progress-entry.done .burnish-progress-time {
-    color: var(--burnish-success, #22c55e);
-}
 
 /* ── Component fade-in ── */
 .burnish-node-content > :not(.burnish-progress):not(.burnish-skeleton) {
@@ -471,44 +361,15 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Model Selector ── */
-.burnish-model-select {
-    background: rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.9);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 4px;
-    padding: 4px 24px 4px 8px;
-    font-size: 11px;
-    font-family: inherit;
-    cursor: pointer;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.6)' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    min-width: 100px;
-}
-.burnish-model-select:hover {
-    background-color: rgba(255,255,255,0.15);
-    border-color: rgba(255,255,255,0.3);
-}
-.burnish-model-select:focus {
-    border-color: var(--burnish-accent, #4f6df5);
-}
-.burnish-model-select option {
-    background: #1a1a2e;
-    color: white;
-}
 
 /* ── Text Response (Markdown) ── */
 .burnish-text-response {
     max-width: 800px;
     font-size: 14px;
     line-height: 1.7;
-    color: var(--burnish-text, #1f2937);
+    color: var(--burnish-text, #2D1F1F);
     padding: 28px 32px;
-    background: white;
+    background: var(--burnish-surface, #fff);
     border-radius: var(--burnish-radius-md, 8px);
     box-shadow: var(--burnish-shadow-sm);
 }
@@ -518,7 +379,7 @@ body {
 .burnish-text-response h2,
 .burnish-text-response h3,
 .burnish-text-response h4 {
-    color: var(--burnish-text, #1f2937);
+    color: var(--burnish-text, #2D1F1F);
     font-weight: 600;
     line-height: 1.3;
     margin-top: 1.5em;
@@ -533,12 +394,12 @@ body {
 .burnish-text-response h2 {
     font-size: 1.25em;
     padding-bottom: 0.3em;
-    border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
 }
 .burnish-text-response h3 { font-size: 1.1em; }
 .burnish-text-response h4 {
     font-size: 1em;
-    color: var(--burnish-text-secondary, #6b7280);
+    color: var(--burnish-text-secondary, #6B5A5A);
 }
 
 /* Paragraphs */
@@ -568,13 +429,13 @@ body {
 
 /* Inline code */
 .burnish-text-response code {
-    background: var(--burnish-surface-alt, #f5f6f8);
+    background: var(--burnish-surface-alt, #F8F5F5);
     padding: 2px 6px;
     border-radius: 4px;
     font-family: var(--burnish-font-mono);
     font-size: 0.875em;
-    color: var(--burnish-accent, #4f6df5);
-    border: 1px solid var(--burnish-border-light, #f3f4f6);
+    color: var(--burnish-accent, #8B3A3A);
+    border: 1px solid var(--burnish-border-light, #F0EAEA);
 }
 
 /* Code blocks */
@@ -601,28 +462,28 @@ body {
 /* Horizontal rules */
 .burnish-text-response hr {
     border: none;
-    border-top: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-top: 1px solid var(--burnish-border-light, #F0EAEA);
     margin: 1.5em 0;
 }
 
 /* Blockquotes */
 .burnish-text-response blockquote {
-    border-left: 3px solid var(--burnish-accent, #4f6df5);
+    border-left: 3px solid var(--burnish-accent, #8B3A3A);
     margin: 0 0 1em 0;
     padding: 0.5em 1em;
-    color: var(--burnish-text-secondary, #6b7280);
-    background: var(--burnish-surface-alt, #f5f6f8);
+    color: var(--burnish-text-secondary, #6B5A5A);
+    background: var(--burnish-surface-alt, #F8F5F5);
     border-radius: 0 var(--burnish-radius-sm, 4px) var(--burnish-radius-sm, 4px) 0;
 }
 .burnish-text-response blockquote p:last-child { margin-bottom: 0; }
 
 /* Bold & italic */
-.burnish-text-response strong { font-weight: 600; color: var(--burnish-text, #1f2937); }
+.burnish-text-response strong { font-weight: 600; color: var(--burnish-text, #2D1F1F); }
 .burnish-text-response em { font-style: italic; }
 
 /* Links */
 .burnish-text-response a {
-    color: var(--burnish-link, #3b82f6);
+    color: var(--burnish-link, #7C3030);
     text-decoration: none;
 }
 .burnish-text-response a:hover { text-decoration: underline; }
@@ -637,17 +498,17 @@ body {
 .burnish-text-response th {
     text-align: left;
     padding: 8px 12px;
-    background: var(--burnish-surface-alt, #f5f6f8);
-    border-bottom: 2px solid var(--burnish-border, #e5e7eb);
+    background: var(--burnish-surface-alt, #F8F5F5);
+    border-bottom: 2px solid var(--burnish-border, #E5DDDD);
     font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    color: var(--burnish-text-secondary, #6b7280);
+    color: var(--burnish-text-secondary, #6B5A5A);
 }
 .burnish-text-response td {
     padding: 8px 12px;
-    border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
 }
 .burnish-text-response tr:last-child td { border-bottom: none; }
 .burnish-text-preamble {
@@ -679,17 +540,17 @@ body {
     cursor: pointer;
     user-select: none;
     border-radius: var(--burnish-radius-md, 8px);
-    background: white;
-    border: 1px solid var(--burnish-border-light, #f3f4f6);
+    background: var(--burnish-surface, #fff);
+    border: 1px solid var(--burnish-border-light, #F0EAEA);
     transition: all var(--burnish-transition-fast);
 }
 .burnish-node-header:hover {
-    background: var(--burnish-surface-hover, #f9fafb);
-    border-color: var(--burnish-border, #e5e7eb);
+    background: var(--burnish-surface-hover, #F3EDED);
+    border-color: var(--burnish-border, #E5DDDD);
 }
 .burnish-node[data-collapsed="false"] .burnish-node-header {
-    background: white;
-    border-color: var(--burnish-border, #e5e7eb);
+    background: var(--burnish-surface, #fff);
+    border-color: var(--burnish-border, #E5DDDD);
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     border-bottom: none;
@@ -697,7 +558,7 @@ body {
 }
 .burnish-node-chevron {
     font-size: 12px;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     transition: transform var(--burnish-transition-fast);
     flex-shrink: 0;
     width: 16px;
@@ -709,7 +570,7 @@ body {
 .burnish-node-prompt {
     font-size: var(--burnish-font-size-md, 14px);
     font-weight: 500;
-    color: var(--burnish-text, #1f2937);
+    color: var(--burnish-text, #2D1F1F);
     flex: 1;
     min-width: 0;
     white-space: nowrap;
@@ -718,7 +579,7 @@ body {
 }
 .burnish-node-summary {
     font-size: var(--burnish-font-size-sm, 12px);
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -730,35 +591,31 @@ body {
     gap: 4px;
 }
 .burnish-node-tag {
-    background: var(--burnish-surface-alt, #f5f6f8);
-    color: var(--burnish-text-secondary, #6b7280);
+    background: var(--burnish-surface-alt, #F8F5F5);
+    color: var(--burnish-text-secondary, #6B5A5A);
     font-size: 10px;
     padding: 1px 6px;
     border-radius: 3px;
     font-family: var(--burnish-font-mono);
 }
 .burnish-node[data-collapsed="false"] .burnish-node-tag {
-    background: white;
+    background: var(--burnish-surface, #fff);
 }
 .burnish-node-time {
     font-size: var(--burnish-font-size-xs, 11px);
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     flex-shrink: 0;
-}
-/* Hide "just now" while streaming (header contains a spinner) */
-.burnish-node-header:has(.burnish-node-spinner) .burnish-node-time {
-    display: none;
 }
 /* ── Tree Layout ── */
 .burnish-tree {
     display: flex;
     flex-direction: column;
-    min-width: min-content;
+    min-width: 0;
 }
 .burnish-tree-connector {
     width: 1px;
     height: 8px;
-    background: var(--burnish-border, #e5e7eb);
+    background: var(--burnish-border, #E5DDDD);
     margin: 0 auto;
 }
 .burnish-tree-branches {
@@ -782,7 +639,7 @@ body {
 .burnish-node-delete {
     background: none;
     border: none;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     cursor: pointer;
     font-size: 16px;
     padding: 0 4px;
@@ -796,7 +653,7 @@ body {
 .burnish-node-maximize {
     background: none;
     border: none;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     cursor: pointer;
     padding: 0 4px;
     opacity: 0;
@@ -805,16 +662,16 @@ body {
     line-height: 1;
 }
 .burnish-node-header:hover .burnish-node-maximize { opacity: 1; }
-.burnish-node-maximize:hover { color: var(--burnish-accent, #4f6df5); }
+.burnish-node-maximize:hover { color: var(--burnish-accent, #8B3A3A); }
 .burnish-node-maximized {
     position: fixed !important;
     top: 48px !important;
     left: 260px !important;
     right: 0 !important;
-    bottom: 60px !important;
+    bottom: 0 !important;
     width: calc(100vw - 260px) !important;
     z-index: 50;
-    background: var(--burnish-surface-alt, #f5f6f8);
+    background: var(--burnish-surface-alt, #F8F5F5);
     overflow-y: auto;
     border-radius: 0 !important;
     margin: 0 !important;
@@ -842,7 +699,7 @@ body {
 .burnish-node-info {
     background: none;
     border: none;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     cursor: help;
     padding: 0 4px;
     opacity: 0;
@@ -851,12 +708,12 @@ body {
     line-height: 1;
 }
 .burnish-node-header:hover .burnish-node-info { opacity: 1; }
-.burnish-node-info:hover { color: var(--burnish-accent, #4f6df5); }
+.burnish-node-info:hover { color: var(--burnish-accent, #8B3A3A); }
 /* Refresh button */
 .burnish-node-refresh {
     background: none;
     border: none;
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     cursor: pointer;
     padding: 0 4px;
     opacity: 0;
@@ -865,58 +722,13 @@ body {
     line-height: 1;
 }
 .burnish-node-header:hover .burnish-node-refresh { opacity: 1; }
-.burnish-node-refresh:hover { color: var(--burnish-accent, #4f6df5); }
-/* Feedback buttons */
-.burnish-feedback-btn {
-    opacity: 0.3;
-    font-size: 11px;
-    padding: 2px 4px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: all 0.15s ease;
-    flex-shrink: 0;
-    line-height: 1;
-}
-.burnish-feedback-btn:hover { opacity: 0.7; }
-.burnish-feedback-btn.active { opacity: 1; background: rgba(79, 109, 245, 0.1); }
-.burnish-feedback-btn.active[data-feedback="up"] { color: var(--burnish-success, #22c55e); }
-.burnish-feedback-btn.active[data-feedback="down"] { color: var(--burnish-error, #ef4444); }
-.burnish-node-header:hover .burnish-feedback-btn { opacity: 0.5; }
-.burnish-node-header:hover .burnish-feedback-btn.active { opacity: 1; }
+.burnish-node-refresh:hover { color: var(--burnish-accent, #8B3A3A); }
 /* Always show action buttons on expanded nodes */
 .burnish-node[data-collapsed="false"] .burnish-node-maximize,
 .burnish-node[data-collapsed="false"] .burnish-node-refresh,
 .burnish-node[data-collapsed="false"] .burnish-node-delete,
 .burnish-node[data-collapsed="false"] .burnish-node-info { opacity: 1; }
-.burnish-node[data-collapsed="false"] .burnish-feedback-btn { opacity: 0.5; }
-.burnish-node[data-collapsed="false"] .burnish-feedback-btn.active { opacity: 1; }
 .burnish-node-header:hover .burnish-node-delete { opacity: 1; }
-/* Inline status text in node header during streaming */
-.burnish-node-status {
-    font-size: 11px;
-    color: var(--burnish-text-muted, #9ca3af);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 300px;
-    flex-shrink: 1;
-}
-/* Spinning indicator in node header while streaming */
-.burnish-node-spinner {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--burnish-border, #e5e7eb);
-    border-top-color: var(--burnish-accent, #4f6df5);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    flex-shrink: 0;
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
 .burnish-node-delete:hover {
     color: var(--burnish-error, #ef4444);
     background: var(--burnish-border-error, #fee2e2);
@@ -926,10 +738,10 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--burnish-space-lg, 16px);
-    border: 1px solid var(--burnish-border, #e5e7eb);
+    border: 1px solid var(--burnish-border, #E5DDDD);
     border-top: none;
     border-radius: 0 0 var(--burnish-radius-md, 4px) var(--burnish-radius-md, 4px);
-    background: var(--burnish-surface-alt, #f5f6f8);
+    background: var(--burnish-surface-alt, #F8F5F5);
 }
 /* Non-card elements span full grid width */
 .burnish-node-content > :not(burnish-card) {
@@ -946,22 +758,51 @@ body {
 }
 /* Flash animation for scroll-to */
 @keyframes node-highlight {
-    0% { box-shadow: 0 0 0 3px rgba(79, 109, 245, 0.4); }
+    0% { box-shadow: 0 0 0 3px rgba(139, 58, 58, 0.4); }
     100% { box-shadow: 0 0 0 3px transparent; }
 }
 .burnish-node-highlight {
     animation: node-highlight 1s ease-out;
 }
 
+/* ── View Switcher ── */
+.burnish-view-switcher {
+    display: flex; align-items: center; gap: 4px; padding: 8px 0; margin-bottom: 4px;
+}
+.burnish-view-btn {
+    padding: 4px 12px; border: 1px solid var(--burnish-border, #E5DDDD); border-radius: 4px;
+    background: var(--burnish-surface, #fff); cursor: pointer; font-size: 12px;
+    color: var(--burnish-text-secondary, #6B5A5A); transition: all 0.15s ease;
+}
+.burnish-view-btn:hover { border-color: var(--burnish-accent, #8B3A3A); color: var(--burnish-accent, #8B3A3A); }
+.burnish-view-btn.active {
+    background: var(--burnish-accent, #8B3A3A); color: white;
+    border-color: var(--burnish-accent, #8B3A3A);
+}
+.burnish-view-count {
+    font-size: 12px; color: var(--burnish-text-muted, #9C8F8F); margin-left: 8px;
+}
+.burnish-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--burnish-space-md, 12px);
+}
+.burnish-json-view {
+    background: var(--burnish-surface-alt, #F8F5F5); padding: 16px; border-radius: 4px;
+    font-size: 11px; font-family: var(--burnish-font-mono, 'SF Mono', monospace);
+    overflow: auto; max-height: 500px; white-space: pre-wrap; word-break: break-all;
+    border: 1px solid var(--burnish-border-light, #F0EAEA);
+}
+
 /* ── Diagnostic Panel ── */
 .burnish-diagnostic-panel {
-    background: white;
-    border: 1px solid var(--burnish-border-light, #f3f4f6);
+    background: var(--burnish-surface, #fff);
+    border: 1px solid var(--burnish-border-light, #F0EAEA);
     border-radius: var(--burnish-radius-sm, 4px);
     padding: 12px 16px;
     font-size: 12px;
     font-family: var(--burnish-font-mono, 'SF Mono', 'Fira Code', 'Fira Mono', monospace);
-    color: var(--burnish-text-secondary, #6b7280);
+    color: var(--burnish-text-secondary, #6B5A5A);
     animation: fadeSlideIn 0.2s ease-out;
 }
 .burnish-diag-metrics {
@@ -970,10 +811,10 @@ body {
     gap: 16px;
     margin-bottom: 12px;
     padding-bottom: 10px;
-    border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
 }
 .burnish-diag-metric strong {
-    color: var(--burnish-text, #1f2937);
+    color: var(--burnish-text, #2D1F1F);
     margin-right: 4px;
 }
 .burnish-diag-steps {
@@ -998,7 +839,7 @@ body {
     min-width: 0;
 }
 .burnish-diag-time {
-    color: var(--burnish-text-muted, #9ca3af);
+    color: var(--burnish-text-muted, #9C8F8F);
     font-variant-numeric: tabular-nums;
     min-width: 36px;
     text-align: right;
@@ -1010,15 +851,14 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--burnish-text, #1f2937);
+    color: var(--burnish-text, #2D1F1F);
     margin: 10px 0 6px;
     padding-top: 10px;
-    border-top: 1px solid var(--burnish-border-light, #f3f4f6);
+    border-top: 1px solid var(--burnish-border-light, #F0EAEA);
 }
 
 /* ── Dashboard Mode ── */
 [data-dashboard="true"] .burnish-session-panel { display: none; }
-[data-dashboard="true"] .burnish-prompt-bar { display: none; }
 [data-dashboard="true"] .burnish-content { margin-left: 0; }
 [data-dashboard="true"] .burnish-node-header { display: none; }
 [data-dashboard="true"] .burnish-node-prompt-bubble { display: none; }
@@ -1048,7 +888,7 @@ body {
     gap: 6px;
     padding: 8px 12px;
     margin-bottom: 8px;
-    background: var(--burnish-bg-secondary, #1a1a2e);
+    background: var(--burnish-bg-secondary, #2D1F1F);
     border-radius: 8px;
     font-size: 12px;
     flex-wrap: wrap;
@@ -1111,23 +951,353 @@ body {
     .burnish-skeleton-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Empty prompt shake ── */
-@keyframes promptShake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-4px); }
-    40%, 80% { transform: translateX(4px); }
-}
-.burnish-prompt-container .burnish-prompt-input.burnish-prompt-shake {
-    animation: promptShake 0.4s ease-out;
-    border-color: var(--burnish-warning, #eab308);
-}
-
 @media (max-width: 480px) {
     .burnish-empty-state { padding: 40px 16px 40px; }
     .burnish-empty-state h2 { font-size: 22px; }
     .burnish-server-buttons { flex-direction: column; align-items: center; }
     .burnish-tool-shortcuts { flex-direction: column; align-items: center; }
     .burnish-starter-prompts { flex-direction: column; align-items: center; }
-    .burnish-prompt-bar { padding: 0 12px; }
-    .burnish-prompt-container { max-width: 100%; }
+}
+
+/* Loading spinner for tool execution */
+.burnish-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    color: var(--burnish-text-muted, #9C8F8F);
+    font-size: 14px;
+}
+.burnish-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--burnish-border, #E5DDDD);
+    border-top-color: var(--burnish-accent, #8B3A3A);
+    border-radius: 50%;
+    animation: burnish-spin 0.6s linear infinite;
+}
+@keyframes burnish-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Truncation notice */
+.burnish-truncation-notice {
+    padding: 8px 12px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--burnish-text-muted, #9C8F8F);
+    text-align: center;
+    border-top: 1px solid var(--burnish-border, #E5DDDD);
+}
+
+/* ── Mode Toggle ── */
+.burnish-mode-toggle {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    background: var(--burnish-surface-alt, #F0EAEA);
+    border-radius: 6px;
+}
+.burnish-mode-btn {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--burnish-text-secondary, #6B5A5A);
+    transition: all 0.15s ease;
+}
+.burnish-mode-btn.active {
+    background: var(--burnish-surface, #fff);
+    color: var(--burnish-text, #2D1F1F);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* ── AI Insight Slot ── */
+.burnish-ai-insight {
+    display: none;
+    min-height: 48px;
+    margin-top: 12px;
+    padding: 12px;
+    border-left: 3px solid var(--burnish-accent, #8B3A3A);
+    background: var(--burnish-surface-alt, #F8F5F5);
+    border-radius: 0 4px 4px 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.burnish-ai-insight.loaded { opacity: 1; }
+.burnish-insight-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--burnish-text-muted, #9C8F8F);
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* ── Copilot Prompt Bar ── */
+#copilot-prompt-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: var(--burnish-surface, #fff);
+    border-top: 1px solid var(--burnish-border, #E5DDDD);
+    display: none;
+    z-index: 100;
+}
+#copilot-prompt-bar input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+}
+#copilot-prompt-bar input:focus {
+    border-color: var(--burnish-accent, #8B3A3A);
+    box-shadow: 0 0 0 2px rgba(139, 58, 58, 0.1);
+}
+
+/* ── Execution Timing Badge ── */
+.burnish-timing {
+    display: inline-block;
+    padding: 2px 8px;
+    margin-left: 8px;
+    font-family: var(--burnish-font-mono, monospace);
+    font-size: var(--burnish-font-size-xs, 12px);
+    color: var(--burnish-text-muted, #9C8F8F);
+    background: var(--burnish-surface-alt, #F8F5F5);
+    border-radius: 10px;
+    border: 1px solid var(--burnish-border, #E5DDDD);
+}
+
+/* ── Copy to Clipboard ── */
+.burnish-json-wrapper {
+    position: relative;
+}
+.burnish-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    font-size: var(--burnish-font-size-xs, 12px);
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    border-radius: 4px;
+    background: var(--burnish-surface, #fff);
+    color: var(--burnish-text-secondary, #6B5A5A);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    z-index: 1;
+}
+.burnish-copy-btn:hover {
+    border-color: var(--burnish-accent, #8B3A3A);
+    color: var(--burnish-accent, #8B3A3A);
+}
+.burnish-copied {
+    background: var(--burnish-success-bg, #dcfce7);
+    border-color: var(--burnish-success, #22c55e);
+    color: var(--burnish-success, #22c55e);
+}
+
+/* ── Tool Call Section ── */
+.burnish-tool-call {
+    margin-top: 8px;
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.burnish-tool-call > summary {
+    padding: 8px 12px;
+    font-size: var(--burnish-font-size-sm, 13px);
+    font-weight: 500;
+    color: var(--burnish-text-secondary, #6B5A5A);
+    background: var(--burnish-surface-alt, #F8F5F5);
+    cursor: pointer;
+    user-select: none;
+}
+.burnish-tool-call > summary:hover {
+    color: var(--burnish-text, #2D1F1F);
+}
+.burnish-tool-call-content {
+    position: relative;
+    padding: 0;
+}
+.burnish-tool-call-content pre {
+    margin: 0;
+    padding: 12px;
+    font-size: var(--burnish-font-size-sm, 13px);
+    background: var(--burnish-surface, #fff);
+    overflow-x: auto;
+}
+.burnish-tool-call-content .burnish-copy-btn {
+    top: 4px;
+    right: 4px;
+}
+
+/* ── Tool Filter/Search Bar ── */
+.burnish-tool-filter-container {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 8px 0 12px;
+    background: inherit;
+}
+.burnish-tool-filter {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    border-radius: 8px;
+    font-size: var(--burnish-font-size-base, 14px);
+    color: var(--burnish-text, #2D1F1F);
+    background-color: var(--burnish-surface-alt, #F8F5F5);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239C8F8F' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-position: 12px center;
+    background-repeat: no-repeat;
+    outline: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.burnish-tool-filter:focus {
+    border-color: var(--burnish-accent, #8B3A3A);
+    box-shadow: 0 0 0 3px var(--burnish-accent-light, #F5ECEC);
+}
+.burnish-tool-filter::placeholder {
+    color: var(--burnish-text-muted, #9C8F8F);
+}
+
+/* ── Schema Tree Viewer ── */
+.burnish-schema-tree-wrapper {
+    margin-bottom: 12px;
+}
+.burnish-schema-tree-wrapper > summary {
+    cursor: pointer;
+    list-style: none;
+}
+.burnish-schema-tree-wrapper > summary::before {
+    content: '\25BC ';
+    font-size: 10px;
+}
+.burnish-schema-tree-wrapper:not([open]) > summary::before {
+    content: '\25B6 ';
+}
+.burnish-schema-tree {
+    font-family: var(--burnish-font-mono, monospace);
+    font-size: var(--burnish-font-size-sm, 13px);
+    line-height: 1.8;
+    padding: 12px 16px;
+    background: var(--burnish-surface-alt, #F8F5F5);
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    border-radius: 8px;
+    margin-top: 6px;
+    overflow-x: auto;
+}
+.burnish-schema-header {
+    font-weight: 600;
+    font-size: var(--burnish-font-size-base, 14px);
+    padding: 4px 0;
+    color: var(--burnish-text, #2D1F1F);
+    font-family: var(--burnish-font-family, sans-serif);
+}
+.burnish-schema-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    padding: 2px 0;
+}
+.burnish-schema-indent {
+    color: var(--burnish-text-muted, #9C8F8F);
+    white-space: pre;
+    user-select: none;
+}
+.burnish-schema-name {
+    font-weight: 600;
+    color: var(--burnish-text, #2D1F1F);
+}
+.burnish-schema-type {
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: var(--burnish-font-size-xs, 12px);
+    background: var(--burnish-accent-light, #F5ECEC);
+    color: var(--burnish-accent, #8B3A3A);
+    border-radius: 3px;
+    font-weight: 500;
+}
+.burnish-schema-required {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--burnish-error, #ef4444);
+    background: var(--burnish-border-error, #fee2e2);
+    border-radius: 3px;
+}
+.burnish-schema-optional {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--burnish-text-muted, #9C8F8F);
+    border-radius: 3px;
+}
+.burnish-schema-desc {
+    color: var(--burnish-text-secondary, #6B5A5A);
+    font-style: italic;
+    font-family: var(--burnish-font-family, sans-serif);
+    font-size: var(--burnish-font-size-sm, 13px);
+}
+.burnish-schema-constraints {
+    font-size: var(--burnish-font-size-xs, 12px);
+    color: var(--burnish-text-muted, #9C8F8F);
+    padding: 0 0 2px;
+}
+.burnish-schema-empty {
+    color: var(--burnish-text-muted, #9C8F8F);
+    font-style: italic;
+    padding: 12px;
+}
+details.burnish-schema-prop > summary {
+    cursor: pointer;
+    list-style: none;
+}
+details.burnish-schema-prop > summary::before {
+    content: '\25B6 ';
+    font-size: 10px;
+}
+details.burnish-schema-prop[open] > summary::before {
+    content: '\25BC ';
+}
+
+/* ── Theme Toggle ── */
+.burnish-theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.burnish-theme-toggle:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+/* Show sun icon in dark mode, moon icon in light mode */
+.burnish-theme-icon-moon { display: inline; }
+.burnish-theme-icon-sun { display: none; }
+[data-theme="dark"] .burnish-theme-icon-moon { display: none; }
+[data-theme="dark"] .burnish-theme-icon-sun { display: inline; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .burnish-theme-icon-moon { display: none; }
+    :root:not([data-theme="light"]) .burnish-theme-icon-sun { display: inline; }
 }

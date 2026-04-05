@@ -1,0 +1,37 @@
+{
+  "name": "burnish",
+  "version": "0.1.0",
+  "description": "Swagger UI for MCP servers — explore, test, and visualize any MCP server",
+  "type": "module",
+  "bin": {
+    "burnish": "./dist/cli.js"
+  },
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc && node scripts/bundle-assets.js",
+    "clean": "rm -rf dist assets"
+  },
+  "dependencies": {
+    "@burnish/server": "workspace:*",
+    "@hono/node-server": "^1.14.0",
+    "hono": "^4.7.0",
+    "open": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danfking/burnish"
+  },
+  "keywords": ["mcp", "model-context-protocol", "swagger", "ui", "explorer", "cli"]
+}

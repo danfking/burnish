@@ -48,7 +48,7 @@ export class BurnishSection extends LitElement {
             return 'var(--burnish-warning, #eab308)';
         if (s === 'success' || s === 'healthy')
             return 'var(--burnish-success, #22c55e)';
-        return 'var(--burnish-muted, #9ca3af)';
+        return 'var(--burnish-muted, #9C8F8F)';
     }
     render() {
         const countText = this.count != null ? `(${this.count})` : '';

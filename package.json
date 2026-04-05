@@ -4,9 +4,10 @@
   "description": "Universal UI layer for MCP servers",
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm --filter demo dev",
-    "dev:cli": "pnpm --filter demo dev:cli",
-    "dev:local": "pnpm --filter demo dev:local",
+    "dev": "pnpm -r build && pnpm --filter demo dev",
+    "dev:nomodel": "pnpm -r build && pnpm --filter demo dev:nomodel",
+    "test": "npx playwright test",
+    "test:ci": "npx playwright test --project=chromium",
     "clean": "pnpm -r clean",
     "prepare": "git config core.hooksPath .githooks"
   },
