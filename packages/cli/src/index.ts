@@ -14,3 +14,6 @@
 
 export { startServerWithHub, buildApp } from './server.js';
 export type { ServerOptions } from './server.js';
+
+export { withBurnishUI } from './middleware.js';
+export type { BurnishUIOptions } from './middleware.js';
