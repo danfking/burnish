@@ -38,11 +38,16 @@ export function generateToolListingHtml(serverName, tools) {
         groups[verb].push(tool);
     }
 
-    const statItems = Object.entries(groups).map(([verb, items]) => ({
-        label: verb.charAt(0).toUpperCase() + verb.slice(1),
-        value: String(items.length),
-        color: items.some(t => WRITE_TOOL_RE.test(t.name)) ? 'warning' : 'info',
-    }));
+    const statItems = Object.entries(groups).map(([verb, items]) => {
+        const verbColor = HIGH_RISK_RE.test(verb + '_') ? 'error'
+            : MEDIUM_RISK_RE.test(verb + '_') ? 'warning'
+            : 'success';
+        return {
+            label: verb.charAt(0).toUpperCase() + verb.slice(1),
+            value: String(items.length),
+            color: verbColor,
+        };
+    });
     let html = `<burnish-stat-bar items='${escapeAttr(JSON.stringify(statItems))}'></burnish-stat-bar>`;
 
     html += `<div class="burnish-tool-filter-container">
@@ -54,8 +59,8 @@ export function generateToolListingHtml(serverName, tools) {
         html += `<burnish-section label="${escapeAttr(label)}" count="${items.length}" status="info">`;
         for (const tool of items) {
             const risk = assessToolRisk(tool);
-            const riskStatus = risk.level === 'high' ? 'error' : risk.level === 'medium' ? 'warning' : 'muted';
-            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${riskStatus}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
+            const riskStatus = risk.level === 'high' ? 'error' : risk.level === 'medium' ? 'warning' : 'success';
+            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${riskStatus}" status-label="${risk.level}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
         }
         html += `</burnish-section>`;
     }

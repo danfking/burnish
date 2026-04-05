@@ -104,6 +104,11 @@ export function transformOutput(html: string, options?: TransformOutputOptions):
             return;
         }
 
+        // Preserve risk-based status set by tool listing renderer
+        if (itemId && !itemId.includes('__')) {
+            return;
+        }
+
         // Cards in listing context: only override "success" → "info"
         if (status === 'success') {
             const parentSection = card.closest('burnish-section');
@@ -122,10 +127,16 @@ export function transformOutput(html: string, options?: TransformOutputOptions):
     });
 
     // Rule 1c: Stat-bar chips should use "info" when sibling content is informational
+    // Skip for tool listing stat-bars (where sibling cards have item-id without __)
     root.querySelectorAll('burnish-stat-bar').forEach(bar => {
         const parent = bar.parentElement;
         const hasSections = parent?.querySelector('burnish-section');
         if (hasSections) {
+            // Check if this is a tool listing context (cards with simple item-id)
+            const toolListingCard = parent?.querySelector('burnish-card[item-id]');
+            const isToolListing = toolListingCard && !toolListingCard.getAttribute('item-id')?.includes('__');
+            if (isToolListing) return; // Preserve risk-based stat-bar colors
+
             try {
                 const items = JSON.parse(bar.getAttribute('items') || '[]');
                 const hasGreen = items.some((i: any) => i.color === 'success' || i.color === 'healthy');

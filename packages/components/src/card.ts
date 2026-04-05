@@ -5,6 +5,7 @@ export class BurnishCard extends LitElement {
     static properties = {
         title: { type: String },
         status: { type: String },
+        'status-label': { type: String, attribute: 'status-label' },
         body: { type: String },
         meta: { type: String },
         'item-id': { type: String, attribute: 'item-id' },
@@ -159,6 +160,7 @@ export class BurnishCard extends LitElement {
 
     declare title: string;
     declare status: string;
+    declare 'status-label': string;
     declare body: string;
     declare meta: string;
     declare 'item-id': string;
@@ -261,7 +263,7 @@ export class BurnishCard extends LitElement {
         } catch { this._parseError = true; return; }
 
         const s = this.status || 'muted';
-        const badgeText = s.toUpperCase();
+        const badgeText = (this['status-label'] || s).toUpperCase();
         return html`
             <div class="card" data-status="${statusColor}" role="article" aria-label="${this.title || ''}"
                  @click=${this._handleClick} @keydown=${this._handleKeydown}>
