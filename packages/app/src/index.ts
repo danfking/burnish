@@ -34,3 +34,8 @@ export {
 } from './summary.js';
 
 export { StreamOrchestrator } from './stream-orchestrator.js';
+
+export {
+    assessToolRisk,
+    type ToolRisk,
+} from './risk-indicators.js';
