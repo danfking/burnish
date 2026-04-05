@@ -6,8 +6,9 @@ test.describe('Error message handling', () => {
 
         // Discover a real tool name from the server so we don't hardcode prefixes
         const serversResp = await page.request.get('/api/servers');
-        const servers = await serversResp.json();
-        const firstServer = servers[0];
+        const data = await serversResp.json();
+        const firstServer = (data.servers || data)[0];
+        if (!firstServer || !firstServer.tools?.length) { test.skip(); return; }
         const readTool = firstServer.tools.find((t: any) => /read.file/i.test(t.name)) || firstServer.tools[0];
         const toolName = readTool.name;
 

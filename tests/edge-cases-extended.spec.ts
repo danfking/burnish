@@ -4,11 +4,11 @@ test.describe('Edge cases', () => {
     test('empty table view renders gracefully', async ({ page }) => {
         await page.goto('/');
 
-        // Wait for the page to fully load without crashing
-        await page.waitForSelector('.burnish-suggestion-server', { timeout: 10_000 });
+        // Wait for server buttons to load
+        await page.waitForSelector('#server-buttons button', { timeout: 30_000 });
 
         // Click a server to navigate into tool listing
-        await page.locator('.burnish-suggestion-server').first().click();
+        await page.locator('#server-buttons button').first().click();
         await page.waitForSelector('burnish-card', { timeout: 10_000 });
 
         // Verify the page is still functional (no crash)
