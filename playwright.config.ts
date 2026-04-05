@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
     testDir: './tests',
@@ -6,8 +6,14 @@ export default defineConfig({
     use: {
         baseURL: 'http://localhost:3000',
     },
+    projects: [
+        {
+            name: 'chromium',
+            use: { ...devices['Desktop Chrome'] },
+        },
+    ],
     webServer: process.env.CI ? {
-        command: 'pnpm --filter demo dev',
+        command: 'npx tsx apps/demo/server/index.ts',
         url: 'http://localhost:3000',
         reuseExistingServer: false,
         timeout: 30_000,
