@@ -24,3 +24,5 @@ tests/visual/screenshots/
 # Agent daemon runtime files
 scripts/.locks/
 scripts/logs/
+packages/cli/assets/
+packages/cli/dist/
