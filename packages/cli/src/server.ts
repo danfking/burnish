@@ -18,6 +18,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const assetsDir = resolve(__dirname, '../assets');
 
 /**
+ * Options for starting the server with a pre-initialized McpHub.
+ */
+export interface ServerOptions {
+    /** Port to listen on (default: 3000). */
+    port?: number;
+    /** Open browser after starting (default: false). */
+    open?: boolean;
+}
+
+/**
  * Resolve a user-supplied path against a base directory and verify
  * it does not escape outside the base (prevents path traversal).
  */
@@ -45,15 +55,18 @@ function mimeType(filePath: string): string {
     return types[ext] || 'application/octet-stream';
 }
 
-export async function startServer(opts: CliOptions): Promise<void> {
-    const mcpHub = new McpHub();
+/**
+ * Build the Hono app wired to the given McpHub.
+ * Exported so consumers can mount the app in their own server.
+ */
+export function buildApp(hub: McpHub): Hono {
     const app = new Hono();
 
     // --- API Routes ---
 
     app.get('/api/servers', (c) => {
         try {
-            return c.json({ servers: mcpHub.getServerInfo() });
+            return c.json({ servers: hub.getServerInfo() });
         } catch (err) {
             console.error('[burnish] GET /api/servers error:', err);
             return c.json({ error: 'Internal server error' }, 500);
@@ -84,7 +97,7 @@ export async function startServer(opts: CliOptions): Promise<void> {
         }
 
         // Check tool exists — handle both short names and fully-qualified mcp__server__tool names
-        const allTools = mcpHub.getAllTools();
+        const allTools = hub.getAllTools();
         let toolName = body.toolName;
         let tool = allTools.find((t) => t.name === toolName);
         if (!tool) {
@@ -121,7 +134,7 @@ export async function startServer(opts: CliOptions): Promise<void> {
 
         try {
             const startTime = performance.now();
-            const result = await mcpHub.executeTool(toolName, args);
+            const result = await hub.executeTool(toolName, args);
             const durationMs = Math.round(performance.now() - startTime);
             return c.json({ result, toolName, serverName: tool.serverName, durationMs });
         } catch (err) {
@@ -161,13 +174,63 @@ export async function startServer(opts: CliOptions): Promise<void> {
         }
     });
 
-    // --- Startup ---
+    return app;
+}
+
+/**
+ * Start the Burnish server with a pre-initialized McpHub.
+ *
+ * This is the programmatic entry point for embedding Burnish in other
+ * applications (e.g., Express middleware, test harnesses).
+ *
+ * @param hub  An already-configured McpHub instance
+ * @param opts Server options (port, open browser)
+ */
+export async function startServerWithHub(hub: McpHub, opts?: ServerOptions): Promise<void> {
+    const port = opts?.port ?? 3000;
+    const shouldOpen = opts?.open ?? false;
+
+    const app = buildApp(hub);
+
+    serve({ fetch: app.fetch, port }, () => {
+        console.log(`[burnish] Explorer UI: http://localhost:${port}`);
+    });
+
+    if (shouldOpen) {
+        try {
+            await open(`http://localhost:${port}`);
+        } catch {
+            // Ignore — some environments don't have a browser
+        }
+    }
+
+    // Graceful shutdown
+    const shutdown = async () => {
+        console.log('\n[burnish] Shutting down...');
+        await hub.shutdown();
+        process.exit(0);
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+}
+
+/**
+ * Start the Burnish server from CLI options.
+ *
+ * Creates an McpHub, initializes it from the config, and delegates
+ * to startServerWithHub.
+ */
+export async function startServer(opts: CliOptions): Promise<void> {
+    const mcpHub = new McpHub();
 
     console.log('[burnish] Connecting to MCP server...');
 
     const configPath = await buildConfigFile(opts);
 
-    // Start the HTTP server immediately
+    // Start the HTTP server immediately (before MCP init completes)
+    const app = buildApp(mcpHub);
+
     serve({ fetch: app.fetch, port: opts.port }, () => {
         console.log(`[burnish] Explorer UI: http://localhost:${opts.port}`);
     });

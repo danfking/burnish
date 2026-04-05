@@ -6,7 +6,18 @@
   "bin": {
     "burnish": "./dist/cli.js"
   },
-  "main": "./dist/server.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
   "scripts": {
     "build": "tsc && node scripts/bundle-assets.js",
     "clean": "rm -rf dist assets"
