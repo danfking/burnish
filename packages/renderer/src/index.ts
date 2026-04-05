@@ -21,3 +21,9 @@ export {
     extractHtmlContent,
     type StreamElement,
 } from './stream-parser.js';
+
+export {
+    containsMarkdownStructures,
+    convertMarkdownToComponents,
+    type FallbackOptions,
+} from './markdown-fallback.js';
