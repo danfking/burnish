@@ -18,5 +18,17 @@
   },
   "devDependencies": {
     "typescript": "^5.7.0"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danfking/burnish.git",
+    "directory": "packages/renderer"
+  },
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/danfking/burnish",
+  "author": "danfking",
+  "keywords": ["mcp", "model-context-protocol", "renderer", "streaming", "html", "burnish"]
 }
