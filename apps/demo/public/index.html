@@ -53,6 +53,16 @@
     <script type="module" src="/components/form.js"></script>
     <script type="module" src="/components/actions.js"></script>
 
+    <!-- Theme initialization (prevent flash of wrong theme) -->
+    <script>
+    (function initTheme() {
+        const stored = localStorage.getItem('burnish:theme');
+        if (stored) {
+            document.documentElement.setAttribute('data-theme', stored);
+        }
+    })();
+    </script>
+
     <!-- App -->
     <script type="module" src="/app.js"></script>
 </head>
@@ -87,6 +97,10 @@
             <span class="burnish-breadcrumb" id="breadcrumb">Dashboard</span>
         </div>
         <div class="burnish-header-right">
+            <button id="theme-toggle" class="burnish-theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <svg class="burnish-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="burnish-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
             <div id="mode-toggle"></div>
             <button id="btn-dashboard-toggle" class="burnish-header-btn" title="Dashboard mode">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">

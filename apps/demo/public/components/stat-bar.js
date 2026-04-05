@@ -18,16 +18,16 @@ export class BurnishStatBar extends LitElement {
         .stat-chip:hover { transform: translateY(-1px); box-shadow: var(--burnish-shadow-md); }
         .stat-dot { width: 10px; height: 10px; border-radius: var(--burnish-radius-round, 50%); }
         .stat-value { font-weight: 700; font-size: var(--burnish-font-size-xl, 18px); margin-right: var(--burnish-space-xs, 4px); }
-        .stat-label { color: var(--burnish-text-secondary, #6b7280); }
+        .stat-label { color: var(--burnish-text-secondary, #6B5A5A); }
     `; }
     _getColor(color) {
         const map = {
             success: 'var(--burnish-success, #22c55e)', healthy: 'var(--burnish-success, #22c55e)',
             warning: 'var(--burnish-warning, #eab308)',
             error: 'var(--burnish-error, #ef4444)', failing: 'var(--burnish-error, #ef4444)',
-            muted: 'var(--burnish-muted, #9ca3af)', 'no-data': 'var(--burnish-muted, #9ca3af)',
+            muted: 'var(--burnish-muted, #9C8F8F)', 'no-data': 'var(--burnish-muted, #9C8F8F)',
         };
-        return map[color || ''] || color || 'var(--burnish-muted, #9ca3af)';
+        return map[color || ''] || color || 'var(--burnish-muted, #9C8F8F)';
     }
     render() {
         let data = [];

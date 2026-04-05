@@ -21,11 +21,11 @@ export class BurnishMessage extends LitElement {
             word-wrap: break-word;
         }
         .message[data-role="user"] {
-            background: var(--burnish-accent, #4f6df5); color: white;
+            background: var(--burnish-accent, #8B3A3A); color: white;
             margin-left: auto; border-bottom-right-radius: 2px;
         }
         .message[data-role="assistant"] {
-            background: var(--burnish-surface-alt, #f5f6f8); color: var(--burnish-text);
+            background: var(--burnish-surface-alt, #F8F5F5); color: var(--burnish-text);
             border-bottom-left-radius: 2px;
         }
         :host([streaming]) .message[data-role="assistant"] {

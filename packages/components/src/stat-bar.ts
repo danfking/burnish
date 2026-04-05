@@ -23,13 +23,13 @@ export class BurnishStatBar extends LitElement {
         }
         .stat-chip:hover { transform: translateY(-1px); box-shadow: var(--burnish-shadow-md); }
         .stat-chip.active {
-            border-color: var(--burnish-accent, #4f6df5);
+            border-color: var(--burnish-accent, #8B3A3A);
             box-shadow: var(--burnish-shadow-md);
         }
         .stat-chip.dimmed { opacity: 0.4; }
         .stat-dot { width: 10px; height: 10px; border-radius: var(--burnish-radius-round, 50%); }
         .stat-value { font-weight: 700; font-size: var(--burnish-font-size-xl, 18px); margin-right: var(--burnish-space-xs, 4px); }
-        .stat-label { color: var(--burnish-text-secondary, #6b7280); }
+        .stat-label { color: var(--burnish-text-secondary, #6B5A5A); }
     `;
 
     declare items: string;
@@ -46,9 +46,9 @@ export class BurnishStatBar extends LitElement {
             warning: 'var(--burnish-warning, #ca8a04)',
             error: 'var(--burnish-error, #dc2626)', failing: 'var(--burnish-error, #dc2626)',
             info: 'var(--burnish-info, #6366f1)',
-            muted: 'var(--burnish-muted, #9ca3af)', 'no-data': 'var(--burnish-muted, #9ca3af)',
+            muted: 'var(--burnish-muted, #9C8F8F)', 'no-data': 'var(--burnish-muted, #9C8F8F)',
         };
-        return map[color || ''] || color || 'var(--burnish-muted, #9ca3af)';
+        return map[color || ''] || color || 'var(--burnish-muted, #9C8F8F)';
     }
 
     private _handleClick(label: string) {

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr create --title 'chore: add Claude Code contribution infrastructure' --body ':*)",
+      "Bash(gh pr:*)"
+    ]
+  }
+}

@@ -17,23 +17,23 @@ export class BurnishTable extends LitElement {
         .table-title {
             padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px);
             font-size: var(--burnish-font-size-md, 14px); font-weight: 600;
-            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+            border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
         }
         table { width: 100%; border-collapse: collapse; font-size: var(--burnish-font-size-base, 13px); }
         th {
             text-align: left; padding: 10px var(--burnish-space-lg, 16px);
-            background: var(--burnish-surface-alt, #f5f6f8);
+            background: var(--burnish-surface-alt, #F8F5F5);
             color: var(--burnish-text-secondary); font-weight: 600;
             font-size: var(--burnish-font-size-sm, 12px); text-transform: uppercase;
             letter-spacing: 0.5px; border-bottom: 1px solid var(--burnish-border-light);
         }
         td {
             padding: 10px var(--burnish-space-lg, 16px);
-            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
-            color: var(--burnish-text, #1f2937);
+            border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
+            color: var(--burnish-text, #2D1F1F);
         }
         tr:last-child td { border-bottom: none; }
-        tr:hover td { background: var(--burnish-surface-hover, #f9fafb); }
+        tr:hover td { background: var(--burnish-surface-hover, #F3EDED); }
         .status-success, .status-healthy { color: var(--burnish-success); }
         .status-warning { color: var(--burnish-warning); }
         .status-error, .status-failing { color: var(--burnish-error); font-weight: 600; }

@@ -31,6 +31,7 @@ import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.j
 import {
     renderCardsView, renderTableView, renderJsonView,
     renderViewSwitcher, renderParsedResult, buildResultHtml,
+    renderSchemaTree,
 } from './view-renderers.js';
 
 // ── Contextual actions ──
@@ -48,6 +49,16 @@ import {
 
 // ── Copilot UI ──
 import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight } from './copilot-ui.js';
+
+// ── Theme toggle ──
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const isDark = current === 'dark' ||
+        (!current && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const newTheme = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('burnish:theme', newTheme);
+});
 
 // ── Persistence ──
 const persistence = new SessionStore();
@@ -849,6 +860,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // ── Copy to clipboard ──
+    document.addEventListener('click', async (e) => {
+        const copyBtn = e.target.closest('.burnish-copy-btn');
+        if (!copyBtn) return;
+
+        const wrapper = copyBtn.closest('.burnish-json-wrapper') || copyBtn.closest('.burnish-tool-call-content');
+        const pre = wrapper?.querySelector('pre');
+        if (pre) {
+            await navigator.clipboard.writeText(pre.textContent);
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.add('burnish-copied');
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.classList.remove('burnish-copied');
+            }, 1500);
+        }
+    });
+
     // ── Global keyboard shortcuts ──
     document.addEventListener('keydown', (e) => {
         const tag = document.activeElement?.tagName;
@@ -859,6 +888,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('session-search')?.focus();
             return;
         }
+    });
+
+    // ── Tool filter/search bar ──
+    document.addEventListener('input', (e) => {
+        if (!e.target.classList.contains('burnish-tool-filter')) return;
+        const query = e.target.value.toLowerCase().trim();
+
+        // Find the parent node that contains the tool listing
+        const nodeContent = e.target.closest('.burnish-node-content') || e.target.closest('.burnish-dashboard');
+        if (!nodeContent) return;
+
+        // Filter cards
+        const cards = nodeContent.querySelectorAll('burnish-card[item-id]');
+        cards.forEach(card => {
+            const title = (card.getAttribute('title') || '').toLowerCase();
+            const body = (card.getAttribute('body') || '').toLowerCase();
+            const matches = !query || title.includes(query) || body.includes(query);
+            card.style.display = matches ? '' : 'none';
+        });
+
+        // Hide empty sections
+        const sections = nodeContent.querySelectorAll('burnish-section');
+        sections.forEach(section => {
+            const visibleCards = section.querySelectorAll('burnish-card[item-id]:not([style*="display: none"])');
+            section.style.display = visibleCards.length > 0 ? '' : 'none';
+            // Update count
+            if (visibleCards.length > 0) {
+                section.setAttribute('count', String(visibleCards.length));
+            }
+        });
     });
 
     // ── Stat-bar filter ──
@@ -922,7 +981,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (hasAnyParams) {
                 const formHtml = generateFallbackForm(itemId, schema);
                 if (formHtml) {
-                    renderDeterministicNode(title, formHtml);
+                    const schemaHtml = renderSchemaTree(schema, itemId);
+                    renderDeterministicNode(title, schemaHtml + formHtml);
                     return;
                 }
             } else {
@@ -1162,7 +1222,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (hasRequiredUnfilled && schema) {
                     const formHtml = generateFallbackForm(parsed.toolName, schema);
                     if (formHtml) {
-                        renderDeterministicNode(label, formHtml);
+                        const schemaHtml = renderSchemaTree(schema, parsed.toolName);
+                        renderDeterministicNode(label, schemaHtml + formHtml);
                     } else {
                         executeToolDirect(parsed.toolName, parsed.args, label);
                     }
