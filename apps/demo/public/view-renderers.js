@@ -118,7 +118,11 @@ export function renderTableView(items, label) {
 }
 
 export function renderJsonView(items) {
-    return `<pre class="burnish-json-view">${escapeHtml(JSON.stringify(items, null, 2).substring(0, 50000))}</pre>`;
+    const json = JSON.stringify(items, null, 2).substring(0, 50000);
+    return `<div class="burnish-json-wrapper">
+        <button class="burnish-copy-btn" data-copy-target="json" title="Copy JSON">Copy</button>
+        <pre class="burnish-json-view">${escapeHtml(json)}</pre>
+    </div>`;
 }
 
 export function renderParsedResult(parsed, label, sourceToolName) {
@@ -182,7 +186,8 @@ export function renderParsedResult(parsed, label, sourceToolName) {
 export function buildResultHtml(result, label, sourceToolName) {
     try {
         const parsed = JSON.parse(result);
-        return renderParsedResult(parsed, label, sourceToolName);
+        const inner = renderParsedResult(parsed, label, sourceToolName);
+        return `<div class="burnish-result-wrapper" data-raw-result="${escapeAttr(result.substring(0, 50000))}">${inner}</div>`;
     } catch {
         return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"></burnish-card>`;
     }

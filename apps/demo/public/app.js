@@ -849,6 +849,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // ── Copy to clipboard ──
+    document.addEventListener('click', async (e) => {
+        const copyBtn = e.target.closest('.burnish-copy-btn');
+        if (!copyBtn) return;
+
+        const wrapper = copyBtn.closest('.burnish-json-wrapper');
+        const pre = wrapper?.querySelector('pre');
+        if (pre) {
+            await navigator.clipboard.writeText(pre.textContent);
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.add('burnish-copied');
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.classList.remove('burnish-copied');
+            }, 1500);
+        }
+    });
+
     // ── Global keyboard shortcuts ──
     document.addEventListener('keydown', (e) => {
         const tag = document.activeElement?.tagName;
@@ -859,6 +877,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('session-search')?.focus();
             return;
         }
+    });
+
+    // ── Tool filter/search bar ──
+    document.addEventListener('input', (e) => {
+        if (!e.target.classList.contains('burnish-tool-filter')) return;
+        const query = e.target.value.toLowerCase().trim();
+
+        // Find the parent node that contains the tool listing
+        const nodeContent = e.target.closest('.burnish-node-content') || e.target.closest('.burnish-dashboard');
+        if (!nodeContent) return;
+
+        // Filter cards
+        const cards = nodeContent.querySelectorAll('burnish-card[item-id]');
+        cards.forEach(card => {
+            const title = (card.getAttribute('title') || '').toLowerCase();
+            const body = (card.getAttribute('body') || '').toLowerCase();
+            const matches = !query || title.includes(query) || body.includes(query);
+            card.style.display = matches ? '' : 'none';
+        });
+
+        // Hide empty sections
+        const sections = nodeContent.querySelectorAll('burnish-section');
+        sections.forEach(section => {
+            const visibleCards = section.querySelectorAll('burnish-card[item-id]:not([style*="display: none"])');
+            section.style.display = visibleCards.length > 0 ? '' : 'none';
+            // Update count
+            if (visibleCards.length > 0) {
+                section.setAttribute('count', String(visibleCards.length));
+            }
+        });
     });
 
     // ── Stat-bar filter ──

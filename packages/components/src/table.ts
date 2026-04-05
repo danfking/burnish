@@ -24,66 +24,66 @@ export class BurnishTable extends LitElement {
         .table-header {
             padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px);
             display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
+            border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
         }
         .table-title {
             font-size: var(--burnish-font-size-md, 14px); font-weight: 600;
         }
         .table-search {
-            padding: 5px 10px; border: 1px solid var(--burnish-border, #e5e7eb);
+            padding: 5px 10px; border: 1px solid var(--burnish-border, #E5DDDD);
             border-radius: 4px; font-size: 12px; min-width: 150px; outline: none;
         }
-        .table-search:focus { border-color: var(--burnish-accent, #4f6df5); }
+        .table-search:focus { border-color: var(--burnish-accent, #8B3A3A); }
         table { width: 100%; border-collapse: collapse; font-size: var(--burnish-font-size-base, 13px); }
         th {
             text-align: left; padding: 10px var(--burnish-space-lg, 16px);
-            background: var(--burnish-surface-alt, #f5f6f8);
+            background: var(--burnish-surface-alt, #F8F5F5);
             color: var(--burnish-text-secondary); font-weight: 600;
             font-size: var(--burnish-font-size-sm, 12px); text-transform: uppercase;
             letter-spacing: 0.5px; border-bottom: 1px solid var(--burnish-border-light);
             cursor: pointer; user-select: none; white-space: nowrap;
         }
-        th:hover { color: var(--burnish-text, #1f2937); }
+        th:hover { color: var(--burnish-text, #2D1F1F); }
         th .sort-arrow { font-size: 10px; margin-left: 4px; opacity: 0.4; }
-        th .sort-arrow.active { opacity: 1; color: var(--burnish-accent, #4f6df5); }
+        th .sort-arrow.active { opacity: 1; color: var(--burnish-accent, #8B3A3A); }
         th:last-child { cursor: default; }
         td {
             padding: 10px var(--burnish-space-lg, 16px);
-            border-bottom: 1px solid var(--burnish-border-light, #f3f4f6);
-            color: var(--burnish-text, #1f2937);
+            border-bottom: 1px solid var(--burnish-border-light, #F0EAEA);
+            color: var(--burnish-text, #2D1F1F);
             max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         tr:last-child td { border-bottom: none; }
-        tr:hover td { background: var(--burnish-surface-hover, #f9fafb); }
+        tr:hover td { background: var(--burnish-surface-hover, #F3EDED); }
         .status-success, .status-healthy { color: var(--burnish-success); }
         .status-warning { color: var(--burnish-warning); }
         .status-error, .status-failing { color: var(--burnish-error); font-weight: 600; }
         .status-muted, .status-no-data { color: var(--burnish-text-muted); }
         .explore-link {
-            color: var(--burnish-accent, #4f6df5); cursor: pointer;
+            color: var(--burnish-accent, #8B3A3A); cursor: pointer;
             font-size: 12px; white-space: nowrap; text-decoration: none;
         }
         .explore-link:hover { text-decoration: underline; }
         .table-footer {
             padding: 8px 16px; display: flex; align-items: center;
             justify-content: space-between; gap: 12px;
-            border-top: 1px solid var(--burnish-border-light, #f3f4f6);
-            font-size: 12px; color: var(--burnish-text-muted, #9ca3af);
+            border-top: 1px solid var(--burnish-border-light, #F0EAEA);
+            font-size: 12px; color: var(--burnish-text-muted, #9C8F8F);
         }
         .table-pagination { display: flex; align-items: center; gap: 6px; }
         .page-btn {
-            padding: 3px 8px; border: 1px solid var(--burnish-border, #e5e7eb);
+            padding: 3px 8px; border: 1px solid var(--burnish-border, #E5DDDD);
             border-radius: 3px; background: none; cursor: pointer; font-size: 12px;
         }
-        .page-btn:hover:not(:disabled) { background: var(--burnish-surface-alt, #f5f6f8); }
+        .page-btn:hover:not(:disabled) { background: var(--burnish-surface-alt, #F8F5F5); }
         .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .page-size-select {
-            padding: 2px 4px; border: 1px solid var(--burnish-border, #e5e7eb);
+            padding: 2px 4px; border: 1px solid var(--burnish-border, #E5DDDD);
             border-radius: 3px; font-size: 11px; background: none;
         }
         .no-results {
             padding: 24px 16px; text-align: center;
-            color: var(--burnish-text-muted, #9ca3af); font-style: italic;
+            color: var(--burnish-text-muted, #9C8F8F); font-style: italic;
         }
     `;
 

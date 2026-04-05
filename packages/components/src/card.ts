@@ -31,19 +31,19 @@ export class BurnishCard extends LitElement {
             -webkit-line-clamp: unset;
         }
         .expand-btn {
-            background: var(--burnish-surface-alt, #f3f4f6);
-            border: 1px solid var(--burnish-border, #e5e7eb);
+            background: var(--burnish-surface-alt, #F0EAEA);
+            border: 1px solid var(--burnish-border, #E5DDDD);
             cursor: pointer;
-            padding: 3px 8px; color: var(--burnish-text-secondary, #6b7280);
+            padding: 3px 8px; color: var(--burnish-text-secondary, #6B5A5A);
             display: flex; align-items: center; flex-shrink: 0;
             border-radius: 4px; transition: all 0.15s ease;
             font-size: 11px; font-weight: 500;
         }
-        .expand-btn:hover { color: var(--burnish-accent, #4f6df5); border-color: var(--burnish-accent, #4f6df5); background: rgba(79,109,245,0.06); }
+        .expand-btn:hover { color: var(--burnish-accent, #8B3A3A); border-color: var(--burnish-accent, #8B3A3A); background: rgba(139,58,58,0.06); }
         .card {
             background: var(--burnish-surface, #fff);
             border-radius: var(--burnish-radius-md, 4px);
-            border: 1px solid var(--burnish-border-muted, #e5e7eb);
+            border: 1px solid var(--burnish-border-muted, #E5DDDD);
             overflow: hidden;
             box-shadow: var(--burnish-shadow-sm);
             transition: transform var(--burnish-transition-fast), box-shadow var(--burnish-transition-fast);
@@ -54,13 +54,13 @@ export class BurnishCard extends LitElement {
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 3px;
-            background: var(--burnish-border-muted, #e5e7eb);
+            background: var(--burnish-border-muted, #E5DDDD);
         }
         .card:hover, .card:focus {
             transform: translateY(-1px);
             box-shadow: var(--burnish-shadow-md);
         }
-        .card:focus { outline: 2px solid var(--burnish-accent, #4f6df5); outline-offset: 2px; }
+        .card:focus { outline: 2px solid var(--burnish-accent, #8B3A3A); outline-offset: 2px; }
         .card[data-status="success"]::before,
         .card[data-status="healthy"]::before { background: var(--burnish-success, #16a34a); }
         .card[data-status="warning"]::before { background: var(--burnish-warning, #ca8a04); }
@@ -71,7 +71,7 @@ export class BurnishCard extends LitElement {
             padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px) var(--burnish-space-sm, 8px);
             display: flex; align-items: center; gap: 8px;
         }
-        .card-title { font-size: var(--burnish-font-size-md, 14px); font-weight: 600; color: var(--burnish-text, #1f2937); flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-title { font-size: var(--burnish-font-size-md, 14px); font-weight: 600; color: var(--burnish-text, #2D1F1F); flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .card-badge {
             font-size: var(--burnish-font-size-xs, 11px); font-weight: 600;
             text-transform: uppercase; letter-spacing: 0.5px;
@@ -100,18 +100,18 @@ export class BurnishCard extends LitElement {
             overflow-y: auto;
         }
         .card-body h1, .card-body h2, .card-body h3, .card-body h4 {
-            font-size: 13px; font-weight: 600; margin: 8px 0 4px; color: var(--burnish-text, #1f2937);
+            font-size: 13px; font-weight: 600; margin: 8px 0 4px; color: var(--burnish-text, #2D1F1F);
         }
         .card-body p { margin: 0 0 6px; }
         .card-body code {
-            background: var(--burnish-surface-alt, #f5f6f8); padding: 1px 4px;
+            background: var(--burnish-surface-alt, #F8F5F5); padding: 1px 4px;
             border-radius: 3px; font-size: 12px;
         }
         .card-body ul, .card-body ol { margin: 4px 0; padding-left: 18px; }
-        .card-body a { color: var(--burnish-link, #3b82f6); }
+        .card-body a { color: var(--burnish-link, #7C3030); }
         .card-meta {
             padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
-            border-top: 1px solid var(--burnish-border-light, #f3f4f6);
+            border-top: 1px solid var(--burnish-border-light, #F0EAEA);
             display: flex; gap: var(--burnish-space-lg, 16px); flex-wrap: wrap;
         }
         .meta-item { font-size: var(--burnish-font-size-sm, 12px); }
@@ -120,14 +120,14 @@ export class BurnishCard extends LitElement {
         .card-action {
             padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
             border-top: 1px solid var(--burnish-border-light);
-            font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-link, #3b82f6);
+            font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-link, #7C3030);
             opacity: 0.6; transition: opacity var(--burnish-transition-fast);
             cursor: pointer;
         }
         .card-action:hover { background: rgba(59, 130, 246, 0.04); }
         .card:hover .card-action { opacity: 1; }
         .card-link {
-            color: var(--burnish-link, #3b82f6);
+            color: var(--burnish-link, #7C3030);
             text-decoration: none;
             font-weight: 500;
         }
@@ -138,14 +138,14 @@ export class BurnishCard extends LitElement {
         }
         .link-btn {
             display: inline-flex; align-items: center; gap: 4px;
-            padding: 2px 8px; border: 1px solid var(--burnish-border, #e5e7eb);
+            padding: 2px 8px; border: 1px solid var(--burnish-border, #E5DDDD);
             border-radius: 3px; font-size: 11px; text-decoration: none;
-            color: var(--burnish-link, #3b82f6); background: none;
+            color: var(--burnish-link, #7C3030); background: none;
             cursor: pointer; transition: all 0.15s ease;
         }
         .link-btn:hover {
             background: rgba(59, 130, 246, 0.06);
-            border-color: var(--burnish-link, #3b82f6);
+            border-color: var(--burnish-link, #7C3030);
         }
         .link-icon { font-size: 10px; }
         .error-state {

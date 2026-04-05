@@ -24,6 +24,10 @@ export function generateToolListingHtml(serverName, tools) {
     }));
     let html = `<burnish-stat-bar items='${escapeAttr(JSON.stringify(statItems))}'></burnish-stat-bar>`;
 
+    html += `<div class="burnish-tool-filter-container">
+    <input type="text" class="burnish-tool-filter" placeholder="Filter tools..." autocomplete="off">
+</div>`;
+
     for (const [verb, items] of Object.entries(groups)) {
         const label = verb.charAt(0).toUpperCase() + verb.slice(1) + ' Operations';
         html += `<burnish-section label="${escapeAttr(label)}" count="${items.length}" status="info">`;
@@ -172,6 +176,14 @@ export async function executeToolDirect(toolName, args, label) {
             node._executionMode = 'deterministic';
             node._toolCall = { toolName: toolName, args: Object.assign({}, args), label: label };
             node.response = resultHtml;
+        }
+        // Display execution timing badge
+        if (data.durationMs != null && node) {
+            const timingEl = document.createElement('span');
+            timingEl.className = 'burnish-timing';
+            timingEl.textContent = data.durationMs + 'ms';
+            const headerEl = document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-header');
+            if (headerEl) headerEl.appendChild(timingEl);
         }
         // Stream AI insights in copilot mode
         if (getCurrentMode() === 'copilot' && contentEl) {
