@@ -37,5 +37,7 @@ export { StreamOrchestrator } from './stream-orchestrator.js';
 
 export {
     assessToolRisk,
+    assessConfigRisk,
     type ToolRisk,
+    type ConfigWarning,
 } from './risk-indicators.js';

@@ -1,6 +1,8 @@
 /**
- * Tool risk assessment — classifies MCP tools by risk level
- * based on name patterns and schema quality indicators.
+ * Risk assessment utilities for MCP tools and server configurations.
+ *
+ * - assessToolRisk()   — classifies tools by name pattern and schema quality.
+ * - assessConfigRisk() — scans server config for embedded secrets and insecure URLs.
  */
 
 export interface ToolRisk {
@@ -106,4 +108,119 @@ export function assessToolRisk(tool: ToolDefinition): ToolRisk {
     }
 
     return { level, reasons };
+}
+
+// ---------------------------------------------------------------------------
+// Config risk assessment
+// ---------------------------------------------------------------------------
+
+export interface ConfigWarning {
+    severity: 'info' | 'warning' | 'critical';
+    message: string;
+}
+
+/**
+ * Shape of a single MCP server entry in the config file.
+ * Mirrors McpServerConfig from @burnish/server but kept local to avoid
+ * a cross-package dependency — the app package must stay framework-agnostic.
+ */
+interface ServerConfigEntry {
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+    url?: string;
+    headers?: Record<string, string>;
+}
+
+/** Patterns that strongly suggest an embedded secret or token. */
+const SECRET_KEY_RE = /^(api[_-]?key|secret|token|password|auth|credential|private[_-]?key)$/i;
+const SECRET_VALUE_RE = /^(sk-|ghp_|gho_|github_pat_|xoxb-|xoxp-|bearer\s)/i;
+
+/** URLs that use plain HTTP — excluding localhost/127.0.0.1 which are safe. */
+function isInsecureUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:') return false;
+        const host = parsed.hostname;
+        return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1';
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Scan a map of MCP server configurations for risky patterns:
+ *
+ * 1. **Embedded secrets** — env vars or command args whose key or value
+ *    looks like an API token, password, or credential.
+ * 2. **Non-HTTPS URLs** — base URLs using plain HTTP to a non-localhost host,
+ *    which risks leaking auth headers over the network.
+ *
+ * Returns an array of warnings sorted by severity (critical first).
+ */
+export function assessConfigRisk(
+    servers: Record<string, ServerConfigEntry>,
+): ConfigWarning[] {
+    const warnings: ConfigWarning[] = [];
+
+    for (const [name, config] of Object.entries(servers)) {
+        // --- Check env vars for secrets ---
+        if (config.env) {
+            for (const [key, value] of Object.entries(config.env)) {
+                if (SECRET_KEY_RE.test(key)) {
+                    warnings.push({
+                        severity: 'critical',
+                        message: `Server "${name}": env var "${key}" appears to contain a secret`,
+                    });
+                } else if (SECRET_VALUE_RE.test(value)) {
+                    warnings.push({
+                        severity: 'critical',
+                        message: `Server "${name}": env var "${key}" value looks like an embedded token`,
+                    });
+                }
+            }
+        }
+
+        // --- Check command args for secrets ---
+        if (config.args) {
+            for (const arg of config.args) {
+                if (SECRET_VALUE_RE.test(arg)) {
+                    warnings.push({
+                        severity: 'critical',
+                        message: `Server "${name}": command argument contains what looks like an embedded token`,
+                    });
+                }
+            }
+        }
+
+        // --- Check headers for secret values ---
+        if (config.headers) {
+            for (const [key, value] of Object.entries(config.headers)) {
+                if (SECRET_VALUE_RE.test(value) || SECRET_KEY_RE.test(key)) {
+                    warnings.push({
+                        severity: 'warning',
+                        message: `Server "${name}": header "${key}" may contain an embedded credential`,
+                    });
+                }
+            }
+        }
+
+        // --- Check URL for non-HTTPS ---
+        if (config.url && isInsecureUrl(config.url)) {
+            warnings.push({
+                severity: 'warning',
+                message: `Server "${name}": URL uses plain HTTP (${config.url}); credentials may be transmitted in cleartext`,
+            });
+        }
+    }
+
+    // Sort: critical first, then warning, then info
+    const order: Record<ConfigWarning['severity'], number> = {
+        critical: 0,
+        warning: 1,
+        info: 2,
+    };
+    warnings.sort((a, b) => order[a.severity] - order[b.severity]);
+
+    return warnings;
 }
