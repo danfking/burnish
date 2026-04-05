@@ -26,3 +26,7 @@ scripts/.locks/
 scripts/logs/
 packages/cli/assets/
 packages/cli/dist/
+
+# Claude Code agent config (managed in burnish-private)
+.claude/
+scripts/prompts/
