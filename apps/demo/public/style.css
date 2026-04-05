@@ -1325,36 +1325,3 @@ details.burnish-schema-prop[open] > summary::before {
     :root:not([data-theme="light"]) .burnish-theme-icon-sun { display: inline; }
 }
 
-/* ── Risk Badges ── */
-.burnish-tool-card-wrap {
-    position: relative;
-}
-.burnish-tool-card-wrap > .burnish-risk-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 1;
-}
-.burnish-risk-badge {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
-    padding: 3px 7px;
-    border-radius: 999px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    vertical-align: middle;
-}
-.burnish-risk-badge--low {
-    background: var(--burnish-success-bg, #dcfce7);
-    color: var(--burnish-success, #22c55e);
-}
-.burnish-risk-badge--medium {
-    background: var(--burnish-warning-bg, #fef3cd);
-    color: var(--burnish-warning, #f0ad4e);
-}
-.burnish-risk-badge--high {
-    background: var(--burnish-error-bg, #fde8e8);
-    color: var(--burnish-error, #ef4444);
-}

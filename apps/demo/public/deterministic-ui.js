@@ -53,13 +53,9 @@ export function generateToolListingHtml(serverName, tools) {
         const label = verb.charAt(0).toUpperCase() + verb.slice(1) + ' Operations';
         html += `<burnish-section label="${escapeAttr(label)}" count="${items.length}" status="info">`;
         for (const tool of items) {
-            const toolIsWrite = WRITE_TOOL_RE.test(tool.name);
             const risk = assessToolRisk(tool);
-            const riskBadge = `<span class="burnish-risk-badge burnish-risk-badge--${risk.level}">${risk.level}</span>`;
-            html += `<div class="burnish-tool-card-wrap">
-                ${riskBadge}
-                <burnish-card title="${escapeAttr(tool.name)}" status="${toolIsWrite ? 'warning' : 'success'}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>
-            </div>`;
+            const riskStatus = risk.level === 'high' ? 'error' : risk.level === 'medium' ? 'warning' : 'muted';
+            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${riskStatus}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
         }
         html += `</burnish-section>`;
     }
