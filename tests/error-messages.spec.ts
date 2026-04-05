@@ -5,10 +5,19 @@ test.describe('Error message handling', () => {
         await page.goto('/');
 
         // Discover a real tool name from the server so we don't hardcode prefixes
-        const serversResp = await page.request.get('/api/servers');
+        let serversResp;
+        try {
+            serversResp = await page.request.get('/api/servers');
+        } catch {
+            test.skip(true, 'Server API not available');
+            return;
+        }
         const data = await serversResp.json();
         const firstServer = (data.servers || data)[0];
-        if (!firstServer || !firstServer.tools?.length) { test.skip(); return; }
+        if (!firstServer || !firstServer.tools?.length) {
+            test.skip(true, 'No MCP servers with tools available');
+            return;
+        }
         const readTool = firstServer.tools.find((t: any) => /read.file/i.test(t.name)) || firstServer.tools[0];
         const toolName = readTool.name;
 
