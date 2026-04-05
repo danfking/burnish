@@ -1066,6 +1066,24 @@ body {
     box-shadow: 0 0 0 2px rgba(139, 58, 58, 0.1);
 }
 
+/* ── Execution Mode Badge ── */
+.burnish-exec-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    margin-left: 4px;
+    font-size: var(--burnish-font-size-xs, 12px);
+    font-weight: 600;
+    line-height: 1.4;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.burnish-exec-badge--direct {
+    color: var(--burnish-text-secondary, #6B5E5E);
+    background: var(--burnish-success-bg, #F2F5EB);
+    border: 1px solid var(--burnish-border-success, #D5DEC3);
+}
+
 /* ── Execution Timing Badge ── */
 .burnish-timing {
     display: inline-block;

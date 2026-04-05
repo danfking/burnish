@@ -367,6 +367,7 @@ function createNodeEl(node) {
             <span class="burnish-node-chevron">\u25bc</span>
             <span class="burnish-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
             <span class="burnish-node-time">${formatTimeAgo(node.timestamp)}</span>
+            ${node._executionMode === 'deterministic' ? `<span class="burnish-exec-badge burnish-exec-badge--direct" title="No LLM — direct tool execution">Direct</span>` : ''}
             ${statsTooltip ? `<button class="burnish-node-info" title="${escapeAttr(statsTooltip)}">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor">i</text></svg>
             </button>` : ''}

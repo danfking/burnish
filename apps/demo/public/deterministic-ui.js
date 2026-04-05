@@ -157,7 +157,7 @@ export function renderDeterministicNode(label, html) {
  * Execute a tool directly and render the result as a new node.
  */
 export async function executeToolDirect(toolName, args, label) {
-    var loadingHtml = '<div class="burnish-loading"><div class="burnish-spinner"></div> Executing ' + escapeAttr(label) + '...</div>';
+    var loadingHtml = '<div class="burnish-loading"><div class="burnish-spinner"></div> Direct execution: ' + escapeAttr(label) + '...</div>';
     var node = renderDeterministicNode(label, loadingHtml);
     try {
         var res = await fetch('/api/tools/execute', {
