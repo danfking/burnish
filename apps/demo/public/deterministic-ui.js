@@ -6,6 +6,27 @@ import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.j
 import { buildResultHtml } from './view-renderers.js';
 import { getCurrentMode, createInsightSlot, streamInsight } from './copilot-ui.js';
 
+// ── Inline risk assessment (mirrors @burnish/app risk-indicators.ts) ──
+
+const HIGH_RISK_RE = /^(delete|drop|remove|destroy|push|force)[_-]/i;
+const MEDIUM_RISK_RE = /^(create|update|write|set|modify|send)[_-]/i;
+const LOW_RISK_RE = /^(list|get|read|search|describe|show)[_-]/i;
+
+/**
+ * Classify a tool's risk level based on its name pattern.
+ * @param {{ name: string }} tool
+ * @returns {{ level: 'low'|'medium'|'high' }}
+ */
+function assessToolRisk(tool) {
+    const parts = tool.name.split('__');
+    const name = parts[parts.length - 1] || tool.name;
+
+    if (HIGH_RISK_RE.test(name)) return { level: 'high' };
+    if (MEDIUM_RISK_RE.test(name)) return { level: 'medium' };
+    if (LOW_RISK_RE.test(name)) return { level: 'low' };
+    return { level: 'medium' };
+}
+
 /**
  * Generate HTML for a tool listing (server tools grouped by verb).
  */
@@ -32,8 +53,9 @@ export function generateToolListingHtml(serverName, tools) {
         const label = verb.charAt(0).toUpperCase() + verb.slice(1) + ' Operations';
         html += `<burnish-section label="${escapeAttr(label)}" count="${items.length}" status="info">`;
         for (const tool of items) {
-            const toolIsWrite = WRITE_TOOL_RE.test(tool.name);
-            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${toolIsWrite ? 'warning' : 'success'}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
+            const risk = assessToolRisk(tool);
+            const riskStatus = risk.level === 'high' ? 'error' : risk.level === 'medium' ? 'warning' : 'muted';
+            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${riskStatus}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
         }
         html += `</burnish-section>`;
     }

@@ -1324,3 +1324,4 @@ details.burnish-schema-prop[open] > summary::before {
     :root:not([data-theme="light"]) .burnish-theme-icon-moon { display: none; }
     :root:not([data-theme="light"]) .burnish-theme-icon-sun { display: inline; }
 }
+
