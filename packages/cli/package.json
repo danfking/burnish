@@ -28,10 +28,16 @@
     "dist",
     "assets"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/danfking/burnish"
+    "url": "https://github.com/danfking/burnish.git",
+    "directory": "packages/cli"
   },
-  "keywords": ["mcp", "model-context-protocol", "swagger", "ui", "explorer", "cli"]
+  "homepage": "https://github.com/danfking/burnish",
+  "author": "danfking",
+  "keywords": ["mcp", "model-context-protocol", "swagger", "ui", "explorer", "cli", "burnish"]
 }
