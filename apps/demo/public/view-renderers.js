@@ -118,7 +118,11 @@ export function renderTableView(items, label) {
 }
 
 export function renderJsonView(items) {
-    return `<pre class="burnish-json-view">${escapeHtml(JSON.stringify(items, null, 2).substring(0, 50000))}</pre>`;
+    const json = JSON.stringify(items, null, 2).substring(0, 50000);
+    return `<div class="burnish-json-wrapper">
+        <button class="burnish-copy-btn" data-copy-target="json" title="Copy JSON">Copy</button>
+        <pre class="burnish-json-view">${escapeHtml(json)}</pre>
+    </div>`;
 }
 
 export function renderParsedResult(parsed, label, sourceToolName) {
@@ -179,10 +183,110 @@ export function renderParsedResult(parsed, label, sourceToolName) {
     return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(String(parsed))}"></burnish-card>`;
 }
 
+// ── Schema Tree Renderer ──
+
+export function renderSchemaTree(schema, toolName) {
+    if (!schema || !schema.properties) {
+        return '<div class="burnish-schema-empty">No input schema defined</div>';
+    }
+
+    const required = new Set(schema.required || []);
+    let html = '<details class="burnish-schema-tree-wrapper" open>';
+    html += '<summary class="burnish-schema-header">' + escapeHtml(toolName || 'Parameters') + ' <span class="burnish-schema-type">object</span></summary>';
+    html += '<div class="burnish-schema-tree">';
+
+    const props = Object.entries(schema.properties);
+    props.forEach(([name, prop], i) => {
+        const isLast = i === props.length - 1;
+        html += renderSchemaProp(name, prop, required.has(name), isLast, 0);
+    });
+
+    html += '</div></details>';
+    return html;
+}
+
+function renderSchemaProp(name, prop, isRequired, isLast, depth) {
+    const connector = isLast ? '└─ ' : '├─ ';
+    const indent = depth > 0 ? '│  '.repeat(depth) : '';
+    const typeStr = getSchemaTypeString(prop);
+    const reqBadge = isRequired
+        ? '<span class="burnish-schema-required">required</span>'
+        : '<span class="burnish-schema-optional">optional</span>';
+
+    let html = '';
+
+    if (prop.type === 'object' && prop.properties) {
+        // Nested object — make expandable
+        html += '<details class="burnish-schema-prop" open>';
+        html += '<summary class="burnish-schema-row">';
+        html += '<span class="burnish-schema-indent">' + indent + connector + '</span>';
+        html += '<span class="burnish-schema-name">' + escapeHtml(name) + '</span>';
+        html += '<span class="burnish-schema-type">' + typeStr + '</span>';
+        html += reqBadge;
+        if (prop.description) html += '<span class="burnish-schema-desc">' + escapeHtml(prop.description) + '</span>';
+        html += '</summary>';
+
+        const childRequired = new Set(prop.required || []);
+        const childProps = Object.entries(prop.properties);
+        childProps.forEach(([childName, childProp], i) => {
+            html += renderSchemaProp(childName, childProp, childRequired.has(childName), i === childProps.length - 1, depth + 1);
+        });
+        html += '</details>';
+    } else if (prop.type === 'array' && prop.items) {
+        // Array — show item type
+        html += '<div class="burnish-schema-row">';
+        html += '<span class="burnish-schema-indent">' + indent + connector + '</span>';
+        html += '<span class="burnish-schema-name">' + escapeHtml(name) + '</span>';
+        html += '<span class="burnish-schema-type">array of ' + getSchemaTypeString(prop.items) + '</span>';
+        html += reqBadge;
+        if (prop.description) html += '<span class="burnish-schema-desc">' + escapeHtml(prop.description) + '</span>';
+        html += '</div>';
+
+        // Show constraints
+        html += renderSchemaConstraints(prop, indent + (isLast ? '   ' : '│  '));
+    } else {
+        // Leaf property
+        html += '<div class="burnish-schema-row">';
+        html += '<span class="burnish-schema-indent">' + indent + connector + '</span>';
+        html += '<span class="burnish-schema-name">' + escapeHtml(name) + '</span>';
+        html += '<span class="burnish-schema-type">' + typeStr + '</span>';
+        html += reqBadge;
+        if (prop.description) html += '<span class="burnish-schema-desc">' + escapeHtml(prop.description) + '</span>';
+        html += '</div>';
+
+        // Show constraints and defaults
+        html += renderSchemaConstraints(prop, indent + (isLast ? '   ' : '│  '));
+    }
+
+    return html;
+}
+
+function getSchemaTypeString(prop) {
+    if (!prop) return 'any';
+    if (prop.enum) return (prop.type || 'string') + ' (enum)';
+    if (prop.type === 'array' && prop.items) return 'array';
+    return prop.type || 'any';
+}
+
+function renderSchemaConstraints(prop, indent) {
+    const constraints = [];
+    if (prop.default !== undefined) constraints.push('default: ' + JSON.stringify(prop.default));
+    if (prop.enum) constraints.push('enum: ' + prop.enum.map(function(v) { return JSON.stringify(v); }).join(', '));
+    if (prop.minLength !== undefined) constraints.push('minLength: ' + prop.minLength);
+    if (prop.maxLength !== undefined) constraints.push('maxLength: ' + prop.maxLength);
+    if (prop.minimum !== undefined) constraints.push('min: ' + prop.minimum);
+    if (prop.maximum !== undefined) constraints.push('max: ' + prop.maximum);
+    if (prop.pattern) constraints.push('pattern: ' + prop.pattern);
+
+    if (constraints.length === 0) return '';
+    return '<div class="burnish-schema-constraints"><span class="burnish-schema-indent">' + indent + '</span>' + constraints.join(' &middot; ') + '</div>';
+}
+
 export function buildResultHtml(result, label, sourceToolName) {
     try {
         const parsed = JSON.parse(result);
-        return renderParsedResult(parsed, label, sourceToolName);
+        const inner = renderParsedResult(parsed, label, sourceToolName);
+        return `<div class="burnish-result-wrapper" data-raw-result="${escapeAttr(result.substring(0, 50000))}">${inner}</div>`;
     } catch {
         return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"></burnish-card>`;
     }
