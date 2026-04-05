@@ -282,12 +282,60 @@ function renderSchemaConstraints(prop, indent) {
     return '<div class="burnish-schema-constraints"><span class="burnish-schema-indent">' + indent + '</span>' + constraints.join(' &middot; ') + '</div>';
 }
 
+/**
+ * Detect plain-text directory listings (e.g. from list_directory) and render
+ * them as a structured burnish-table instead of a truncated text card.
+ * Lines must match the pattern: [DIR] name  or  [FILE] name
+ */
+function tryParseDirectoryListing(result, label) {
+    if (!result.includes('[DIR]') && !result.includes('[FILE]')) return null;
+
+    const entries = result.split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+            const match = line.match(/^\[(DIR|FILE)\]\s+(.+)$/);
+            return match ? { type: match[1] === 'DIR' ? 'Directory' : 'File', name: match[2].trim() } : null;
+        })
+        .filter(Boolean);
+
+    // Only treat as a directory listing if most lines matched the pattern
+    const totalNonEmpty = result.split('\n').filter(l => l.trim()).length;
+    if (entries.length === 0 || entries.length < totalNonEmpty * 0.5) return null;
+
+    const cols = [
+        { key: 'name', label: 'Name' },
+        { key: 'type', label: 'Type' },
+    ];
+
+    // Sort: directories first, then files, alphabetical within each group
+    entries.sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'Directory' ? -1 : 1;
+        return a.name.localeCompare(b.name);
+    });
+
+    const dirCount = entries.filter(e => e.type === 'Directory').length;
+    const fileCount = entries.length - dirCount;
+    const stats = [
+        { label: 'Directories', value: String(dirCount), color: 'info' },
+        { label: 'Files', value: String(fileCount), color: 'success' },
+    ];
+
+    let html = `<burnish-stat-bar items='${escapeAttr(JSON.stringify(stats))}'></burnish-stat-bar>`;
+    html += `<burnish-table title="${escapeAttr(label)}" columns='${escapeAttr(JSON.stringify(cols))}' rows='${escapeAttr(JSON.stringify(entries))}'></burnish-table>`;
+    return html;
+}
+
 export function buildResultHtml(result, label, sourceToolName) {
     try {
         const parsed = JSON.parse(result);
         const inner = renderParsedResult(parsed, label, sourceToolName);
         return `<div class="burnish-result-wrapper" data-raw-result="${escapeAttr(result.substring(0, 50000))}">${inner}</div>`;
     } catch {
+        // Try to parse as a directory listing before falling back to plain text
+        const dirHtml = tryParseDirectoryListing(result, label);
+        if (dirHtml) return dirHtml;
+
         return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"></burnish-card>`;
     }
 }
