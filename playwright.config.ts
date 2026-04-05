@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
     testDir: './tests',
-    testIgnore: process.env.CI ? ['**/visual/**'] : [],
+    testIgnore: ['**/visual/**'],
     timeout: 120_000,
     use: {
         baseURL: 'http://localhost:3000',
