@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch server/index.ts",
-    "dev:nomodel": "LLM_BACKEND=none tsx watch server/index.ts",
+    "dev:nomodel": "cross-env LLM_BACKEND=none tsx watch server/index.ts",
     "build": "echo 'demo app - no build step'",
     "clean": "echo 'nothing to clean'"
   },
