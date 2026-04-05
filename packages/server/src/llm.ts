@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
-import type { McpHub } from './mcp-hub.js';
+import type { McpHub, ToolDef } from './mcp-hub.js';
 import type { ConversationStore, Conversation } from './conversation.js';
 import { buildSystemPrompt, buildNoToolsPrompt } from './prompt-template.js';
 import { isWriteTool } from './guards.js';
@@ -298,6 +298,39 @@ export class LlmOrchestrator {
     }
 
     /**
+     * Filter tools to only the relevant server's tools when the user prompt
+     * mentions a specific server name. This avoids overwhelming small models
+     * (e.g. Qwen 2.5 7B) with too many tool definitions.
+     */
+    private getRelevantTools(conv: Conversation): ToolDef[] {
+        const allTools = this.mcpHub.getAllTools();
+        const serverInfo = this.mcpHub.getServerInfo();
+
+        // Get the latest user message
+        const lastUserMsg = [...conv.messages].reverse().find(m => m.role === 'user');
+        if (!lastUserMsg) return allTools;
+
+        const promptLower = lastUserMsg.content.toLowerCase();
+
+        // Check if prompt mentions a specific server name
+        const matchedServer = serverInfo.find(s =>
+            promptLower.includes(s.name.toLowerCase())
+        );
+
+        if (matchedServer) {
+            // Filter to only that server's tools
+            const filtered = allTools.filter(t => t.serverName === matchedServer.name);
+            if (filtered.length > 0) {
+                console.log(`[llm] Filtered tools to server "${matchedServer.name}": ${filtered.length}/${allTools.length} tools`);
+                return filtered;
+            }
+        }
+
+        // No server match — return all tools
+        return allTools;
+    }
+
+    /**
      * Build the user message from conversation history.
      */
     private buildUserMessage(conv: Conversation): string {
@@ -350,7 +383,7 @@ export class LlmOrchestrator {
             return { role: m.role, content: m.content };
         });
 
-        const mcpTools = noTools ? [] : this.mcpHub.getAllTools();
+        const mcpTools = noTools ? [] : this.getRelevantTools(conv);
         const tools: Anthropic.Tool[] = mcpTools.map((t, i) => ({
             name: t.name,
             description: t.description,
@@ -526,7 +559,7 @@ export class LlmOrchestrator {
         }
 
         // Convert MCP tools to OpenAI function calling format (omit when noTools)
-        const mcpTools = noTools ? [] : this.mcpHub.getAllTools();
+        const mcpTools = noTools ? [] : this.getRelevantTools(conv);
         const tools: OpenAI.ChatCompletionTool[] = mcpTools.map(t => ({
             type: 'function' as const,
             function: {
