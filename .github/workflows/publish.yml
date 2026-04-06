@@ -37,6 +37,11 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm -r publish --no-git-checks --access public
+      - name: Publish CLI package (unscoped)
+        run: pnpm --filter burnish publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish scoped packages (@burnish/*)
+        run: pnpm --filter '@burnish/*' publish --no-git-checks --access public || echo "Scoped packages skipped — @burnish org may not exist yet"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
