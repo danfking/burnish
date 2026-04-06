@@ -39,7 +39,15 @@ export {
     buildAdaptiveSystemPrompt,
     buildAdaptiveNoToolsPrompt,
     detectModelSize,
+    formatTemplateExamples,
     type ModelSize,
+    type TemplateExample,
 } from './prompt-template.js';
 
 export { resolveIntent, type IntentResolution } from './intent-resolver.js';
+
+export {
+    detectPivotCommand,
+    buildPivotPrompt,
+    type PivotCommand,
+} from './pivot-detector.js';

@@ -22,8 +22,12 @@ import {
     transformOutput,
     isWriteTool, generateFallbackForm,
     generateSummary, formatTimeAgo,
+    TemplateStore, deriveToolKey,
     PromptLibrary,
 } from '@burnish/app';
+
+// ── Template learning ──
+import { recordPositiveSignal, getTemplateInstructions } from './template-learning.js';
 
 // ── Shared imports ──
 import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.js';
@@ -49,7 +53,10 @@ import {
 } from './deterministic-ui.js';
 
 // ── Copilot UI ──
-import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight } from './copilot-ui.js';
+import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './copilot-ui.js';
+
+// ── Performance tracking ──
+import { recordPerf, recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
 
 // ── Theme toggle ──
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
@@ -749,6 +756,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('btn-dashboard-toggle')?.classList.add('active');
     }
 
+    document.getElementById('btn-perf-toggle')?.addEventListener('click', () => togglePerfPanel());
+
     document.getElementById('btn-dashboard-toggle')?.addEventListener('click', () => {
         dashboardMode = !dashboardMode;
         localStorage.setItem('burnish:dashboardMode', String(dashboardMode));
@@ -803,6 +812,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modeStatus = await detectMode();
     const modeToggleContainer = document.getElementById('mode-toggle');
     if (modeToggleContainer) renderModeToggle(modeToggleContainer);
+
+    // Initialize copilot prompt bar for conversational pivots
+    initPromptBar(PURIFY_CONFIG, (conversationId, prompt) => {
+        // Optional: could create a navigation node for the copilot response
+        console.log(`[copilot] Response completed for: ${prompt}`);
+    });
 
     // Suggestion buttons
     document.addEventListener('click', (e) => {
@@ -980,6 +995,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const nodeEl = e.target.closest('.burnish-node');
         if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
 
+        // Template learning: record drill-down as a positive signal
+        if (nodeEl?.dataset?.nodeId) {
+            const session = getActiveSession();
+            const parentNode = session?.nodes?.find(n => n.id === nodeEl.dataset.nodeId);
+            if (parentNode?.response && parentNode?.prompt) {
+                const toolHint = parentNode._toolHint;
+                recordPositiveSignal(
+                    parentNode.response,
+                    parentNode.prompt,
+                    'drill-down',
+                    toolHint?.toolName,
+                    null,
+                );
+            }
+        }
+
         // Deterministic path: if itemId matches a known tool, render form or execute directly
         const schema = toolSchemaCache[itemId];
         if (schema) {
@@ -1135,6 +1166,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .join(', ');
                 const displayLabel = keyValues ? `${toolShortName}: ${keyValues}` : toolShortName;
                 const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+                recordToolPerf({ toolName: toolId, latencyMs: 0, responseHtml: resultHtml });
+                refreshPerfPanel();
                 const writeNode = renderDeterministicNode(displayLabel, resultHtml);
                 if (writeNode) {
                     writeNode._executionMode = 'deterministic';
@@ -1201,6 +1234,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderMainContent();
 
             const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+            recordToolPerf({ toolName: toolId, latencyMs: data.durationMs || 0, responseHtml: resultHtml });
+            refreshPerfPanel();
             node.response = resultHtml;
             const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
             if (contentEl) {

@@ -19,6 +19,7 @@ import type { ConversationStore, Conversation } from './conversation.js';
 import { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt, buildRetryPrompt, buildAdaptiveSystemPrompt, buildAdaptiveNoToolsPrompt } from './prompt-template.js';
 import { resolveIntent } from './intent-resolver.js';
 import { isWriteTool } from './guards.js';
+import { detectPivotCommand, buildPivotPrompt } from './pivot-detector.js';
 
 export interface WorkflowStep {
     server: string;
@@ -135,6 +136,7 @@ export class LlmOrchestrator {
         conversationId: string,
         requestModel?: string,
         noTools?: boolean,
+        extraInstructions?: string,
     ): AsyncGenerator<StreamChunk> {
         // For openai backend, allow any model; for others, validate against allowlist
         if (requestModel && this.backend !== 'openai' && !ALLOWED_MODELS.has(requestModel)) {
@@ -142,9 +144,21 @@ export class LlmOrchestrator {
         }
         const useModel = requestModel || this.model;
 
+        // Auto-detect pivot commands — skip tools for data reshaping
+        if (!noTools) {
+            const conv = this.conversations.get(conversationId);
+            if (conv) {
+                const lastUserMsg = [...conv.messages].reverse().find(m => m.role === 'user');
+                if (lastUserMsg && detectPivotCommand(lastUserMsg.content)) {
+                    noTools = true;
+                    yield { type: 'progress', stage: 'transforming', detail: 'Reshaping data…', meta: { model: useModel } };
+                }
+            }
+        }
+
         // First attempt
         let fullContent = '';
-        for await (const chunk of this.streamBackend(conversationId, useModel, noTools)) {
+        for await (const chunk of this.streamBackend(conversationId, useModel, noTools, extraInstructions)) {
             if (chunk.type === 'content') {
                 fullContent += chunk.text;
             }
@@ -170,7 +184,7 @@ export class LlmOrchestrator {
         // Inject a user message asking the model to reformat
         this.conversations.addMessage(conversationId, 'user', buildRetryPrompt());
 
-        for await (const chunk of this.streamBackend(conversationId, useModel, noTools)) {
+        for await (const chunk of this.streamBackend(conversationId, useModel, noTools, extraInstructions)) {
             yield chunk;
         }
     }
@@ -182,13 +196,14 @@ export class LlmOrchestrator {
         conversationId: string,
         useModel: string,
         noTools?: boolean,
+        extraInstructions?: string,
     ): AsyncGenerator<StreamChunk> {
         if (this.backend === 'cli') {
-            yield* this.streamResponseCli(conversationId, useModel, noTools);
+            yield* this.streamResponseCli(conversationId, useModel, noTools, extraInstructions);
         } else if (this.backend === 'openai') {
-            yield* this.streamResponseOpenai(conversationId, useModel, noTools);
+            yield* this.streamResponseOpenai(conversationId, useModel, noTools, extraInstructions);
         } else {
-            yield* this.streamResponseApi(conversationId, useModel, noTools);
+            yield* this.streamResponseApi(conversationId, useModel, noTools, extraInstructions);
         }
     }
 
@@ -200,11 +215,12 @@ export class LlmOrchestrator {
         conversationId: string,
         useModel = this.model,
         noTools?: boolean,
+        extraInstructions?: string,
     ): AsyncGenerator<StreamChunk> {
         const conv = this.conversations.get(conversationId);
         if (!conv) return;
 
-        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel);
+        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel, extraInstructions);
         const userMessage = this.buildUserMessage(conv);
 
         // Write system prompt to temp file (avoids command-line size limits)
@@ -397,6 +413,24 @@ export class LlmOrchestrator {
             return lastMsg.content;
         }
 
+        // Check if the latest user message is a pivot/transformation command.
+        // If so, include the full previous assistant response (not truncated)
+        // so the LLM can re-derive the view from the data.
+        if (lastMsg.role === 'user') {
+            const pivotCommand = detectPivotCommand(lastMsg.content);
+            if (pivotCommand) {
+                // Find the most recent assistant response with content
+                const lastAssistant = [...conv.messages]
+                    .reverse()
+                    .find(m => m.role === 'assistant' && m.content.length > 0);
+
+                if (lastAssistant) {
+                    console.log(`[llm] Pivot command detected: ${pivotCommand.type}${pivotCommand.field ? ` by ${pivotCommand.field}` : ''}`);
+                    return buildPivotPrompt(pivotCommand, lastAssistant.content);
+                }
+            }
+        }
+
         return conv.messages
             .map(m => {
                 if (m.role === 'user') return `User: ${m.content}`;
@@ -416,17 +450,27 @@ export class LlmOrchestrator {
         conversationId: string,
         useModel = this.model,
         noTools?: boolean,
+        extraInstructions?: string,
     ): AsyncGenerator<StreamChunk> {
         if (!this.client) throw new Error('LLM not configured — call configure() first');
 
         const conv = this.conversations.get(conversationId);
         if (!conv) return;
 
+        // Check if the latest user message is a pivot command — if so,
+        // preserve the previous assistant response in full for context
+        const lastUserMsg = [...conv.messages].reverse().find(m => m.role === 'user');
+        const isPivot = lastUserMsg ? detectPivotCommand(lastUserMsg.content) !== null : false;
+        if (isPivot) {
+            console.log(`[llm-api] Pivot command detected, preserving full conversation context`);
+        }
+
         const messages: Anthropic.MessageParam[] = conv.messages.map((m, i) => {
             if (
                 m.role === 'assistant' &&
                 i < conv.messages.length - 1 &&
-                m.content.length > 200
+                m.content.length > 200 &&
+                !isPivot
             ) {
                 return { role: 'assistant' as const, content: '[Previous dashboard response]' };
             }
@@ -443,7 +487,7 @@ export class LlmOrchestrator {
                 : {}),
         }));
 
-        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel);
+        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel, extraInstructions);
         const system: Anthropic.MessageCreateParams['system'] = [
             {
                 type: 'text' as const,
@@ -665,21 +709,29 @@ export class LlmOrchestrator {
         conversationId: string,
         useModel = this.model,
         noTools?: boolean,
+        extraInstructions?: string,
     ): AsyncGenerator<StreamChunk> {
         if (!this.openaiClient) throw new Error('OpenAI client not configured — call configure() first');
 
         const conv = this.conversations.get(conversationId);
         if (!conv) return;
 
-        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel);
+        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel, extraInstructions);
         const messages: OpenAI.ChatCompletionMessageParam[] = [
             { role: 'system', content: systemPrompt },
         ];
 
+        // Check if the latest user message is a pivot command
+        const lastUserMsgOpenai = [...conv.messages].reverse().find(m => m.role === 'user');
+        const isPivotOpenai = lastUserMsgOpenai ? detectPivotCommand(lastUserMsgOpenai.content) !== null : false;
+        if (isPivotOpenai) {
+            console.log(`[llm-openai] Pivot command detected, preserving full conversation context`);
+        }
+
         // Build message history
         for (let i = 0; i < conv.messages.length; i++) {
             const m = conv.messages[i];
-            if (m.role === 'assistant' && i < conv.messages.length - 1 && m.content.length > 200) {
+            if (m.role === 'assistant' && i < conv.messages.length - 1 && m.content.length > 200 && !isPivotOpenai) {
                 messages.push({ role: 'assistant', content: '[Previous dashboard response]' });
             } else {
                 messages.push({ role: m.role, content: m.content });

@@ -43,6 +43,20 @@ export {
 } from './risk-indicators.js';
 
 export {
+    PerfStore,
+    type PerfRecord,
+    type ModelStats,
+    type ToolStats,
+} from './perf-store.js';
+
+export {
+    TemplateStore,
+    extractHtmlStructure,
+    deriveToolKey,
+    type LearnedTemplate,
+} from './template-store.js';
+
+export {
     PromptLibrary,
     type PromptEntry,
 } from './prompt-library.js';

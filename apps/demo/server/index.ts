@@ -309,7 +309,7 @@ app.get('/api/models', async (c) => {
 app.post('/api/chat', async (c) => {
     if (!llm || !conversations) return c.json({ error: 'LLM not configured' }, 503);
     try {
-        let body: { prompt: string; conversationId?: string; model?: string; noTools?: boolean };
+        let body: { prompt: string; conversationId?: string; model?: string; noTools?: boolean; extraInstructions?: string };
         try {
             body = await c.req.json();
         } catch {
@@ -327,13 +327,26 @@ app.post('/api/chat', async (c) => {
         const modelErr = validateModel(body.model);
         if (modelErr) return c.json({ error: modelErr }, 400);
 
+        // Validate extraInstructions (optional, max 5000 chars for template examples)
+        if (body.extraInstructions != null) {
+            if (typeof body.extraInstructions !== 'string') {
+                return c.json({ error: 'extraInstructions must be a string' }, 400);
+            }
+            if (body.extraInstructions.length > 5000) {
+                return c.json({ error: 'extraInstructions must be at most 5000 characters' }, 400);
+            }
+        }
+
         const conv = conversations.getOrCreate(body.conversationId);
         conversations.addMessage(conv.id, 'user', body.prompt);
         const modelParam = body.model ? `?model=${encodeURIComponent(body.model)}` : '';
         const noToolsParam = body.noTools ? `${modelParam ? '&' : '?'}noTools=true` : '';
+        const extraParam = body.extraInstructions
+            ? `${modelParam || noToolsParam ? '&' : '?'}extra=${encodeURIComponent(body.extraInstructions)}`
+            : '';
         return c.json({
             conversationId: conv.id,
-            streamUrl: `/api/chat/${conv.id}/stream${modelParam}${noToolsParam}`,
+            streamUrl: `/api/chat/${conv.id}/stream${modelParam}${noToolsParam}${extraParam}`,
         });
     } catch (err) {
         console.error('[burnish] POST /api/chat error:', err);
@@ -355,12 +368,13 @@ app.get('/api/chat/:id/stream', async (c) => {
             if (modelErr) return c.json({ error: modelErr }, 400);
         }
         const noTools = c.req.query('noTools') === 'true';
+        const extraInstructions = c.req.query('extra') || undefined;
 
         const stream = new ReadableStream({
             async start(controller) {
                 const encoder = new TextEncoder();
                 try {
-                    for await (const chunk of llm!.streamResponse(id, requestModel, noTools)) {
+                    for await (const chunk of llm!.streamResponse(id, requestModel, noTools, extraInstructions)) {
                         const data = JSON.stringify(chunk);
                         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
                     }

@@ -54,12 +54,13 @@ export class StreamOrchestrator {
         model: string | undefined,
         callbacks: StreamCallbacks,
         noTools?: boolean,
+        extraInstructions?: string,
     ): Promise<void> {
         try {
             const res = await fetch(`${apiBase}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, conversationId, model, noTools }),
+                body: JSON.stringify({ prompt, conversationId, model, noTools, extraInstructions }),
             });
             if (!res.ok) throw new Error(`API error: ${res.status}`);
             const data = await res.json();
