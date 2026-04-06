@@ -30,6 +30,16 @@ export {
     type WorkflowStep,
 } from './llm.js';
 
-export { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt } from './prompt-template.js';
+export {
+    buildSystemPrompt,
+    buildNoToolsPrompt,
+    buildFormattingPrompt,
+    buildSmallModelPrompt,
+    buildSmallModelNoToolsPrompt,
+    buildAdaptiveSystemPrompt,
+    buildAdaptiveNoToolsPrompt,
+    detectModelSize,
+    type ModelSize,
+} from './prompt-template.js';
 
 export { resolveIntent, type IntentResolution } from './intent-resolver.js';
