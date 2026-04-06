@@ -19,7 +19,7 @@ test.describe('Security', () => {
             const shadow = card?.shadowRoot;
             if (!shadow) return false;
             const links = shadow.querySelectorAll('a[href]');
-            return Array.from(links).some(a => a.getAttribute('href')?.startsWith('javascript:'));
+            return Array.from(links).some(a => /^\s*javascript\s*:/i.test(a.getAttribute('href') ?? ''));
         });
         expect(hasJsHref).toBe(false);
     });
