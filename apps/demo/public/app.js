@@ -48,7 +48,7 @@ import {
 } from './deterministic-ui.js';
 
 // ── Copilot UI ──
-import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight } from './copilot-ui.js';
+import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './copilot-ui.js';
 
 // ── Performance tracking ──
 import { recordPerf, recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
@@ -803,6 +803,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modeStatus = await detectMode();
     const modeToggleContainer = document.getElementById('mode-toggle');
     if (modeToggleContainer) renderModeToggle(modeToggleContainer);
+
+    // Initialize copilot prompt bar for conversational pivots
+    initPromptBar(PURIFY_CONFIG, (conversationId, prompt) => {
+        // Optional: could create a navigation node for the copilot response
+        console.log(`[copilot] Response completed for: ${prompt}`);
+    });
 
     // Suggestion buttons
     document.addEventListener('click', (e) => {

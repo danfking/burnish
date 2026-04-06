@@ -19,6 +19,7 @@ import type { ConversationStore, Conversation } from './conversation.js';
 import { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt, buildRetryPrompt, buildAdaptiveSystemPrompt, buildAdaptiveNoToolsPrompt } from './prompt-template.js';
 import { resolveIntent } from './intent-resolver.js';
 import { isWriteTool } from './guards.js';
+import { detectPivotCommand, buildPivotPrompt } from './pivot-detector.js';
 
 export interface WorkflowStep {
     server: string;
@@ -141,6 +142,18 @@ export class LlmOrchestrator {
             throw new Error(`Invalid model: ${requestModel}`);
         }
         const useModel = requestModel || this.model;
+
+        // Auto-detect pivot commands — skip tools for data reshaping
+        if (!noTools) {
+            const conv = this.conversations.get(conversationId);
+            if (conv) {
+                const lastUserMsg = [...conv.messages].reverse().find(m => m.role === 'user');
+                if (lastUserMsg && detectPivotCommand(lastUserMsg.content)) {
+                    noTools = true;
+                    yield { type: 'progress', stage: 'transforming', detail: 'Reshaping data…', meta: { model: useModel } };
+                }
+            }
+        }
 
         // First attempt
         let fullContent = '';
@@ -397,6 +410,24 @@ export class LlmOrchestrator {
             return lastMsg.content;
         }
 
+        // Check if the latest user message is a pivot/transformation command.
+        // If so, include the full previous assistant response (not truncated)
+        // so the LLM can re-derive the view from the data.
+        if (lastMsg.role === 'user') {
+            const pivotCommand = detectPivotCommand(lastMsg.content);
+            if (pivotCommand) {
+                // Find the most recent assistant response with content
+                const lastAssistant = [...conv.messages]
+                    .reverse()
+                    .find(m => m.role === 'assistant' && m.content.length > 0);
+
+                if (lastAssistant) {
+                    console.log(`[llm] Pivot command detected: ${pivotCommand.type}${pivotCommand.field ? ` by ${pivotCommand.field}` : ''}`);
+                    return buildPivotPrompt(pivotCommand, lastAssistant.content);
+                }
+            }
+        }
+
         return conv.messages
             .map(m => {
                 if (m.role === 'user') return `User: ${m.content}`;
@@ -422,11 +453,20 @@ export class LlmOrchestrator {
         const conv = this.conversations.get(conversationId);
         if (!conv) return;
 
+        // Check if the latest user message is a pivot command — if so,
+        // preserve the previous assistant response in full for context
+        const lastUserMsg = [...conv.messages].reverse().find(m => m.role === 'user');
+        const isPivot = lastUserMsg ? detectPivotCommand(lastUserMsg.content) !== null : false;
+        if (isPivot) {
+            console.log(`[llm-api] Pivot command detected, preserving full conversation context`);
+        }
+
         const messages: Anthropic.MessageParam[] = conv.messages.map((m, i) => {
             if (
                 m.role === 'assistant' &&
                 i < conv.messages.length - 1 &&
-                m.content.length > 200
+                m.content.length > 200 &&
+                !isPivot
             ) {
                 return { role: 'assistant' as const, content: '[Previous dashboard response]' };
             }
@@ -676,10 +716,17 @@ export class LlmOrchestrator {
             { role: 'system', content: systemPrompt },
         ];
 
+        // Check if the latest user message is a pivot command
+        const lastUserMsgOpenai = [...conv.messages].reverse().find(m => m.role === 'user');
+        const isPivotOpenai = lastUserMsgOpenai ? detectPivotCommand(lastUserMsgOpenai.content) !== null : false;
+        if (isPivotOpenai) {
+            console.log(`[llm-openai] Pivot command detected, preserving full conversation context`);
+        }
+
         // Build message history
         for (let i = 0; i < conv.messages.length; i++) {
             const m = conv.messages[i];
-            if (m.role === 'assistant' && i < conv.messages.length - 1 && m.content.length > 200) {
+            if (m.role === 'assistant' && i < conv.messages.length - 1 && m.content.length > 200 && !isPivotOpenai) {
                 messages.push({ role: 'assistant', content: '[Previous dashboard response]' });
             } else {
                 messages.push({ role: m.role, content: m.content });

@@ -1,12 +1,23 @@
 /**
  * Copilot UI — dual-mode toggle, AI insight streaming, prompt bar.
  * Only active when the server reports available LLM models.
+ *
+ * Supports conversational pivot tables: when the user types transformation
+ * commands like "group by assignee" or "show as chart", the prompt is sent
+ * to the LLM with full conversation context for data re-derivation.
  */
 
 import { escapeAttr } from './shared.js';
+import { transformOutput } from '@burnish/app';
 
 let currentMode = localStorage.getItem('burnish:mode') || 'explorer';
 let copilotAvailable = false;
+
+/** Active conversation ID for multi-turn pivot interactions */
+let activeConversationId = null;
+
+/** Whether a streaming response is in progress */
+let isStreaming = false;
 
 export function getCurrentMode() { return currentMode; }
 export function isCopilotAvailable() { return copilotAvailable; }
@@ -68,6 +79,213 @@ export function createInsightSlot(parentNode) {
     slot.setAttribute('aria-busy', 'false');
     parentNode.appendChild(slot);
     return slot;
+}
+
+/**
+ * Client-side pivot command patterns for UX feedback.
+ * These mirror the server-side patterns in pivot-detector.ts.
+ */
+const PIVOT_PATTERNS = [
+    /\b(?:group|cluster|categorize|bucket)\s+(?:by|on|into)\s+\w+/i,
+    /\b(?:sort|order|rank|arrange)\s+(?:by|on)\s+\w+/i,
+    /\b(?:filter|where|only\s+show|show\s+only)\s+/i,
+    /\b(?:show|display|visualize|render|make|convert)\s+(?:as\s+|into\s+)?(?:a\s+)?(?:\w+\s+)?(?:chart|graph|plot|table|visualization)/i,
+    /\bas\s+(?:a\s+)?(?:\w+\s+)?(?:chart|graph|plot|table)/i,
+    /\b(?:summarize|summary|overview|recap|aggregate)\b/i,
+    /\bpivot\s+(?:by|on|around)\s+\w+/i,
+    /\b(?:count|tally|total)\s+(?:by|per|for\s+each)\s+\w+/i,
+];
+
+/**
+ * Detect if a prompt is a pivot/transformation command (client-side).
+ */
+export function isPivotCommand(prompt) {
+    if (!prompt || prompt.length > 200) return false;
+    return PIVOT_PATTERNS.some(p => p.test(prompt.trim()));
+}
+
+/** Get the active conversation ID for multi-turn interactions. */
+export function getConversationId() { return activeConversationId; }
+
+/** Reset the conversation (e.g., on new session). */
+export function resetConversation() { activeConversationId = null; }
+
+/** Check if a response is currently streaming. */
+export function getIsStreaming() { return isStreaming; }
+
+/**
+ * Initialize the copilot prompt bar — wire up Enter key to submit prompts.
+ * @param {object} PURIFY_CONFIG — DOMPurify config for sanitizing responses
+ * @param {function} onNodeCreated — callback(nodeId, prompt) when a new response node is created
+ */
+export function initPromptBar(PURIFY_CONFIG, onNodeCreated) {
+    const input = document.getElementById('copilot-input');
+    const promptBar = document.getElementById('copilot-prompt-bar');
+    if (!input || !promptBar) return;
+
+    // Show/hide based on mode
+    promptBar.style.display = currentMode === 'copilot' ? '' : 'none';
+
+    input.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter' || isStreaming) return;
+
+        const prompt = input.value.trim();
+        if (!prompt) return;
+
+        input.value = '';
+        const pivot = isPivotCommand(prompt);
+
+        await submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, pivot);
+    });
+}
+
+/**
+ * Submit a prompt to the copilot chat API and stream the response.
+ * Creates a new node in the dashboard for the response.
+ */
+export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, isPivot = false) {
+    if (isStreaming) return;
+    isStreaming = true;
+
+    // Create a response container in the dashboard
+    const container = document.getElementById('dashboard-container');
+    if (!container) { isStreaming = false; return; }
+
+    // Add user message display
+    const userEl = document.createElement('div');
+    userEl.className = 'burnish-copilot-message burnish-copilot-user';
+    userEl.innerHTML = `<div class="burnish-copilot-message-content">${escapeAttr(prompt)}</div>`;
+    container.appendChild(userEl);
+
+    // Add assistant response container
+    const responseEl = document.createElement('div');
+    responseEl.className = 'burnish-copilot-message burnish-copilot-assistant';
+    responseEl.setAttribute('aria-live', 'polite');
+    responseEl.setAttribute('aria-busy', 'true');
+
+    const statusEl = document.createElement('div');
+    statusEl.className = 'burnish-copilot-status';
+    statusEl.textContent = isPivot ? 'Reshaping data...' : 'Thinking...';
+    responseEl.appendChild(statusEl);
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'burnish-copilot-response-content';
+    responseEl.appendChild(contentEl);
+
+    container.appendChild(responseEl);
+
+    // Scroll to the new response
+    responseEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    try {
+        const chatRes = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt,
+                conversationId: activeConversationId,
+            }),
+        });
+
+        if (!chatRes.ok) {
+            const err = await chatRes.json().catch(() => ({ error: 'Request failed' }));
+            statusEl.textContent = '';
+            contentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(err.error || 'Request failed')}"></burnish-card>`;
+            isStreaming = false;
+            return;
+        }
+
+        const { conversationId, streamUrl } = await chatRes.json();
+        activeConversationId = conversationId;
+
+        const es = new EventSource(streamUrl);
+        let html = '';
+
+        es.onmessage = (e) => {
+            try {
+                const chunk = JSON.parse(e.data);
+                if (chunk.type === 'progress') {
+                    statusEl.textContent = chunk.detail || chunk.stage || '';
+                } else if (chunk.type === 'content') {
+                    html += chunk.text;
+                    const transformed = transformOutput(html);
+                    contentEl.innerHTML = DOMPurify.sanitize(transformed, PURIFY_CONFIG);
+                } else if (chunk.type === 'stats') {
+                    const stats = chunk;
+                    const sec = (stats.durationMs / 1000).toFixed(1);
+                    statusEl.textContent = `${sec}s`;
+                    statusEl.classList.add('burnish-copilot-status-done');
+                } else if (chunk.type === 'done') {
+                    es.close();
+                    responseEl.setAttribute('aria-busy', 'false');
+                    if (!statusEl.classList.contains('burnish-copilot-status-done')) {
+                        statusEl.textContent = '';
+                    }
+
+                    // Add pivot suggestion chips if this was a data response
+                    if (html && /<burnish-/.test(html)) {
+                        appendPivotSuggestions(responseEl, PURIFY_CONFIG, onNodeCreated);
+                    }
+
+                    isStreaming = false;
+                    if (onNodeCreated) onNodeCreated(conversationId, prompt);
+                } else if (chunk.type === 'error') {
+                    es.close();
+                    statusEl.textContent = '';
+                    contentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(chunk.message || 'Unknown error')}"></burnish-card>`;
+                    isStreaming = false;
+                }
+            } catch { /* ignore parse errors */ }
+        };
+
+        es.onerror = () => {
+            es.close();
+            if (html) {
+                responseEl.setAttribute('aria-busy', 'false');
+                statusEl.textContent = '';
+            } else {
+                statusEl.textContent = '';
+                contentEl.innerHTML = '<burnish-card title="Connection Lost" status="error" body="Lost connection to the server."></burnish-card>';
+            }
+            isStreaming = false;
+        };
+    } catch (err) {
+        statusEl.textContent = '';
+        contentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(err.message || 'Failed to connect')}"></burnish-card>`;
+        isStreaming = false;
+    }
+}
+
+/**
+ * Append pivot/transformation suggestion chips after a data response.
+ * Allows users to quickly reshape the data without typing.
+ */
+function appendPivotSuggestions(responseEl, PURIFY_CONFIG, onNodeCreated) {
+    const suggestions = [
+        { label: 'Group by status', prompt: 'group by status' },
+        { label: 'Show as chart', prompt: 'show as bar chart' },
+        { label: 'Show as table', prompt: 'show as table' },
+        { label: 'Summarize', prompt: 'summarize' },
+    ];
+
+    const chipsEl = document.createElement('div');
+    chipsEl.className = 'burnish-pivot-suggestions';
+    chipsEl.innerHTML = suggestions.map(s =>
+        `<button class="burnish-pivot-chip" data-prompt="${escapeAttr(s.prompt)}">${escapeAttr(s.label)}</button>`
+    ).join('');
+
+    chipsEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.burnish-pivot-chip');
+        if (!btn || isStreaming) return;
+        const prompt = btn.dataset.prompt;
+        if (prompt) {
+            // Remove the suggestions after clicking
+            chipsEl.remove();
+            submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, true);
+        }
+    });
+
+    responseEl.appendChild(chipsEl);
 }
 
 /**
