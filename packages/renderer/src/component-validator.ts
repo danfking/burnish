@@ -272,25 +272,25 @@ function validateElement(
  */
 function parseAttrsFromHtml(html: string): Record<string, string> {
     const attrs: Record<string, string> = {};
-    // Match attribute="value", attribute='value', or bare attribute
-    const re = /([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')|(\b[\w-]+)\b(?!=)/g;
-    let m: RegExpExecArray | null;
 
     // Skip past the opening tag name
     const tagEnd = html.indexOf(' ');
     if (tagEnd === -1) return attrs;
     const attrString = html.substring(tagEnd);
 
-    while ((m = re.exec(attrString)) !== null) {
-        if (m[1]) {
-            // key="value" or key='value'
-            attrs[m[1].toLowerCase()] = m[2] ?? m[3] ?? '';
-        } else if (m[4]) {
-            // bare boolean attribute
-            const name = m[4].toLowerCase();
-            if (name !== '/' && name !== '>') {
-                attrs[name] = '';
-            }
+    // Match key="value" or key='value' pairs
+    const kvRe = /([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+    let m: RegExpExecArray | null;
+    while ((m = kvRe.exec(attrString)) !== null) {
+        attrs[m[1].toLowerCase()] = m[2] ?? m[3] ?? '';
+    }
+
+    // Match bare boolean attributes (words not followed by =)
+    const bareRe = /\b([\w-]+)\b(?!\s*=)/g;
+    while ((m = bareRe.exec(attrString)) !== null) {
+        const name = m[1].toLowerCase();
+        if (name !== '/' && name !== '>' && !(name in attrs)) {
+            attrs[name] = '';
         }
     }
 

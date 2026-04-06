@@ -113,7 +113,7 @@ function parseExplicitToolCall(
     tools: ToolDef[],
 ): IntentResolution | null {
     const match = prompt.match(
-        /^Call the tool\s+(\S+)\s+with\s+.*parameters?:?\s*(.*)/i,
+        /^Call the tool\s+(\S+)\s+with\s+[^:]*parameters?:?\s*(.*)/i,
     );
     if (!match) return null;
 

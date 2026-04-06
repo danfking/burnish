@@ -30,6 +30,25 @@ export interface StreamParserOptions {
 const DEFAULT_PREFIX = 'burnish-';
 const DEFAULT_CONTAINERS = new Set(['burnish-section']);
 
+const MCP_OPEN_TAG = '<use_mcp_tool';
+const MCP_CLOSE_TAG = '</use_mcp_tool>';
+
+/**
+ * Strip MCP tool call XML blocks using indexOf instead of regex
+ * to avoid polynomial backtracking on malformed input.
+ */
+function stripMcpToolCalls(text: string): string {
+    let result = text;
+    let start = result.indexOf(MCP_OPEN_TAG);
+    while (start !== -1) {
+        const end = result.indexOf(MCP_CLOSE_TAG, start);
+        if (end === -1) break; // Incomplete block — leave as is
+        result = result.substring(0, start) + result.substring(end + MCP_CLOSE_TAG.length);
+        start = result.indexOf(MCP_OPEN_TAG);
+    }
+    return result;
+}
+
 /**
  * Check if text contains any component tags with the given prefix.
  */
@@ -50,7 +69,7 @@ export function findStreamElements(
     const elements: StreamElement[] = [];
 
     // Clean MCP tool call XML blocks
-    const cleaned = text.replace(/<use_mcp_tool[\s\S]*?<\/use_mcp_tool>/g, '');
+    const cleaned = stripMcpToolCalls(text);
 
     // Match component tags + common HTML tags
     const extraTags = options.extraTags ?? ['div', 'h[1-6]', 'p', 'section', 'ul', 'ol', 'table'];
@@ -164,7 +183,7 @@ export function extractHtmlContent(
     _renderMarkdown?: (text: string) => string,
     fallbackOptions?: FallbackOptions,
 ): string {
-    let cleaned = text.replace(/<use_mcp_tool[\s\S]*?<\/use_mcp_tool>/g, '');
+    let cleaned = stripMcpToolCalls(text);
     const tagRe = new RegExp(`<${prefix}[a-z]`);
     const htmlStart = cleaned.search(tagRe);
 

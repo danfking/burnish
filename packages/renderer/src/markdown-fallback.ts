@@ -66,7 +66,7 @@ export function convertMarkdownToComponents(
 // ---------------------------------------------------------------------------
 
 const TABLE_ROW_RE = /^\|(.+)\|$/;
-const TABLE_SEPARATOR_RE = /^\|[\s:]*-{2,}[\s:]*(?:\|[\s:]*-{2,}[\s:]*)*\|$/;
+const TABLE_SEPARATOR_RE = /^\| *:?-{2,}:? *(\| *:?-{2,}:? *)*\|$/;
 
 function hasMarkdownTable(text: string): boolean {
     const lines = text.split('\n');
@@ -156,7 +156,7 @@ function convertTables(text: string, prefix: string, minRows: number): string {
         let title = '';
         if (table.startIndex > 0) {
             const prev = lines[table.startIndex - 1].trim();
-            const headerMatch = prev.match(/^#{1,6}\s+(.+)$/);
+            const headerMatch = prev.match(/^#{1,6}\s+(\S.*)$/);
             if (headerMatch) {
                 title = headerMatch[1];
                 // Remove the header line too
@@ -188,7 +188,7 @@ function convertTables(text: string, prefix: string, minRows: number): string {
 // ---------------------------------------------------------------------------
 
 // Matches "**Label:** value" or "- **Label:** value"
-const KV_RE = /^[-*]?\s*\*\*(.+?)\*\*[:\s]+(.+)$/;
+const KV_RE = /^[-*]?\s*\*\*([^*]+)\*\*[:\s]+(\S.*)$/;
 
 function hasKeyValuePattern(text: string): boolean {
     const lines = text.split('\n').map(l => l.trim());
@@ -247,8 +247,8 @@ function convertKeyValueBlocks(text: string, prefix: string): string {
 // Header + list conversion
 // ---------------------------------------------------------------------------
 
-const HEADER_RE = /^(#{1,6})\s+(.+)$/;
-const BULLET_RE = /^[-*+]\s+(.+)$/;
+const HEADER_RE = /^(#{1,6})\s+(\S.*)$/;
+const BULLET_RE = /^[-*+]\s+(\S.*)$/;
 
 function hasHeaderWithList(text: string): boolean {
     const lines = text.split('\n').map(l => l.trim());
@@ -365,11 +365,11 @@ function toKey(header: string): string {
 /** Strip inline markdown bold/italic/code formatting */
 function stripInlineMarkdown(text: string): string {
     return text
-        .replace(/\*\*(.+?)\*\*/g, '$1')
-        .replace(/\*(.+?)\*/g, '$1')
-        .replace(/_(.+?)_/g, '$1')
-        .replace(/`(.+?)`/g, '$1')
-        .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/_([^_]+)_/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
         .trim();
 }
 
