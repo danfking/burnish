@@ -225,6 +225,52 @@ ${truncated}
 - NEVER start with text like "Here are..." or "Sure!"`;
 }
 
+/**
+ * Build a prompt for form negotiation — the user requests a modification
+ * to a tool form and the LLM regenerates the fields JSON.
+ *
+ * Returns a system+user prompt pair for a no-tools chat call.
+ */
+export function buildFormNegotiationPrompt(
+    toolId: string,
+    currentFieldsJson: string,
+    userRequest: string,
+): { system: string; user: string } {
+    const system = `You are a form designer AI. You modify form field schemas based on user requests.
+
+## Task
+The user wants to modify a tool form. You will receive the current form fields as a JSON array and the user's modification request. Return ONLY a valid JSON array of the modified fields — no markdown, no code fences, no explanation.
+
+## Field Schema
+Each field is an object with these properties:
+- key (string, required): unique field identifier, lowercase_snake_case
+- label (string, required): human-readable label
+- type (string): "text" | "textarea" | "number" | "select" — default "text"
+- required (boolean): whether the field is required
+- placeholder (string): hint text
+- value (string): pre-filled value (preserve existing values)
+- options (array): for select fields, array of {value, label} objects
+
+## Rules
+1. PRESERVE all existing fields unless the user explicitly asks to remove one
+2. PRESERVE all existing "value" properties — never clear user-entered data
+3. When adding a field, pick a sensible key, label, type, and placeholder
+4. When changing a field type (e.g. "make X multi-select"), update the type and add options if needed
+5. Return ONLY the JSON array — no wrapping object, no markdown fences, no explanation text
+6. The JSON must be valid and parseable`;
+
+    const user = `Tool: ${toolId}
+
+Current fields:
+${currentFieldsJson}
+
+User request: ${userRequest}
+
+Return ONLY the modified JSON array of fields:`;
+
+    return { system, user };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Model-adaptive prompt selection
 // ═══════════════════════════════════════════════════════════════

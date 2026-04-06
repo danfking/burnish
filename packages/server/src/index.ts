@@ -34,6 +34,7 @@ export {
     buildSystemPrompt,
     buildNoToolsPrompt,
     buildFormattingPrompt,
+    buildFormNegotiationPrompt,
     buildSmallModelPrompt,
     buildSmallModelNoToolsPrompt,
     buildAdaptiveSystemPrompt,

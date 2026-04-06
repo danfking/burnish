@@ -25,6 +25,7 @@ import {
     ConversationStore,
     LlmOrchestrator,
     ALLOWED_MODELS,
+    buildFormNegotiationPrompt,
 } from '@burnish/server';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -447,6 +448,55 @@ app.post('/api/title', async (c) => {
         return c.json({ title });
     } catch (err) {
         console.error('[burnish] POST /api/title error:', err);
+        return c.json({ error: 'Internal server error' }, 500);
+    }
+});
+
+// --- Form Negotiation (Copilot-only) ---
+app.post('/api/form-negotiate', async (c) => {
+    if (!llm) return c.json({ error: 'LLM not configured — form negotiation requires Copilot mode' }, 503);
+    try {
+        let body: { toolId: string; currentFields: string; request: string };
+        try {
+            body = await c.req.json();
+        } catch {
+            return c.json({ error: 'Invalid request body' }, 400);
+        }
+
+        if (!body.toolId || typeof body.toolId !== 'string') {
+            return c.json({ error: 'toolId is required' }, 400);
+        }
+        if (!body.currentFields || typeof body.currentFields !== 'string') {
+            return c.json({ error: 'currentFields is required' }, 400);
+        }
+        if (!body.request || typeof body.request !== 'string' || body.request.trim().length === 0) {
+            return c.json({ error: 'request is required and must be non-empty' }, 400);
+        }
+        if (body.request.length > 500) {
+            return c.json({ error: 'request must be at most 500 characters' }, 400);
+        }
+
+        const { system, user } = buildFormNegotiationPrompt(body.toolId, body.currentFields, body.request);
+        const rawResponse = await llm.negotiateForm(system, user);
+
+        // Extract JSON array from response — the LLM might wrap it in code fences
+        let fieldsJson = rawResponse;
+        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) fieldsJson = jsonMatch[0];
+
+        // Validate it's parseable JSON
+        try {
+            const parsed = JSON.parse(fieldsJson);
+            if (!Array.isArray(parsed)) {
+                return c.json({ error: 'LLM returned invalid fields (not an array)' }, 502);
+            }
+            return c.json({ fields: parsed });
+        } catch {
+            console.error('[burnish] Form negotiation: LLM returned unparseable JSON:', rawResponse);
+            return c.json({ error: 'LLM returned invalid JSON — try rephrasing your request' }, 502);
+        }
+    } catch (err) {
+        console.error('[burnish] POST /api/form-negotiate error:', err);
         return c.json({ error: 'Internal server error' }, 500);
     }
 });

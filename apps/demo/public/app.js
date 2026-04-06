@@ -53,7 +53,7 @@ import {
 } from './deterministic-ui.js';
 
 // ── Copilot UI ──
-import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './copilot-ui.js';
+import { detectMode, getCurrentMode, isCopilotAvailable, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './copilot-ui.js';
 
 // ── Performance tracking ──
 import { recordPerf, recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
@@ -813,6 +813,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modeToggleContainer = document.getElementById('mode-toggle');
     if (modeToggleContainer) renderModeToggle(modeToggleContainer);
 
+    // ── Form negotiation: auto-enable customizable on forms when copilot is available ──
+    if (modeStatus === 'copilot-available') {
+        const enableFormCustomization = (root) => {
+            const forms = root.querySelectorAll('burnish-form:not([customizable])');
+            forms.forEach(form => form.setAttribute('customizable', ''));
+        };
+
+        // Enable on existing forms
+        enableFormCustomization(document);
+
+        // Enable on new forms via MutationObserver
+        const formObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType !== 1) continue;
+                    if (node.tagName === 'BURNISH-FORM') {
+                        node.setAttribute('customizable', '');
+                    }
+                    if (node.querySelectorAll) {
+                        enableFormCustomization(node);
+                    }
+                }
+            }
+        });
+        formObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
     // Initialize copilot prompt bar for conversational pivots
     initPromptBar(PURIFY_CONFIG, (conversationId, prompt) => {
         // Optional: could create a navigation node for the copilot response
@@ -1255,6 +1282,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Direct execution failed:', err.message);
             const toolShortName = (toolId.split('__').pop() || toolId).replace(/_/g, ' ');
             renderDeterministicNode(toolShortName, `<burnish-card title="Error" status="error" body="${escapeAttr(err.message)}"></burnish-card>`);
+        }
+    });
+
+    // ── Form customization (generative form negotiation) ──
+    container.addEventListener('burnish-form-customize', async (e) => {
+        const { toolId, request, currentFields, currentValues } = e.detail || {};
+        if (!toolId || !request) return;
+
+        const form = e.target;
+        try {
+            const res = await fetch('/api/form-negotiate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ toolId, currentFields, request }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                console.error('Form negotiation failed:', data.error);
+                if (form && form.setCustomizeLoading) form.setCustomizeLoading(false);
+                return;
+            }
+
+            // Update the form fields, preserving entered values
+            if (form && form.updateFields) {
+                form.updateFields(JSON.stringify(data.fields));
+            }
+        } catch (err) {
+            console.error('Form negotiation error:', err.message);
+            if (form && form.setCustomizeLoading) form.setCustomizeLoading(false);
         }
     });
 

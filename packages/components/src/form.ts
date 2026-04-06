@@ -21,12 +21,15 @@ export class BurnishForm extends LitElement {
         title: { type: String },
         'tool-id': { type: String, attribute: 'tool-id' },
         fields: { type: String },
+        customizable: { type: Boolean },
         _status: { state: true },
         _statusMsg: { state: true },
         _lookupResults: { state: true },
         _lookupField: { state: true },
         _lookupLoading: { state: true },
         _lookupStatus: { state: true },
+        _customizeOpen: { state: true },
+        _customizeLoading: { state: true },
     };
 
     static styles = css`
@@ -107,6 +110,53 @@ export class BurnishForm extends LitElement {
             color: var(--burnish-accent, #8B3A3A);
         }
 
+        /* Customize */
+        .form-customize-toggle {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 0; margin-bottom: var(--burnish-space-sm, 8px);
+            font-size: var(--burnish-font-size-sm, 12px);
+            color: var(--burnish-text-muted, #9C8F8F);
+            cursor: pointer; border: none; background: none;
+            transition: color 0.15s ease;
+        }
+        .form-customize-toggle:hover { color: var(--burnish-accent, #8B3A3A); }
+        .form-customize-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
+        .form-customize-row {
+            display: flex; gap: 4px; margin-bottom: var(--burnish-space-md, 12px);
+            animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .form-customize-input {
+            flex: 1; padding: 8px 12px;
+            border: 1px dashed var(--burnish-border, #E5DDDD); border-radius: 6px;
+            font-size: var(--burnish-font-size-sm, 12px); font-family: inherit;
+            color: var(--burnish-text, #2D1F1F); background: var(--burnish-surface-alt, #F8F5F5);
+            box-sizing: border-box; transition: border-color 0.15s ease;
+        }
+        .form-customize-input:focus {
+            outline: none; border-color: var(--burnish-accent, #8B3A3A);
+            border-style: solid;
+            box-shadow: 0 0 0 3px rgba(139, 58, 58, 0.1);
+        }
+        .form-customize-input::placeholder { color: var(--burnish-text-muted, #9C8F8F); }
+        .form-customize-btn {
+            padding: 0 12px; border: 1px solid var(--burnish-accent, #8B3A3A); border-radius: 6px;
+            background: var(--burnish-accent, #8B3A3A); color: white;
+            font-size: var(--burnish-font-size-sm, 12px); cursor: pointer;
+            display: flex; align-items: center; gap: 4px;
+            transition: all 0.15s ease; flex-shrink: 0;
+        }
+        .form-customize-btn:hover { filter: brightness(1.1); }
+        .form-customize-btn:disabled { opacity: 0.5; pointer-events: none; }
+        .form-customize-btn svg { width: 14px; height: 14px; }
+        .form-customize-status {
+            font-size: var(--burnish-font-size-sm, 12px);
+            color: var(--burnish-accent, #8B3A3A);
+            padding: 4px 0; margin-bottom: var(--burnish-space-sm, 8px);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .form-customize-status svg { animation: spin 1s linear infinite; width: 14px; height: 14px; }
+
         /* Actions */
         .form-actions {
             display: flex; gap: 8px; justify-content: flex-end;
@@ -133,21 +183,27 @@ export class BurnishForm extends LitElement {
     declare title: string;
     declare 'tool-id': string;
     declare fields: string;
+    declare customizable: boolean;
     declare _status: string;
     declare _statusMsg: string;
     declare _lookupResults: LookupResult[];
     declare _lookupField: string;
     declare _lookupLoading: boolean;
     declare _lookupStatus: string;
+    declare _customizeOpen: boolean;
+    declare _customizeLoading: boolean;
 
     constructor() {
         super();
+        this.customizable = false;
         this._status = '';
         this._statusMsg = '';
         this._lookupResults = [];
         this._lookupField = '';
         this._lookupLoading = false;
         this._lookupStatus = 'Searching...';
+        this._customizeOpen = false;
+        this._customizeLoading = false;
     }
 
     private _getFields(): FormField[] {
@@ -211,6 +267,69 @@ export class BurnishForm extends LitElement {
         this._lookupField = '';
         this._lookupResults = [];
         this._lookupLoading = false;
+    }
+
+    /** Get current field values from the DOM inputs */
+    getCurrentValues(): Record<string, string> {
+        const fields = this._getFields();
+        const values: Record<string, string> = {};
+        for (const field of fields) {
+            const input = this.shadowRoot?.querySelector(`[data-key="${field.key}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
+            if (input && input.value) values[field.key] = input.value;
+        }
+        return values;
+    }
+
+    /** Update form fields, preserving any values the user has entered */
+    updateFields(newFieldsJson: string) {
+        const currentValues = this.getCurrentValues();
+        // Parse and merge current values into new fields
+        try {
+            const newFields: FormField[] = JSON.parse(newFieldsJson);
+            for (const field of newFields) {
+                if (currentValues[field.key] && !field.value) {
+                    field.value = currentValues[field.key];
+                }
+            }
+            this.fields = JSON.stringify(newFields);
+        } catch {
+            this.fields = newFieldsJson;
+        }
+        this._customizeLoading = false;
+    }
+
+    /** Set loading state for customization */
+    setCustomizeLoading(loading: boolean) {
+        this._customizeLoading = loading;
+    }
+
+    private _handleCustomizeSubmit() {
+        const input = this.shadowRoot?.querySelector('.form-customize-input') as HTMLInputElement | null;
+        const request = input?.value?.trim();
+        if (!request) return;
+
+        this._customizeLoading = true;
+
+        this.dispatchEvent(new CustomEvent('burnish-form-customize', {
+            detail: {
+                toolId: this['tool-id'],
+                request,
+                currentFields: this.fields,
+                currentValues: this.getCurrentValues(),
+            },
+            bubbles: true,
+            composed: true,
+        }));
+
+        if (input) input.value = '';
+    }
+
+    private _handleCustomizeKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            this._handleCustomizeSubmit();
+        }
     }
 
     private _handleKeydown(e: KeyboardEvent) {
@@ -317,6 +436,40 @@ export class BurnishForm extends LitElement {
         `;
     }
 
+    private _renderCustomize() {
+        const wandIcon = html`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <line x1="2" y1="14" x2="10" y2="6"/><line x1="10" y1="6" x2="14" y2="2"/>
+            <line x1="5" y1="1" x2="5" y2="3"/><line x1="4" y1="2" x2="6" y2="2"/>
+            <line x1="12" y1="9" x2="12" y2="11"/><line x1="11" y1="10" x2="13" y2="10"/>
+            <line x1="1" y1="6" x2="1" y2="8"/><line x1="0" y1="7" x2="2" y2="7"/>
+        </svg>`;
+
+        const loadingIcon = html`<svg viewBox="0 0 16 16" fill="none">
+            <path d="M8 1.5a6.5 6.5 0 105.196 2.597" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>`;
+
+        if (this._customizeLoading) {
+            return html`<div class="form-customize-status">${loadingIcon} Customizing form...</div>`;
+        }
+
+        if (!this._customizeOpen) {
+            return html`<button class="form-customize-toggle" @click=${() => { this._customizeOpen = true; }} type="button">
+                ${wandIcon} Customize this form
+            </button>`;
+        }
+
+        return html`
+            <div class="form-customize-row">
+                <input class="form-customize-input" type="text"
+                    placeholder="e.g. add a priority field, make labels multi-select..."
+                    @keydown=${(e: KeyboardEvent) => this._handleCustomizeKeydown(e)} />
+                <button class="form-customize-btn" @click=${() => this._handleCustomizeSubmit()} type="button">
+                    ${wandIcon} Apply
+                </button>
+            </div>
+        `;
+    }
+
     render() {
         const fields = this._getFields();
         return html`
@@ -339,6 +492,7 @@ export class BurnishForm extends LitElement {
                         </div>
                     `)}
                     ${this._statusMsg ? html`<div class="form-status ${this._status}">${this._statusMsg}</div>` : nothing}
+                    ${this.customizable ? this._renderCustomize() : nothing}
                     <div class="form-actions">
                         <button class="form-btn form-btn-reset" @click=${this._handleReset} type="button">Clear</button>
                         <button class="form-btn form-btn-submit" @click=${this._handleSubmit} type="button">Submit</button>

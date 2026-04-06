@@ -1117,4 +1117,91 @@ export class LlmOrchestrator {
             this.conversations.addMessage(conversationId, 'assistant', fullResponse);
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Form Negotiation — modify form fields via LLM
+    // ══════════════════════════════════════════════════════��════════
+
+    /**
+     * Ask the LLM to modify a form's fields based on a user request.
+     * Returns the modified fields JSON string.
+     */
+    async negotiateForm(systemPrompt: string, userPrompt: string): Promise<string> {
+        if (this.backend === 'cli') {
+            return this.negotiateFormCli(systemPrompt, userPrompt);
+        } else if (this.backend === 'openai') {
+            return this.negotiateFormOpenai(systemPrompt, userPrompt);
+        } else {
+            return this.negotiateFormApi(systemPrompt, userPrompt);
+        }
+    }
+
+    private async negotiateFormApi(systemPrompt: string, userPrompt: string): Promise<string> {
+        if (!this.client) throw new Error('LLM not configured');
+
+        const result = await this.client.messages.create({
+            model: this.model,
+            max_tokens: 2048,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }],
+        });
+
+        const text = result.content
+            .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+            .map(b => b.text)
+            .join('');
+        return text.trim();
+    }
+
+    private async negotiateFormOpenai(systemPrompt: string, userPrompt: string): Promise<string> {
+        if (!this.openaiClient) throw new Error('OpenAI client not configured');
+
+        const result = await this.openaiClient.chat.completions.create({
+            model: this.model,
+            max_tokens: 2048,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+            ],
+        });
+
+        return (result.choices?.[0]?.message?.content || '').trim();
+    }
+
+    private async negotiateFormCli(systemPrompt: string, userPrompt: string): Promise<string> {
+        const claudeCmd = process.platform === 'win32' ? 'claude.cmd' : 'claude';
+        const env = { ...process.env };
+        delete env.CLAUDECODE;
+
+        const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+
+        return new Promise<string>((resolve, reject) => {
+            const proc = spawn(claudeCmd, [
+                '--print',
+                '--model', 'haiku',
+                '--tools', '',
+                '--setting-sources', 'user',
+            ], {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                env,
+                shell: process.platform === 'win32',
+            });
+
+            proc.stdin.write(fullPrompt);
+            proc.stdin.end();
+
+            let stdout = '';
+            let stderr = '';
+            proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
+            proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+
+            proc.on('close', (code: number | null) => {
+                if (code !== 0) {
+                    reject(new Error(`claude exited with code ${code}: ${stderr}`));
+                } else {
+                    resolve(stdout.trim());
+                }
+            });
+        });
+    }
 }
