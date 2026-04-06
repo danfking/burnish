@@ -1100,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         let html;
-        if (viewType === 'cards') html = renderCardsView(data.parsed, data.sourceToolName, dataId);
+        if (viewType === 'cards') html = renderCardsView(data.parsed, data.sourceToolName, dataId, data.sourceName);
         else if (viewType === 'json') html = renderJsonView(data.parsed);
         else html = renderTableView(data.parsed, data.label);
 

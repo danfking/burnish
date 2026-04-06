@@ -60,7 +60,7 @@ export function generateToolListingHtml(serverName, tools) {
         for (const tool of items) {
             const risk = assessToolRisk(tool);
             const riskStatus = risk.level === 'high' ? 'error' : risk.level === 'medium' ? 'warning' : 'success';
-            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${riskStatus}" status-label="${risk.level}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}"></burnish-card>`;
+            html += `<burnish-card title="${escapeAttr(tool.name)}" status="${riskStatus}" status-label="${risk.level}" body="${escapeAttr(tool.description || '')}" item-id="${escapeAttr(tool.name)}" source="${escapeAttr(serverName)}"></burnish-card>`;
         }
         html += `</burnish-section>`;
     }
@@ -194,7 +194,7 @@ export async function executeToolDirect(toolName, args, label) {
         });
         var data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Execution failed');
-        var resultHtml = buildResultHtml(data.result, label, toolName);
+        var resultHtml = buildResultHtml(data.result, label, toolName, data.serverName);
         var contentEl = node ? document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-content') : null;
         if (contentEl) {
             contentEl.innerHTML = DOMPurify.sanitize(resultHtml, PURIFY_CONFIG);

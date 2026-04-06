@@ -63,12 +63,13 @@ export function inferCardStatus(item, sourceToolName) {
     return 'success';
 }
 
-export function renderCardsView(items, sourceToolName, dataId) {
+export function renderCardsView(items, sourceToolName, dataId, sourceName) {
     const viewId = dataId || ('cv-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6));
     window._cardItems = window._cardItems || {};
     window._cardItems[viewId] = items;
     boundCache(window._cardItems);
 
+    const sourceAttr = sourceName ? ` source="${escapeAttr(sourceName)}"` : '';
     let html = '<div class="burnish-cards-grid">';
     for (let i = 0; i < Math.min(items.length, 50); i++) {
         const item = items[i];
@@ -87,7 +88,7 @@ export function renderCardsView(items, sourceToolName, dataId) {
         html += `<burnish-card title="${escapeAttr(title)}" status="${status}"
             body="${escapeAttr(body)}"
             meta='${escapeAttr(JSON.stringify(meta))}'
-            item-id="${escapeAttr((dataId || viewId) + ':' + i)}"></burnish-card>`;
+            item-id="${escapeAttr((dataId || viewId) + ':' + i)}"${sourceAttr}></burnish-card>`;
     }
     if (items.length > 50) {
         html += '<div class="burnish-truncation-notice">Showing 50 of ' + items.length + ' results</div>';
@@ -147,14 +148,15 @@ export function renderJsonView(items) {
     </div>`;
 }
 
-export function renderParsedResult(parsed, label, sourceToolName) {
+export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
+    const sourceAttr = sourceName ? ` source="${escapeAttr(sourceName)}"` : '';
     if (Array.isArray(parsed)) {
         if (parsed.length === 0) {
-            return `<burnish-card title="${escapeAttr(label)}" status="muted" body="No results"></burnish-card>`;
+            return `<burnish-card title="${escapeAttr(label)}" status="muted" body="No results"${sourceAttr}></burnish-card>`;
         }
         if (typeof parsed[0] === 'object') {
             const dataId = 'vd-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
-            window._viewData[dataId] = { parsed, label, sourceToolName };
+            window._viewData[dataId] = { parsed, label, sourceToolName, sourceName };
             boundCache(window._viewData);
 
             const defaultView = getToolViewPreference(sourceToolName) || 'cards';
@@ -164,7 +166,7 @@ export function renderParsedResult(parsed, label, sourceToolName) {
             let defaultContent;
             if (defaultView === 'table') defaultContent = renderTableView(parsed, label);
             else if (defaultView === 'json') defaultContent = renderJsonView(parsed);
-            else defaultContent = renderCardsView(parsed, sourceToolName, dataId);
+            else defaultContent = renderCardsView(parsed, sourceToolName, dataId, sourceName);
             html += defaultContent;
             html += '</div>';
 
@@ -175,7 +177,7 @@ export function renderParsedResult(parsed, label, sourceToolName) {
             return html;
         }
         return parsed.slice(0, 20).map(item =>
-            `<burnish-card title="${escapeAttr(String(item))}" status="info"></burnish-card>`
+            `<burnish-card title="${escapeAttr(String(item))}" status="info"${sourceAttr}></burnish-card>`
         ).join('');
     }
 
@@ -195,7 +197,7 @@ export function renderParsedResult(parsed, label, sourceToolName) {
                 }));
                 html += `<burnish-stat-bar items='${escapeAttr(JSON.stringify(statItems))}'></burnish-stat-bar>`;
             }
-            html += renderParsedResult(parsed[nestedKey], nestedKey, sourceToolName);
+            html += renderParsedResult(parsed[nestedKey], nestedKey, sourceToolName, sourceName);
             return html;
         }
 
@@ -203,10 +205,10 @@ export function renderParsedResult(parsed, label, sourceToolName) {
             .filter(([, v]) => (typeof v !== 'object' || v === null) && typeof v !== 'boolean')
             .slice(0, 10)
             .map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v ?? '') }));
-        return `<burnish-card title="${escapeAttr(label)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'></burnish-card>`;
+        return `<burnish-card title="${escapeAttr(label)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'${sourceAttr}></burnish-card>`;
     }
 
-    return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(String(parsed))}"></burnish-card>`;
+    return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(String(parsed))}"${sourceAttr}></burnish-card>`;
 }
 
 // ── Schema Tree Renderer ──
@@ -352,16 +354,17 @@ function tryParseDirectoryListing(result, label) {
     return html;
 }
 
-export function buildResultHtml(result, label, sourceToolName) {
+export function buildResultHtml(result, label, sourceToolName, sourceName) {
     try {
         const parsed = JSON.parse(result);
-        const inner = renderParsedResult(parsed, label, sourceToolName);
+        const inner = renderParsedResult(parsed, label, sourceToolName, sourceName);
         return `<div class="burnish-result-wrapper" data-raw-result="${escapeAttr(result.substring(0, 50000))}">${inner}</div>`;
     } catch {
         // Try to parse as a directory listing before falling back to plain text
         const dirHtml = tryParseDirectoryListing(result, label);
         if (dirHtml) return dirHtml;
 
-        return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"></burnish-card>`;
+        const sourceAttr = sourceName ? ` source="${escapeAttr(sourceName)}"` : '';
+        return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"${sourceAttr}></burnish-card>`;
     }
 }
