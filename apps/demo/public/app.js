@@ -50,6 +50,9 @@ import {
 // ── Copilot UI ──
 import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight } from './copilot-ui.js';
 
+// ── Performance tracking ──
+import { recordPerf, recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
+
 // ── Theme toggle ──
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
@@ -744,6 +747,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('btn-dashboard-toggle')?.classList.add('active');
     }
 
+    document.getElementById('btn-perf-toggle')?.addEventListener('click', () => togglePerfPanel());
+
     document.getElementById('btn-dashboard-toggle')?.addEventListener('click', () => {
         dashboardMode = !dashboardMode;
         localStorage.setItem('burnish:dashboardMode', String(dashboardMode));
@@ -1128,6 +1133,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .join(', ');
                 const displayLabel = keyValues ? `${toolShortName}: ${keyValues}` : toolShortName;
                 const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+                recordToolPerf({ toolName: toolId, latencyMs: 0, responseHtml: resultHtml });
+                refreshPerfPanel();
                 const writeNode = renderDeterministicNode(displayLabel, resultHtml);
                 if (writeNode) {
                     writeNode._executionMode = 'deterministic';
@@ -1192,6 +1199,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderMainContent();
 
             const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+            recordToolPerf({ toolName: toolId, latencyMs: data.durationMs || 0, responseHtml: resultHtml });
+            refreshPerfPanel();
             node.response = resultHtml;
             const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
             if (contentEl) {

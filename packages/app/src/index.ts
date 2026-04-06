@@ -41,3 +41,10 @@ export {
     type ToolRisk,
     type ConfigWarning,
 } from './risk-indicators.js';
+
+export {
+    PerfStore,
+    type PerfRecord,
+    type ModelStats,
+    type ToolStats,
+} from './perf-store.js';

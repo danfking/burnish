@@ -5,6 +5,7 @@
 import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.js';
 import { buildResultHtml } from './view-renderers.js';
 import { getCurrentMode, createInsightSlot, streamInsight } from './copilot-ui.js';
+import { recordToolPerf, refreshPerfPanel } from './perf-panel.js';
 
 // ── Inline risk assessment (mirrors @burnish/app risk-indicators.ts) ──
 
@@ -215,6 +216,13 @@ export async function executeToolDirect(toolName, args, label) {
         if (contentEl) {
             contentEl.insertAdjacentHTML('beforeend', DOMPurify.sanitize(toolCallHtml, PURIFY_CONFIG));
         }
+        // Record performance metrics for direct execution
+        recordToolPerf({
+            toolName: toolName,
+            latencyMs: data.durationMs || 0,
+            responseHtml: resultHtml,
+        });
+        refreshPerfPanel();
         // Display execution timing badge
         if (data.durationMs != null && node) {
             const timingEl = document.createElement('span');
