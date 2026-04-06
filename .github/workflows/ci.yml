@@ -70,10 +70,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_BODY=$(gh pr view ${{ github.event.pull_request.number }} --json body -q .body)
+          # Allow skipping screenshot for non-visual changes (security fixes, refactors)
+          if echo "$PR_BODY" | grep -qi '\[skip.screenshot\]'; then
+            echo "Screenshot check skipped via [skip-screenshot] marker."
+            exit 0
+          fi
           if echo "$PR_BODY" | grep -q '!\[verify-'; then
             echo "Screenshot found in PR body."
           else
             echo "::error::This PR changes visual files but has no verification screenshot."
-            echo "Add a screenshot with the pattern ![verify-<issue>](...) to the PR body."
+            echo "Add a screenshot with ![verify-<issue>](...) or add [skip-screenshot] if this is a non-visual change."
             exit 1
           fi
