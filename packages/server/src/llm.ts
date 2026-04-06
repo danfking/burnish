@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import type { McpHub, ToolDef } from './mcp-hub.js';
 import type { ConversationStore, Conversation } from './conversation.js';
-import { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt } from './prompt-template.js';
+import { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt, buildRetryPrompt } from './prompt-template.js';
 import { resolveIntent } from './intent-resolver.js';
 import { isWriteTool } from './guards.js';
 
@@ -120,9 +120,16 @@ export class LlmOrchestrator {
         console.log(`[llm] Backend: ${this.backend}, Model: ${this.model}${baseUrlSuffix}`);
     }
 
+    /** Regex to detect at least one burnish-* component tag in a response. */
+    private static readonly BURNISH_TAG_RE = /<burnish-[a-z]/;
+
     /**
      * Stream a response for a conversation.
      * Yields StreamChunk objects (content text or progress updates).
+     *
+     * When the model returns prose-only output (no burnish-* tags), a single
+     * retry is attempted with a stricter prompt that emphasizes component usage.
+     * This helps small models that sometimes emit markdown instead of components.
      */
     async *streamResponse(
         conversationId: string,
@@ -134,6 +141,48 @@ export class LlmOrchestrator {
             throw new Error(`Invalid model: ${requestModel}`);
         }
         const useModel = requestModel || this.model;
+
+        // First attempt
+        let fullContent = '';
+        for await (const chunk of this.streamBackend(conversationId, useModel, noTools)) {
+            if (chunk.type === 'content') {
+                fullContent += chunk.text;
+            }
+            yield chunk;
+        }
+
+        // Check if the response contains any burnish-* tags.
+        // Skip retry when: the response is empty, the model was asked a
+        // clarifying question (plain text is correct), or noTools was set
+        // (ambiguous/conversational requests don't need components).
+        if (
+            !fullContent ||
+            noTools ||
+            LlmOrchestrator.BURNISH_TAG_RE.test(fullContent)
+        ) {
+            return;
+        }
+
+        // Prose-only response detected — retry once with stricter prompt
+        console.log('[llm] Prose-only response detected, retrying with stricter prompt');
+        yield { type: 'progress', stage: 'retrying', detail: 'Reformatting with components…', meta: { model: useModel } };
+
+        // Inject a user message asking the model to reformat
+        this.conversations.addMessage(conversationId, 'user', buildRetryPrompt());
+
+        for await (const chunk of this.streamBackend(conversationId, useModel, noTools)) {
+            yield chunk;
+        }
+    }
+
+    /**
+     * Dispatch to the appropriate backend streaming implementation.
+     */
+    private async *streamBackend(
+        conversationId: string,
+        useModel: string,
+        noTools?: boolean,
+    ): AsyncGenerator<StreamChunk> {
         if (this.backend === 'cli') {
             yield* this.streamResponseCli(conversationId, useModel, noTools);
         } else if (this.backend === 'openai') {

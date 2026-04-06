@@ -169,6 +169,29 @@ ${extraInstructions}`;
 }
 
 /**
+ * Stricter retry prompt appended as a user message when the model's first
+ * response contained no burnish-* component tags (i.e. pure prose/markdown).
+ *
+ * This gives the model one more chance to format the output correctly.
+ */
+export function buildRetryPrompt(): string {
+    return `Your previous response did not contain any burnish-* HTML components. This is incorrect.
+
+You MUST rewrite your response using ONLY burnish-* web components. Do NOT use markdown, plain text, or raw HTML.
+
+Required structure:
+1. Start with <burnish-stat-bar> to summarize key counts
+2. Use <burnish-section> to group related items
+3. Use <burnish-card> inside sections for individual items
+4. Use <burnish-table> for tabular data
+5. End with <burnish-actions> for next steps
+
+Your response must begin with a <burnish- tag. No preamble text. No markdown. Only burnish-* components.
+
+Rewrite your previous response now using this format.`;
+}
+
+/**
  * Minimal formatting prompt for the two-phase intent resolver.
  *
  * When the intent resolver has already executed a tool directly, we only
