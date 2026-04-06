@@ -22,7 +22,12 @@ import {
     transformOutput,
     isWriteTool, generateFallbackForm,
     generateSummary, formatTimeAgo,
+    TemplateStore, deriveToolKey,
+    PromptLibrary,
 } from '@burnish/app';
+
+// ── Template learning ──
+import { recordPositiveSignal, getTemplateInstructions } from './template-learning.js';
 
 // ── Shared imports ──
 import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.js';
@@ -48,7 +53,10 @@ import {
 } from './deterministic-ui.js';
 
 // ── Copilot UI ──
-import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight } from './copilot-ui.js';
+import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './copilot-ui.js';
+
+// ── Performance tracking ──
+import { recordPerf, recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
 
 // ── Theme toggle ──
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
@@ -62,10 +70,12 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => {
 
 // ── Persistence ──
 const persistence = new SessionStore();
+const promptLibrary = new PromptLibrary();
 
 const ICON_FOCUS = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4,1 1,1 1,4"/><polyline points="12,1 15,1 15,4"/><polyline points="4,15 1,15 1,12"/><polyline points="12,15 15,15 15,12"/></svg>`;
 const ICON_RESTORE = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,4 4,4 4,1"/><polyline points="12,1 12,4 15,4"/><polyline points="1,12 4,12 4,15"/><polyline points="12,15 12,12 15,12"/></svg>`;
 const ICON_REFRESH = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8a7 7 0 0 1 13-3.5M15 8a7 7 0 0 1-13 3.5"/><polyline points="1,1 1,5 5,5"/><polyline points="15,15 15,11 11,11"/></svg>`;
+const ICON_HISTORY = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="7"/><polyline points="8,4 8,8 11,10"/></svg>`;
 
 // ── State ──
 let searchQuery = '';
@@ -114,6 +124,8 @@ setSessionHelpers({
     updateBreadcrumb,
     renderSessionList,
     saveState,
+    promptLibrary,
+    resolveServerName,
 });
 
 // ── Persistence (delegated to SessionStore) ──
@@ -744,6 +756,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('btn-dashboard-toggle')?.classList.add('active');
     }
 
+    document.getElementById('btn-perf-toggle')?.addEventListener('click', () => togglePerfPanel());
+
     document.getElementById('btn-dashboard-toggle')?.addEventListener('click', () => {
         dashboardMode = !dashboardMode;
         localStorage.setItem('burnish:dashboardMode', String(dashboardMode));
@@ -798,6 +812,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modeStatus = await detectMode();
     const modeToggleContainer = document.getElementById('mode-toggle');
     if (modeToggleContainer) renderModeToggle(modeToggleContainer);
+
+    // Initialize copilot prompt bar for conversational pivots
+    initPromptBar(PURIFY_CONFIG, (conversationId, prompt) => {
+        // Optional: could create a navigation node for the copilot response
+        console.log(`[copilot] Response completed for: ${prompt}`);
+    });
 
     // Suggestion buttons
     document.addEventListener('click', (e) => {
@@ -975,6 +995,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const nodeEl = e.target.closest('.burnish-node');
         if (nodeEl?.dataset?.nodeId) branchFromNodeId = nodeEl.dataset.nodeId;
 
+        // Template learning: record drill-down as a positive signal
+        if (nodeEl?.dataset?.nodeId) {
+            const session = getActiveSession();
+            const parentNode = session?.nodes?.find(n => n.id === nodeEl.dataset.nodeId);
+            if (parentNode?.response && parentNode?.prompt) {
+                const toolHint = parentNode._toolHint;
+                recordPositiveSignal(
+                    parentNode.response,
+                    parentNode.prompt,
+                    'drill-down',
+                    toolHint?.toolName,
+                    null,
+                );
+            }
+        }
+
         // Deterministic path: if itemId matches a known tool, render form or execute directly
         const schema = toolSchemaCache[itemId];
         if (schema) {
@@ -984,7 +1020,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const formHtml = generateFallbackForm(itemId, schema);
                 if (formHtml) {
                     const schemaHtml = renderSchemaTree(schema, itemId);
-                    renderDeterministicNode(title, schemaHtml + formHtml);
+                    // Build recent prompts suggestions for this tool
+                    const recentHtml = buildRecentPromptsForTool(itemId);
+                    renderDeterministicNode(title, schemaHtml + recentHtml + formHtml);
                     return;
                 }
             } else {
@@ -1128,11 +1166,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .join(', ');
                 const displayLabel = keyValues ? `${toolShortName}: ${keyValues}` : toolShortName;
                 const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+                recordToolPerf({ toolName: toolId, latencyMs: 0, responseHtml: resultHtml });
+                refreshPerfPanel();
                 const writeNode = renderDeterministicNode(displayLabel, resultHtml);
                 if (writeNode) {
                     writeNode._executionMode = 'deterministic';
                     writeNode._toolCall = { toolName: toolId, args: { ...values }, label: displayLabel };
                 }
+                // Record successful execution in prompt library
+                promptLibrary.record(toolId, values, displayLabel, resolveServerName(toolId));
                 return;
             } catch (err) {
                 console.error('Write tool execution failed:', err.message);
@@ -1192,12 +1234,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderMainContent();
 
             const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+            recordToolPerf({ toolName: toolId, latencyMs: data.durationMs || 0, responseHtml: resultHtml });
+            refreshPerfPanel();
             node.response = resultHtml;
             const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
             if (contentEl) {
                 const clean = DOMPurify.sanitize(resultHtml, PURIFY_CONFIG);
                 contentEl.innerHTML = clean;
             }
+
+            // Record successful execution in prompt library
+            promptLibrary.record(toolId, values, displayLabel, resolveServerName(toolId));
 
             updateBreadcrumb();
             renderSessionList();
@@ -1247,12 +1294,80 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
     });
 
+    // ── Auto-fill from prompt library ──
+    container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.burnish-suggestion-autofill');
+        if (!btn) return;
+
+        const toolName = btn.dataset.autofillTool;
+        let args = {};
+        try { args = JSON.parse(btn.dataset.autofillArgs || '{}'); } catch { /* ignore */ }
+
+        // Find the form in the same node
+        const nodeEl = btn.closest('.burnish-node');
+        if (!nodeEl) return;
+        const form = nodeEl.querySelector('burnish-form');
+        if (!form?.shadowRoot) return;
+
+        // Fill in form fields from saved args
+        for (const [key, value] of Object.entries(args)) {
+            const input = form.shadowRoot.querySelector(`[data-key="${key}"]`);
+            if (input) input.value = String(value);
+        }
+    });
+
     // ── Browser history ──
     window.addEventListener('popstate', (e) => {
         if (e.state?.nodeId) scrollToNode(e.state.nodeId);
     });
 
 });
+
+// ── Prompt Library Helpers ──
+function resolveServerName(toolId) {
+    // If tool has mcp__server__tool format, extract server name
+    if (toolId.startsWith('mcp__')) {
+        return toolId.replace(/^mcp__/, '').split('__')[0] || '';
+    }
+    // Otherwise, look up from cached servers
+    const servers = getCachedServers();
+    if (servers) {
+        for (const s of servers) {
+            if (s.tools.some(t => t.name === toolId)) return s.name;
+        }
+    }
+    return '';
+}
+
+// ── Prompt Library: Recent Prompts for Tool Forms ──
+function buildRecentPromptsForTool(toolName) {
+    const recent = promptLibrary.getCachedForTool(toolName);
+    if (recent.length === 0) return '';
+
+    const limited = recent.slice(0, 5);
+    const pills = limited.map(entry => {
+        const argsStr = Object.entries(entry.args)
+            .filter(([, v]) => v && String(v).trim())
+            .map(([, v]) => String(v))
+            .join(', ');
+        const displayLabel = argsStr
+            ? (argsStr.length > 50 ? argsStr.substring(0, 47) + '...' : argsStr)
+            : entry.label;
+        return `<button class="burnish-suggestion burnish-suggestion-autofill"
+            data-autofill-tool="${escapeAttr(entry.toolName)}"
+            data-autofill-args="${escapeAttr(JSON.stringify(entry.args))}"
+            title="${escapeAttr(entry.label + ' (' + entry.useCount + ' use' + (entry.useCount !== 1 ? 's' : '') + ')')}"
+        >
+            <span class="burnish-recent-icon">${ICON_HISTORY}</span>
+            ${escapeHtml(displayLabel)}
+        </button>`;
+    }).join('');
+
+    return `<div class="burnish-autofill-suggestions">
+        <span class="burnish-autofill-label">Recent</span>
+        ${pills}
+    </div>`;
+}
 
 // ── Helpers ──
 function renderMarkdown(text) {
@@ -1365,6 +1480,34 @@ async function loadDynamicSuggestions(container) {
                     `;
                 }).join('');
             }
+        }
+
+        // Render recent prompts from prompt library
+        const recentSection = container.querySelector('#recent-prompts');
+        if (recentSection && servers.length > 0) {
+            try {
+                const serverNames = servers.map(s => s.name);
+                const recent = await promptLibrary.suggest(serverNames);
+                if (recent.length > 0) {
+                    const limited = recent.slice(0, 8);
+                    recentSection.innerHTML = `
+                        <div class="burnish-recent-prompts-label">Recent</div>
+                        <div class="burnish-recent-prompts-list">
+                            ${limited.map(entry => `
+                                <button class="burnish-suggestion burnish-suggestion-recent"
+                                    data-tool="${escapeAttr(entry.toolName)}"
+                                    data-args="${escapeAttr(JSON.stringify(entry.args))}"
+                                    data-label="${escapeAttr(entry.label)}"
+                                    title="${escapeAttr(entry.label + ' (' + entry.useCount + ' use' + (entry.useCount !== 1 ? 's' : '') + ')')}"
+                                >
+                                    <span class="burnish-recent-icon">${ICON_HISTORY}</span>
+                                    ${escapeHtml(entry.label.length > 40 ? entry.label.substring(0, 37) + '...' : entry.label)}
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            } catch { /* ignore prompt library errors */ }
         }
 
         const hintEl = container.querySelector('#empty-hint');

@@ -5,6 +5,9 @@
 import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.js';
 import { buildResultHtml } from './view-renderers.js';
 import { getCurrentMode, createInsightSlot, streamInsight } from './copilot-ui.js';
+import { recordToolPerf, refreshPerfPanel } from './perf-panel.js';
+import { getTemplateInstructions } from './template-learning.js';
+import { appendAmbientSuggestions } from './ambient-suggestions.js';
 
 // ── Inline risk assessment (mirrors @burnish/app risk-indicators.ts) ──
 
@@ -215,6 +218,13 @@ export async function executeToolDirect(toolName, args, label) {
         if (contentEl) {
             contentEl.insertAdjacentHTML('beforeend', DOMPurify.sanitize(toolCallHtml, PURIFY_CONFIG));
         }
+        // Record performance metrics for direct execution
+        recordToolPerf({
+            toolName: toolName,
+            latencyMs: data.durationMs || 0,
+            responseHtml: resultHtml,
+        });
+        refreshPerfPanel();
         // Display execution timing badge
         if (data.durationMs != null && node) {
             const timingEl = document.createElement('span');
@@ -223,11 +233,24 @@ export async function executeToolDirect(toolName, args, label) {
             const headerEl = document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-header');
             if (headerEl) headerEl.appendChild(timingEl);
         }
-        // Stream AI insights in copilot mode
+        // Record successful execution in prompt library
+        if (_sessionHelpers?.promptLibrary && toolName) {
+            const serverName = _sessionHelpers.resolveServerName
+                ? _sessionHelpers.resolveServerName(toolName)
+                : (toolName.replace(/^mcp__/, '').split('__')[0] || '');
+            _sessionHelpers.promptLibrary.record(toolName, Object.assign({}, args), label, serverName);
+        }
+        // Append ambient suggestions based on result data
+        if (contentEl) {
+            appendAmbientSuggestions(contentEl, data.result, toolName, args, PURIFY_CONFIG);
+        }
+        // Stream AI insights in copilot mode (with learned templates)
         if (getCurrentMode() === 'copilot' && contentEl) {
             const insightSlot = createInsightSlot(contentEl);
             const summary = JSON.stringify(data.result).substring(0, 2000);
-            streamInsight(insightSlot, toolName, summary, PURIFY_CONFIG);
+            getTemplateInstructions(toolName).then(extra => {
+                streamInsight(insightSlot, toolName, summary, PURIFY_CONFIG, extra || undefined);
+            });
         }
     } catch (err) {
         var errorHtml = '<burnish-card title="Error" status="error" body="' + escapeAttr(err.message) + '"></burnish-card>';
@@ -255,6 +278,7 @@ export function getEmptyState() {
             </div>
             <div class="burnish-tool-shortcuts" id="tool-shortcuts"></div>
             <div class="burnish-starter-prompts" id="starter-prompts"></div>
+            <div class="burnish-recent-prompts" id="recent-prompts"></div>
             <div class="burnish-empty-hint" id="empty-hint"></div>
         </div>
     `;

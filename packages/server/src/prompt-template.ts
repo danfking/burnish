@@ -381,3 +381,51 @@ export function buildAdaptiveNoToolsPrompt(modelName: string): string {
     }
     return buildNoToolsPrompt();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Template learning — few-shot examples from successful responses
+// ═══════════════════════════════════════════════════════════════
+
+/** Minimal template shape expected by formatTemplateExamples. */
+export interface TemplateExample {
+    /** Tool name or server/tool combo */
+    toolKey: string;
+    /** Structural HTML skeleton (data stripped) */
+    htmlStructure: string;
+    /** Original prompt that produced this layout */
+    prompt: string;
+    /** How many times this template was reinforced */
+    useCount: number;
+}
+
+/**
+ * Format learned templates as `extraInstructions` text for the system prompt.
+ *
+ * Produces a section that shows the LLM proven layout patterns from
+ * previous successful interactions. Templates with higher use counts
+ * are presented with stronger framing ("users consistently prefer").
+ *
+ * Returns an empty string if no templates are provided, so it's safe
+ * to always call and pass into `buildSystemPrompt(extraInstructions)`.
+ */
+export function formatTemplateExamples(templates: TemplateExample[]): string {
+    if (!templates || templates.length === 0) return '';
+
+    const sections = templates.map((t, i) => {
+        const strength = t.useCount >= 3
+            ? 'Users consistently prefer this layout'
+            : 'This layout received positive feedback';
+        const toolLabel = t.toolKey === '_general' ? 'general queries' : `"${t.toolKey}" results`;
+
+        return `### Proven Layout ${i + 1} (for ${toolLabel})
+${strength}. Follow this structure when handling similar requests:
+\`\`\`html
+${t.htmlStructure}
+\`\`\``;
+    });
+
+    return `## Learned Layout Patterns
+The following layouts were rated positively by users. Use them as templates when responding to similar tool results. Adapt the data but keep the component structure.
+
+${sections.join('\n\n')}`;
+}
