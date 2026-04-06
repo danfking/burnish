@@ -7,6 +7,7 @@ export class BurnishSection extends LitElement {
         status: { type: String },
         collapsed: { type: Boolean, reflect: true },
         color: { type: String },
+        variant: { type: String },
     };
 
     static styles = css`
@@ -37,6 +38,7 @@ export class BurnishSection extends LitElement {
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: var(--burnish-space-md, 12px);
         }
+        :host([variant="compact"]) .status-dot { display: none; }
         :host([collapsed]) .content { max-height: 0 !important; }
         @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
     `;
@@ -46,6 +48,7 @@ export class BurnishSection extends LitElement {
     declare status: string;
     declare collapsed: boolean;
     declare color: string;
+    declare variant: string;
 
     constructor() {
         super();
