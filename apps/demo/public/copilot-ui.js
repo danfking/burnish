@@ -168,6 +168,12 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, 
     statusEl.textContent = isPivot ? 'Reshaping data...' : 'Thinking...';
     responseEl.appendChild(statusEl);
 
+    // Pipeline visualization for tool chain tracing
+    const pipelineEl = document.createElement('burnish-pipeline');
+    pipelineEl.setAttribute('steps', '[]');
+    pipelineEl.style.display = 'none';
+    responseEl.appendChild(pipelineEl);
+
     const contentEl = document.createElement('div');
     contentEl.className = 'burnish-copilot-response-content';
     responseEl.appendChild(contentEl);
@@ -210,6 +216,11 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, 
                     html += chunk.text;
                     const transformed = transformOutput(html);
                     contentEl.innerHTML = DOMPurify.sanitize(transformed, PURIFY_CONFIG);
+                } else if (chunk.type === 'workflow_trace') {
+                    if (chunk.steps && chunk.steps.length > 0) {
+                        pipelineEl.style.display = '';
+                        pipelineEl.setAttribute('steps', JSON.stringify(chunk.steps));
+                    }
                 } else if (chunk.type === 'stats') {
                     const stats = chunk;
                     const sec = (stats.durationMs / 1000).toFixed(1);

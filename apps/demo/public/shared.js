@@ -5,11 +5,13 @@
 // ── DOMPurify Config ──
 export const PURIFY_CONFIG = {
     ADD_TAGS: ['burnish-card', 'burnish-stat-bar', 'burnish-table', 'burnish-chart',
-               'burnish-section', 'burnish-metric', 'burnish-message', 'burnish-form', 'burnish-actions'],
+               'burnish-section', 'burnish-metric', 'burnish-message', 'burnish-form', 'burnish-actions',
+               'burnish-pipeline'],
     ADD_ATTR: ['items', 'title', 'status', 'body', 'meta', 'columns', 'rows',
                'status-field', 'type', 'config', 'role', 'content', 'class',
                'label', 'count', 'collapsed', 'item-id', 'value', 'unit', 'trend',
-               'streaming', 'tool-id', 'fields', 'actions', 'color', 'status-label', 'variant'],
+               'streaming', 'tool-id', 'fields', 'actions', 'color', 'status-label', 'variant',
+               'steps'],
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
 };

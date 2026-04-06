@@ -24,6 +24,7 @@ export const BURNISH_COMPONENTS: ComponentDef[] = [
     { tag: 'burnish-section', attrs: ['label', 'count', 'status', 'collapsed'] },
     { tag: 'burnish-metric', attrs: ['label', 'value', 'unit', 'trend'] },
     { tag: 'burnish-message', attrs: ['role', 'content', 'streaming'] },
+    { tag: 'burnish-pipeline', attrs: ['steps'] },
 ];
 
 /**

@@ -9,3 +9,4 @@ export { BurnishMetric } from './metric.js';
 export { BurnishMessage } from './message.js';
 export { BurnishForm } from './form.js';
 export { BurnishActions } from './actions.js';
+export { BurnishPipeline } from './pipeline.js';
