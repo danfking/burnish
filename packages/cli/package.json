@@ -16,6 +16,10 @@
     "./server": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "import": "./dist/middleware.js"
     }
   },
   "scripts": {
@@ -25,6 +29,7 @@
   "dependencies": {
     "@burnish/server": "workspace:*",
     "@hono/node-server": "^1.14.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "hono": "^4.7.0",
     "open": "^10.0.0"
   },

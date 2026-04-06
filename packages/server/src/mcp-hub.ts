@@ -6,6 +6,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve } from 'node:path';
@@ -47,7 +48,7 @@ interface CliTool {
 interface ConnectedServer {
     name: string;
     client: Client;
-    transport: StdioClientTransport | StreamableHTTPClientTransport;
+    transport: Transport;
     tools: ToolDef[];
     config: McpServerConfig;
     status: 'connected' | 'disconnected';
@@ -90,6 +91,36 @@ export class McpHub {
         if (config.cliTools && Object.keys(config.cliTools).length > 0) {
             this.registerCliTools(config.cliTools);
         }
+    }
+
+    /**
+     * Register a pre-connected MCP client with the hub.
+     *
+     * This allows callers to connect a Client via any transport (e.g.
+     * InMemoryTransport) and hand it to the hub for tool discovery
+     * and execution.
+     */
+    async registerClient(
+        name: string,
+        client: Client,
+        transport: Transport,
+    ): Promise<void> {
+        const toolsResult = await client.listTools();
+        const tools: ToolDef[] = (toolsResult.tools || []).map((t: any) => ({
+            name: t.name,
+            description: t.description || '',
+            inputSchema: t.inputSchema || { type: 'object', properties: {} },
+            serverName: name,
+        }));
+
+        this.servers.push({
+            name,
+            client,
+            transport,
+            tools,
+            config: {},
+            status: 'connected',
+        });
     }
 
     private async connectServer(

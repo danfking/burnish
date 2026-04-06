@@ -37,3 +37,43 @@ jobs:
         env:
           CI: true
           LLM_BACKEND: none
+
+  screenshot-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for visual file changes
+        id: visual
+        run: |
+          VISUAL_FILES=$(git diff --name-only origin/main...HEAD -- \
+            'apps/demo/public/**' \
+            'packages/components/**' \
+            'packages/renderer/**' \
+            '**/output-transformer*' \
+            '**/*.css' || true)
+          if [ -n "$VISUAL_FILES" ]; then
+            echo "has_visual_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Visual files changed:"
+            echo "$VISUAL_FILES"
+          else
+            echo "has_visual_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No visual file changes detected."
+          fi
+
+      - name: Verify PR has screenshot
+        if: steps.visual.outputs.has_visual_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_BODY=$(gh pr view ${{ github.event.pull_request.number }} --json body -q .body)
+          if echo "$PR_BODY" | grep -q '!\[verify-'; then
+            echo "Screenshot found in PR body."
+          else
+            echo "::error::This PR changes visual files but has no verification screenshot."
+            echo "Add a screenshot with the pattern ![verify-<issue>](...) to the PR body."
+            exit 1
+          fi
