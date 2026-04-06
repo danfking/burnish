@@ -260,7 +260,7 @@ export class SessionStore {
             if (oldRaw) {
                 const old = JSON.parse(oldRaw);
                 if (old.nodes?.length > 0) {
-                    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+                    const sessionId = crypto.randomUUID();
                     const sessionMeta = [{
                         id: sessionId,
                         title: old.nodes[0]?.promptDisplay || 'Previous session',

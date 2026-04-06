@@ -28,7 +28,7 @@ const authorizedCalls = new Set<string>();
  * Returns a one-time authorization token.
  */
 export function authorizeToolCall(toolName: string): string {
-    const token = `${toolName}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    const token = `${toolName}:${Date.now()}:${crypto.randomUUID()}`;
     authorizedCalls.add(token);
     // Auto-expire after 60 seconds
     setTimeout(() => authorizedCalls.delete(token), 60_000);

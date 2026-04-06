@@ -253,7 +253,7 @@ export class TemplateStore {
     }
 
     private generateId(): string {
-        return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        return crypto.randomUUID();
     }
 
     private async enforceGlobalLimit(): Promise<void> {

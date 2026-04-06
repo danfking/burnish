@@ -64,7 +64,7 @@ export function inferCardStatus(item, sourceToolName) {
 }
 
 export function renderCardsView(items, sourceToolName, dataId, sourceName) {
-    const viewId = dataId || ('cv-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6));
+    const viewId = dataId || ('cv-' + crypto.randomUUID());
     window._cardItems = window._cardItems || {};
     window._cardItems[viewId] = items;
     boundCache(window._cardItems);
@@ -155,7 +155,7 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
             return `<burnish-card title="${escapeAttr(label)}" status="muted" body="No results"${sourceAttr}></burnish-card>`;
         }
         if (typeof parsed[0] === 'object') {
-            const dataId = 'vd-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+            const dataId = 'vd-' + crypto.randomUUID();
             window._viewData[dataId] = { parsed, label, sourceToolName, sourceName };
             boundCache(window._viewData);
 

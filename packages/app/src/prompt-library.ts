@@ -83,7 +83,7 @@ export class PromptLibrary {
             existing.label = label;
         } else {
             entries.push({
-                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+                id: crypto.randomUUID(),
                 toolName,
                 label,
                 args,

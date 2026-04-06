@@ -79,7 +79,7 @@ export class PerfStore {
     /** Record a new performance entry. */
     add(record: Omit<PerfRecord, 'id' | 'timestamp'>): PerfRecord {
         const entry: PerfRecord = {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+            id: crypto.randomUUID(),
             timestamp: Date.now(),
             ...record,
         };
