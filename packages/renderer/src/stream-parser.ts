@@ -6,6 +6,12 @@
  * children can render individually as they arrive.
  */
 
+import {
+    containsMarkdownStructures,
+    convertMarkdownToComponents,
+    type FallbackOptions,
+} from './markdown-fallback.js';
+
 export interface StreamElement {
     type: 'open' | 'leaf' | 'close';
     tagName: string;
@@ -147,16 +153,35 @@ export function appendStreamElement(
 /**
  * Extract the renderable HTML portion of an LLM response.
  * Strips MCP tool call XML and separates preamble text from component HTML.
+ *
+ * When no Burnish component tags are found, attempts to convert common
+ * markdown structures (tables, key-value pairs, header+list) into
+ * Burnish components via the markdown fallback converter.
  */
 export function extractHtmlContent(
     text: string,
     prefix = DEFAULT_PREFIX,
     _renderMarkdown?: (text: string) => string,
+    fallbackOptions?: FallbackOptions,
 ): string {
     let cleaned = text.replace(/<use_mcp_tool[\s\S]*?<\/use_mcp_tool>/g, '');
     const tagRe = new RegExp(`<${prefix}[a-z]`);
     const htmlStart = cleaned.search(tagRe);
-    if (htmlStart === -1) return cleaned.trim();
+
+    if (htmlStart === -1) {
+        // No Burnish tags found — try markdown fallback conversion
+        if (containsMarkdownStructures(cleaned)) {
+            const converted = convertMarkdownToComponents(cleaned, {
+                prefix,
+                ...fallbackOptions,
+            });
+            // Check if conversion actually produced component tags
+            if (tagRe.test(converted)) {
+                return extractHtmlContent(converted, prefix);
+            }
+        }
+        return cleaned.trim();
+    }
 
     // When components are present, strip all surrounding prose text.
     // Only keep the component HTML — the components ARE the UI.
