@@ -187,6 +187,7 @@ body {
     gap: var(--burnish-space-lg, 16px);
     overflow-x: hidden; /* fallback for Safari <16 */
     overflow-x: clip;
+    padding-bottom: 70px; /* Space for fixed copilot prompt bar */
 }
 
 /* ── Inline Prompt Bubble ── */
@@ -1064,6 +1065,80 @@ body {
 #copilot-prompt-bar input:focus {
     border-color: var(--burnish-accent, #8B3A3A);
     box-shadow: 0 0 0 2px rgba(139, 58, 58, 0.1);
+}
+#copilot-prompt-bar input::placeholder {
+    color: var(--burnish-muted, #9ca3af);
+}
+#copilot-prompt-bar input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Copilot Conversation Messages ── */
+.burnish-copilot-message {
+    margin: 8px 0;
+    padding: 0 16px;
+}
+.burnish-copilot-user {
+    display: flex;
+    justify-content: flex-end;
+}
+.burnish-copilot-user .burnish-copilot-message-content {
+    background: var(--burnish-accent, #8B3A3A);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 16px 16px 4px 16px;
+    max-width: 70%;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+.burnish-copilot-assistant {
+    padding: 8px 16px;
+}
+.burnish-copilot-status {
+    font-size: 12px;
+    color: var(--burnish-muted, #9ca3af);
+    margin-bottom: 4px;
+    min-height: 18px;
+}
+.burnish-copilot-status-done {
+    color: var(--burnish-muted, #9ca3af);
+    font-size: 11px;
+}
+.burnish-copilot-response-content {
+    max-width: 100%;
+}
+
+/* ── Pivot Suggestion Chips ── */
+.burnish-pivot-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--burnish-border, #E5DDDD);
+}
+.burnish-pivot-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    border-radius: 20px;
+    background: var(--burnish-surface, #fff);
+    color: var(--burnish-text, #1e1e1e);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.burnish-pivot-chip:hover {
+    border-color: var(--burnish-accent, #8B3A3A);
+    background: var(--burnish-accent-bg, rgba(139, 58, 58, 0.08));
+    color: var(--burnish-accent, #8B3A3A);
+}
+.burnish-pivot-chip:active {
+    transform: scale(0.97);
 }
 
 /* ── Execution Mode Badge ── */
