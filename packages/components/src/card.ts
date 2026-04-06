@@ -9,6 +9,7 @@ export class BurnishCard extends LitElement {
         body: { type: String },
         meta: { type: String },
         'item-id': { type: String, attribute: 'item-id' },
+        source: { type: String },
         _parseError: { state: true },
         _expanded: { state: true },
     };
@@ -43,6 +44,25 @@ export class BurnishCard extends LitElement {
         }
         .card:hover .expand-btn { display: flex; }
         .expand-btn:hover { color: var(--burnish-accent, #8B3A3A); }
+        .source-badge {
+            position: absolute;
+            bottom: var(--burnish-space-sm, 8px);
+            right: var(--burnish-space-sm, 8px);
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--burnish-text-muted, #9C8F8F);
+            background: var(--burnish-surface-alt, #F8F5F5);
+            border: 1px solid var(--burnish-border-light, #F0EAEA);
+            border-radius: 3px;
+            padding: 1px 6px;
+            line-height: 1.4;
+            letter-spacing: 0.3px;
+            opacity: 0.7;
+            transition: opacity var(--burnish-transition-fast);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .card:hover .source-badge { opacity: 1; }
         .card {
             background: var(--burnish-surface, #fff);
             border-radius: var(--burnish-radius-md, 4px);
@@ -164,6 +184,7 @@ export class BurnishCard extends LitElement {
     declare body: string;
     declare meta: string;
     declare 'item-id': string;
+    declare source: string;
     declare _parseError: boolean;
     declare _expanded: boolean;
 
@@ -302,6 +323,7 @@ export class BurnishCard extends LitElement {
                     `;
                 })()}
                 ${this['item-id'] ? html`<div class="card-action" role="button" tabindex="0">Explore \u2192</div>` : ''}
+                ${this.source ? html`<span class="source-badge" title="Source: ${this.source}">${this.source}</span>` : ''}
             </div>
         `;
     }

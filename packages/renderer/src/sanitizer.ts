@@ -17,7 +17,7 @@ export interface SanitizerConfig {
 
 /** Default Burnish component definitions */
 export const BURNISH_COMPONENTS: ComponentDef[] = [
-    { tag: 'burnish-card', attrs: ['title', 'status', 'body', 'meta', 'item-id'] },
+    { tag: 'burnish-card', attrs: ['title', 'status', 'body', 'meta', 'item-id', 'source'] },
     { tag: 'burnish-stat-bar', attrs: ['items'] },
     { tag: 'burnish-table', attrs: ['title', 'columns', 'rows', 'status-field'] },
     { tag: 'burnish-chart', attrs: ['type', 'config'] },

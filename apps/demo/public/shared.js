@@ -11,7 +11,7 @@ export const PURIFY_CONFIG = {
                'status-field', 'type', 'config', 'role', 'content', 'class',
                'label', 'count', 'collapsed', 'item-id', 'value', 'unit', 'trend',
                'streaming', 'tool-id', 'fields', 'actions', 'color', 'status-label', 'variant',
-               'steps'],
+               'steps', 'source'],
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
 };
