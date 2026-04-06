@@ -7,6 +7,7 @@ import { buildResultHtml } from './view-renderers.js';
 import { getCurrentMode, createInsightSlot, streamInsight } from './copilot-ui.js';
 import { recordToolPerf, refreshPerfPanel } from './perf-panel.js';
 import { getTemplateInstructions } from './template-learning.js';
+import { appendAmbientSuggestions } from './ambient-suggestions.js';
 
 // ── Inline risk assessment (mirrors @burnish/app risk-indicators.ts) ──
 
@@ -231,6 +232,10 @@ export async function executeToolDirect(toolName, args, label) {
             timingEl.textContent = data.durationMs + 'ms';
             const headerEl = document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-header');
             if (headerEl) headerEl.appendChild(timingEl);
+        }
+        // Append ambient suggestions based on result data
+        if (contentEl) {
+            appendAmbientSuggestions(contentEl, data.result, toolName, args, PURIFY_CONFIG);
         }
         // Stream AI insights in copilot mode (with learned templates)
         if (getCurrentMode() === 'copilot' && contentEl) {

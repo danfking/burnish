@@ -315,6 +315,61 @@ body {
     background: rgba(139, 58, 58, 0.04);
 }
 
+/* ── Ambient Suggestions (post-result chips) ── */
+.burnish-ambient-suggestions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--burnish-border-light, #F0EAEA);
+}
+.burnish-ambient-chip {
+    padding: 6px 14px;
+    border-radius: var(--burnish-radius-pill, 20px);
+    border: 1px solid var(--burnish-border, #E5DDDD);
+    background: var(--burnish-surface, #fff);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--burnish-transition-fast);
+    color: var(--burnish-text);
+    line-height: 1.4;
+}
+.burnish-ambient-chip:hover {
+    border-color: var(--burnish-accent, #8B3A3A);
+    color: var(--burnish-accent);
+    background: rgba(139, 58, 58, 0.04);
+}
+.burnish-ambient-chip--static {
+    cursor: default;
+    font-style: italic;
+    color: var(--burnish-text-muted, #9C8F8F);
+    border-style: dashed;
+}
+.burnish-ambient-chip--static:hover {
+    border-color: var(--burnish-border, #E5DDDD);
+    color: var(--burnish-text-muted, #9C8F8F);
+    background: var(--burnish-surface, #fff);
+}
+.burnish-ambient-chip--insight {
+    border-color: var(--burnish-info, #3B82F6);
+    color: var(--burnish-info, #3B82F6);
+    background: rgba(59, 130, 246, 0.04);
+}
+.burnish-ambient-chip--insight:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+.burnish-ambient-chip--insight.burnish-ambient-chip--static:hover {
+    background: rgba(59, 130, 246, 0.04);
+}
+.burnish-ambient-chip--action {
+    border-color: var(--burnish-accent, #8B3A3A);
+    color: var(--burnish-accent, #8B3A3A);
+}
+.burnish-ambient-chip--explore {
+    border-color: var(--burnish-border, #E5DDDD);
+}
+
 /* ── Empty State Hint ── */
 .burnish-empty-hint {
     margin-top: 24px;
