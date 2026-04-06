@@ -55,3 +55,8 @@ export {
     deriveToolKey,
     type LearnedTemplate,
 } from './template-store.js';
+
+export {
+    PromptLibrary,
+    type PromptEntry,
+} from './prompt-library.js';

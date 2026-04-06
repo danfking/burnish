@@ -315,6 +315,71 @@ body {
     background: rgba(139, 58, 58, 0.04);
 }
 
+/* ── Recent Prompts (empty state) ── */
+.burnish-recent-prompts {
+    padding-top: 16px;
+    border-top: 1px solid var(--burnish-border-light, #F0EAEA);
+    margin-top: 8px;
+}
+.burnish-recent-prompts:empty { display: none; border: none; padding: 0; margin: 0; }
+.burnish-recent-prompts-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--burnish-text-muted, #9C8F8F);
+    margin-bottom: 8px;
+}
+.burnish-recent-prompts-list {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.burnish-suggestion-recent {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.burnish-recent-icon {
+    display: inline-flex;
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+.burnish-suggestion-recent:hover .burnish-recent-icon,
+.burnish-suggestion-autofill:hover .burnish-recent-icon {
+    opacity: 0.8;
+}
+
+/* ── Auto-fill Suggestions (tool form) ── */
+.burnish-autofill-suggestions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--burnish-surface-alt, #F8F5F5);
+    border-radius: var(--burnish-radius-md, 8px);
+    border: 1px solid var(--burnish-border-light, #F0EAEA);
+}
+.burnish-autofill-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--burnish-text-muted, #9C8F8F);
+    flex-shrink: 0;
+}
+.burnish-suggestion-autofill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 5px 12px;
+}
+
 /* ── Ambient Suggestions (post-result chips) ── */
 .burnish-ambient-suggestions {
     display: flex;

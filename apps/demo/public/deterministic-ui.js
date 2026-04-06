@@ -233,6 +233,13 @@ export async function executeToolDirect(toolName, args, label) {
             const headerEl = document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-header');
             if (headerEl) headerEl.appendChild(timingEl);
         }
+        // Record successful execution in prompt library
+        if (_sessionHelpers?.promptLibrary && toolName) {
+            const serverName = _sessionHelpers.resolveServerName
+                ? _sessionHelpers.resolveServerName(toolName)
+                : (toolName.replace(/^mcp__/, '').split('__')[0] || '');
+            _sessionHelpers.promptLibrary.record(toolName, Object.assign({}, args), label, serverName);
+        }
         // Append ambient suggestions based on result data
         if (contentEl) {
             appendAmbientSuggestions(contentEl, data.result, toolName, args, PURIFY_CONFIG);
@@ -271,6 +278,7 @@ export function getEmptyState() {
             </div>
             <div class="burnish-tool-shortcuts" id="tool-shortcuts"></div>
             <div class="burnish-starter-prompts" id="starter-prompts"></div>
+            <div class="burnish-recent-prompts" id="recent-prompts"></div>
             <div class="burnish-empty-hint" id="empty-hint"></div>
         </div>
     `;
