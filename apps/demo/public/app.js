@@ -31,7 +31,7 @@ import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.j
 import {
     renderCardsView, renderTableView, renderJsonView,
     renderViewSwitcher, renderParsedResult, buildResultHtml,
-    renderSchemaTree,
+    renderSchemaTree, setToolViewPreference,
 } from './view-renderers.js';
 
 // ── Contextual actions ──
@@ -1049,6 +1049,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         btn.closest('.burnish-view-switcher').querySelectorAll('.burnish-view-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+
+        // Save per-tool display preference
+        if (data.sourceToolName) {
+            setToolViewPreference(data.sourceToolName, viewType);
+        }
 
         const contentEl = document.querySelector(`.burnish-view-content[data-view-id="${dataId}"]`);
         if (!contentEl) {

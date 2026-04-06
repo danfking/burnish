@@ -9,6 +9,28 @@ import { generateContextualActions } from './contextual-actions.js';
 window._viewData = window._viewData || {};
 window._cardItems = window._cardItems || {};
 
+// ── Per-tool display preferences (localStorage) ──
+const TOOL_VIEW_PREFS_KEY = 'burnish:toolViewPrefs';
+
+export function getToolViewPreference(toolName) {
+    if (!toolName) return null;
+    try {
+        const prefs = JSON.parse(localStorage.getItem(TOOL_VIEW_PREFS_KEY) || '{}');
+        return prefs[toolName] || null;
+    } catch {
+        return null;
+    }
+}
+
+export function setToolViewPreference(toolName, viewType) {
+    if (!toolName || !viewType) return;
+    try {
+        const prefs = JSON.parse(localStorage.getItem(TOOL_VIEW_PREFS_KEY) || '{}');
+        prefs[toolName] = viewType;
+        localStorage.setItem(TOOL_VIEW_PREFS_KEY, JSON.stringify(prefs));
+    } catch { /* ignore storage errors */ }
+}
+
 export function renderViewSwitcher(dataId, activeView, count) {
     return `<div class="burnish-view-switcher" data-view-id="${dataId}">
         <button class="burnish-view-btn ${activeView === 'cards' ? 'active' : ''}" data-view="cards" data-target="${dataId}">Cards</button>
@@ -135,11 +157,15 @@ export function renderParsedResult(parsed, label, sourceToolName) {
             window._viewData[dataId] = { parsed, label, sourceToolName };
             boundCache(window._viewData);
 
-            const defaultView = 'cards';
+            const defaultView = getToolViewPreference(sourceToolName) || 'cards';
             let html = `<burnish-stat-bar items='${escapeAttr(JSON.stringify([{label:"Results",value:String(parsed.length),color:"info"}]))}'></burnish-stat-bar>`;
             html += renderViewSwitcher(dataId, defaultView, parsed.length);
             html += `<div class="burnish-view-content" data-view-id="${dataId}">`;
-            html += renderCardsView(parsed, sourceToolName, dataId);
+            let defaultContent;
+            if (defaultView === 'table') defaultContent = renderTableView(parsed, label);
+            else if (defaultView === 'json') defaultContent = renderJsonView(parsed);
+            else defaultContent = renderCardsView(parsed, sourceToolName, dataId);
+            html += defaultContent;
             html += '</div>';
 
             const actions = generateContextualActions(parsed, sourceToolName);
