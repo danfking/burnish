@@ -27,17 +27,19 @@ function repairJsonAttributes(html: string): string {
     );
 
     function tryRepair(match: string, prefix: string, json: string, suffix: string): string {
-        // Unescape HTML entities that the LLM may have emitted
+        // Unescape HTML entities that the LLM may have emitted.
+        // Decode &amp; last to avoid double-decoding (e.g. &amp;quot; → &quot; → ")
         let decoded = json
             .replace(/&quot;/g, '"')
             .replace(/&#39;/g, "'")
-            .replace(/&amp;/g, '&')
             .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>');
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&');
 
         try {
             JSON.parse(decoded);
-            return match; // Already valid
+            // Already valid — re-encode for the attribute context to avoid double escaping
+            return prefix + encodeForAttr(decoded, prefix) + suffix;
         } catch {
             let repaired = decoded;
             // Fix trailing commas before ] or }
@@ -48,11 +50,29 @@ function repairJsonAttributes(html: string): string {
             repaired = repaired.replace(/(\{|,)\s*([a-zA-Z_]\w*)\s*:/g, '$1"$2":');
             try {
                 JSON.parse(repaired);
-                return prefix + repaired + suffix;
+                // Re-encode for the attribute context
+                return prefix + encodeForAttr(repaired, prefix) + suffix;
             } catch {
                 return match; // Can't fix, leave as-is
             }
         }
+    }
+
+    /**
+     * Re-encode a decoded JSON string for safe embedding in an HTML attribute.
+     * The prefix tells us whether the attribute uses single or double quotes.
+     */
+    function encodeForAttr(value: string, prefix: string): string {
+        // Always encode & first to prevent double-encoding
+        let encoded = value.replace(/&/g, '&amp;');
+        if (prefix.endsWith('"')) {
+            // Double-quoted attribute: encode double quotes
+            encoded = encoded.replace(/"/g, '&quot;');
+        } else if (prefix.endsWith("'")) {
+            // Single-quoted attribute: encode single quotes
+            encoded = encoded.replace(/'/g, '&#39;');
+        }
+        return encoded;
     }
 
     html = html.replace(singleQuotePattern, tryRepair);
@@ -81,6 +101,13 @@ export function transformOutput(html: string, options?: TransformOutputOptions):
         html = html.slice(0, MAX_HTML_INPUT_SIZE);
     }
 
+    // Reject script tags and event handlers as a defense-in-depth measure.
+    // Callers MUST sanitize with DOMPurify before calling transformOutput.
+    if (/<script[\s>]/i.test(html) || /\bon\w+\s*=/i.test(html)) {
+        console.warn('transformOutput: input contains unsanitized script content — rejected');
+        return '';
+    }
+
     // Repair malformed JSON attributes before DOM parsing
     html = repairJsonAttributes(html);
 
@@ -89,6 +116,9 @@ export function transformOutput(html: string, options?: TransformOutputOptions):
         return html;
     }
     const parser = options?.domParser ?? new DOMParser();
+    // SAFETY: input is expected to be pre-sanitized by DOMPurify before reaching
+    // this function. The script/event-handler check above is defense-in-depth.
+    // DOMParser.parseFromString with 'text/html' does not execute scripts.
     const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
     const root = doc.body.firstElementChild;
     if (!root) return html;

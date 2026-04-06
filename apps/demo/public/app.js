@@ -255,7 +255,7 @@ function updateBreadcrumb() {
 
 // ── Session List Rendering ──
 function stripHtml(text) {
-    return text.replace(/<[^>]*>/g, '').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ');
+    return text.replace(/<[^>]*>/g, '').replace(/&(?:#[xX]?[\da-fA-F]+|\w+);/g, ' ').replace(/\s+/g, ' ');
 }
 
 function sessionMatchesSearch(session, query) {
