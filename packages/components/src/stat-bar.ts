@@ -3,6 +3,7 @@ import { LitElement, html, css } from 'lit';
 export class BurnishStatBar extends LitElement {
     static properties = {
         items: { type: String },
+        variant: { type: String },
         _activeFilter: { state: true },
     };
 
@@ -30,9 +31,11 @@ export class BurnishStatBar extends LitElement {
         .stat-dot { width: 10px; height: 10px; border-radius: var(--burnish-radius-round, 50%); }
         .stat-value { font-weight: 700; font-size: var(--burnish-font-size-xl, 18px); margin-right: var(--burnish-space-xs, 4px); }
         .stat-label { color: var(--burnish-text-secondary, #6B5A5A); }
+        :host([variant="compact"]) .stat-dot { display: none; }
     `;
 
     declare items: string;
+    declare variant: string;
     declare _activeFilter: string | null;
 
     constructor() {
