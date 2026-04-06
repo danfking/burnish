@@ -27,3 +27,13 @@ export {
     convertMarkdownToComponents,
     type FallbackOptions,
 } from './markdown-fallback.js';
+
+export {
+    validateElement$,
+    validateHtml,
+    createValidator,
+    type ValidationIssue,
+    type ValidationResult,
+    type ValidationSeverity,
+    type ValidatorOptions,
+} from './component-validator.js';
