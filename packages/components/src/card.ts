@@ -22,7 +22,7 @@ export class BurnishCard extends LitElement {
             flex: 1 1 340px;
             min-width: 0;
             box-sizing: border-box;
-            overflow: hidden;
+            overflow: visible;
         }
         :host([expanded]) {
             width: 100%;
