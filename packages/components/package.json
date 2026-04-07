@@ -1,6 +1,6 @@
 {
   "name": "@burnishdev/components",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lit web components for rendering MCP tool call results",
   "type": "module",
   "main": "dist/index.js",
