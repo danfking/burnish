@@ -1,5 +1,5 @@
 /**
- * Copilot UI — dual-mode toggle, AI insight streaming, prompt bar.
+ * LLM Insight UI — dual-mode toggle, AI insight streaming, prompt bar.
  * Only active when the server reports available LLM models.
  *
  * Supports conversational pivot tables: when the user types transformation
@@ -11,7 +11,7 @@ import { escapeAttr } from './shared.js';
 import { transformOutput } from '@burnishdev/app';
 
 let currentMode = localStorage.getItem('burnish:mode') || 'explorer';
-let copilotAvailable = false;
+let llmInsightAvailable = false;
 
 /** Active conversation ID for multi-turn pivot interactions */
 let activeConversationId = null;
@@ -20,32 +20,32 @@ let activeConversationId = null;
 let isStreaming = false;
 
 export function getCurrentMode() { return currentMode; }
-export function isCopilotAvailable() { return copilotAvailable; }
+export function isLlmInsightAvailable() { return llmInsightAvailable; }
 
 /**
- * Probe /api/models to detect whether copilot mode is available.
- * Returns 'copilot-available' or 'explorer-only'.
+ * Probe /api/models to detect whether LLM Insight mode is available.
+ * Returns 'llm-insight-available' or 'explorer-only'.
  */
 export async function detectMode() {
     try {
         const res = await fetch('/api/models');
         const data = await res.json();
-        copilotAvailable = data.models && data.models.length > 0;
-        if (!copilotAvailable) currentMode = 'explorer';
-        return copilotAvailable ? 'copilot-available' : 'explorer-only';
+        llmInsightAvailable = data.models && data.models.length > 0;
+        if (!llmInsightAvailable) currentMode = 'explorer';
+        return llmInsightAvailable ? 'llm-insight-available' : 'explorer-only';
     } catch {
-        copilotAvailable = false;
+        llmInsightAvailable = false;
         currentMode = 'explorer';
         return 'explorer-only';
     }
 }
 
 /**
- * Render the Explorer/Copilot mode toggle into the given container.
- * Hidden when copilot is not available.
+ * Render the Explorer/LLM Insight mode toggle into the given container.
+ * Hidden when LLM Insight is not available.
  */
 export function renderModeToggle(container) {
-    if (!copilotAvailable) {
+    if (!llmInsightAvailable) {
         container.style.display = 'none';
         return;
     }
@@ -53,7 +53,7 @@ export function renderModeToggle(container) {
     container.innerHTML = `
         <div class="burnish-mode-toggle">
             <button class="burnish-mode-btn ${currentMode === 'explorer' ? 'active' : ''}" data-mode="explorer">Explorer</button>
-            <button class="burnish-mode-btn ${currentMode === 'copilot' ? 'active' : ''}" data-mode="copilot">Copilot</button>
+            <button class="burnish-mode-btn ${currentMode === 'llm-insight' ? 'active' : ''}" data-mode="llm-insight">LLM Insight</button>
         </div>
     `;
     container.querySelectorAll('.burnish-mode-btn').forEach(btn => {
@@ -63,8 +63,8 @@ export function renderModeToggle(container) {
             container.querySelectorAll('.burnish-mode-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             // Toggle prompt bar visibility
-            const promptBar = document.getElementById('copilot-prompt-bar');
-            if (promptBar) promptBar.style.display = currentMode === 'copilot' ? 'flex' : 'none';
+            const promptBar = document.getElementById('llm-insight-prompt-bar');
+            if (promptBar) promptBar.style.display = currentMode === 'llm-insight' ? 'flex' : 'none';
         });
     });
 }
@@ -114,17 +114,17 @@ export function resetConversation() { activeConversationId = null; }
 export function getIsStreaming() { return isStreaming; }
 
 /**
- * Initialize the copilot prompt bar — wire up Enter key to submit prompts.
+ * Initialize the LLM Insight prompt bar — wire up Enter key to submit prompts.
  * @param {object} PURIFY_CONFIG — DOMPurify config for sanitizing responses
  * @param {object} sessionHelpers — { generateId, getActiveSession, createNodeEl, renderMainContent, saveState, renderSessionList, updateBreadcrumb }
  */
 export function initPromptBar(PURIFY_CONFIG, sessionHelpers) {
-    const input = document.getElementById('copilot-input');
-    const promptBar = document.getElementById('copilot-prompt-bar');
+    const input = document.getElementById('llm-insight-input');
+    const promptBar = document.getElementById('llm-insight-prompt-bar');
     if (!input || !promptBar) return;
 
     // Show/hide based on mode
-    promptBar.style.display = currentMode === 'copilot' ? 'flex' : 'none';
+    promptBar.style.display = currentMode === 'llm-insight' ? 'flex' : 'none';
 
     input.addEventListener('keydown', async (e) => {
         if (e.key !== 'Enter' || isStreaming) return;
@@ -135,15 +135,15 @@ export function initPromptBar(PURIFY_CONFIG, sessionHelpers) {
         input.value = '';
         const pivot = isPivotCommand(prompt);
 
-        await submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers, pivot);
+        await submitLlmInsightPrompt(prompt, PURIFY_CONFIG, sessionHelpers, pivot);
     });
 }
 
 /**
- * Submit a prompt to the copilot chat API and stream the response.
+ * Submit a prompt to the LLM Insight chat API and stream the response.
  * Creates a proper session node so event handlers work automatically.
  */
-export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers, isPivot = false) {
+export async function submitLlmInsightPrompt(prompt, PURIFY_CONFIG, sessionHelpers, isPivot = false) {
     if (isStreaming) return;
     isStreaming = true;
 
@@ -161,7 +161,7 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers,
         promptDisplay: prompt,
         response: '',
         type: 'components',
-        _executionMode: 'copilot',
+        _executionMode: 'llm-insight',
         parentId: session.activeNodeId || null,
         children: [],
         collapsed: false,
@@ -192,7 +192,7 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers,
 
     // Add status, pipeline, and streaming content inside the node
     const statusEl = document.createElement('div');
-    statusEl.className = 'burnish-copilot-status';
+    statusEl.className = 'burnish-llm-insight-status';
     statusEl.textContent = isPivot ? 'Reshaping data...' : 'Thinking...';
     nodeContentEl.appendChild(statusEl);
 
@@ -202,7 +202,7 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers,
     nodeContentEl.appendChild(pipelineEl);
 
     const streamContentEl = document.createElement('div');
-    streamContentEl.className = 'burnish-copilot-response-content';
+    streamContentEl.className = 'burnish-llm-insight-response-content';
     nodeContentEl.appendChild(streamContentEl);
 
     nodeEl.setAttribute('aria-busy', 'true');
@@ -249,11 +249,11 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers,
                 } else if (chunk.type === 'stats') {
                     const sec = (chunk.durationMs / 1000).toFixed(1);
                     statusEl.textContent = `${sec}s`;
-                    statusEl.classList.add('burnish-copilot-status-done');
+                    statusEl.classList.add('burnish-llm-insight-status-done');
                 } else if (chunk.type === 'done') {
                     es.close();
                     nodeEl.setAttribute('aria-busy', 'false');
-                    if (!statusEl.classList.contains('burnish-copilot-status-done')) {
+                    if (!statusEl.classList.contains('burnish-llm-insight-status-done')) {
                         statusEl.textContent = '';
                     }
 
@@ -323,7 +323,7 @@ function appendPivotSuggestions(contentEl, PURIFY_CONFIG, sessionHelpers) {
         const prompt = btn.dataset.prompt;
         if (prompt) {
             chipsEl.remove();
-            submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers, true);
+            submitLlmInsightPrompt(prompt, PURIFY_CONFIG, sessionHelpers, true);
         }
     });
 
