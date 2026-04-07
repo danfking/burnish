@@ -64,7 +64,7 @@ export function renderModeToggle(container) {
             btn.classList.add('active');
             // Toggle prompt bar visibility
             const promptBar = document.getElementById('copilot-prompt-bar');
-            if (promptBar) promptBar.style.display = currentMode === 'copilot' ? '' : 'none';
+            if (promptBar) promptBar.style.display = currentMode === 'copilot' ? 'flex' : 'none';
         });
     });
 }
@@ -116,15 +116,15 @@ export function getIsStreaming() { return isStreaming; }
 /**
  * Initialize the copilot prompt bar — wire up Enter key to submit prompts.
  * @param {object} PURIFY_CONFIG — DOMPurify config for sanitizing responses
- * @param {function} onNodeCreated — callback(nodeId, prompt) when a new response node is created
+ * @param {object} sessionHelpers — { generateId, getActiveSession, createNodeEl, renderMainContent, saveState, renderSessionList, updateBreadcrumb }
  */
-export function initPromptBar(PURIFY_CONFIG, onNodeCreated) {
+export function initPromptBar(PURIFY_CONFIG, sessionHelpers) {
     const input = document.getElementById('copilot-input');
     const promptBar = document.getElementById('copilot-prompt-bar');
     if (!input || !promptBar) return;
 
     // Show/hide based on mode
-    promptBar.style.display = currentMode === 'copilot' ? '' : 'none';
+    promptBar.style.display = currentMode === 'copilot' ? 'flex' : 'none';
 
     input.addEventListener('keydown', async (e) => {
         if (e.key !== 'Enter' || isStreaming) return;
@@ -135,53 +135,78 @@ export function initPromptBar(PURIFY_CONFIG, onNodeCreated) {
         input.value = '';
         const pivot = isPivotCommand(prompt);
 
-        await submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, pivot);
+        await submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers, pivot);
     });
 }
 
 /**
  * Submit a prompt to the copilot chat API and stream the response.
- * Creates a new node in the dashboard for the response.
+ * Creates a proper session node so event handlers work automatically.
  */
-export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, isPivot = false) {
+export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers, isPivot = false) {
     if (isStreaming) return;
     isStreaming = true;
 
-    // Create a response container in the dashboard
     const container = document.getElementById('dashboard-container');
     if (!container) { isStreaming = false; return; }
 
-    // Add user message display
-    const userEl = document.createElement('div');
-    userEl.className = 'burnish-copilot-message burnish-copilot-user';
-    userEl.innerHTML = `<div class="burnish-copilot-message-content">${escapeAttr(prompt)}</div>`;
-    container.appendChild(userEl);
+    const { generateId, getActiveSession, createNodeEl, saveState, renderSessionList, updateBreadcrumb } = sessionHelpers;
+    const session = getActiveSession();
+    if (!session) { isStreaming = false; return; }
 
-    // Add assistant response container
-    const responseEl = document.createElement('div');
-    responseEl.className = 'burnish-copilot-message burnish-copilot-assistant';
-    responseEl.setAttribute('aria-live', 'polite');
-    responseEl.setAttribute('aria-busy', 'true');
+    // Build a first-class session node
+    const node = {
+        id: generateId(),
+        prompt,
+        promptDisplay: prompt,
+        response: '',
+        type: 'components',
+        _executionMode: 'copilot',
+        parentId: session.activeNodeId || null,
+        children: [],
+        collapsed: false,
+        timestamp: Date.now(),
+    };
 
+    // Wire into session tree
+    if (node.parentId) {
+        const parent = session.nodes.find(n => n.id === node.parentId);
+        if (parent) parent.children.push(node.id);
+    }
+    session.nodes.push(node);
+    session.activeNodeId = node.id;
+
+    // Create proper .burnish-node[data-node-id] wrapper
+    const nodeEl = createNodeEl(node);
+    const nodeContentEl = nodeEl.querySelector('.burnish-node-content');
+
+    // Ensure a .burnish-tree wrapper exists
+    let treeWrapper = container.querySelector('.burnish-tree');
+    if (!treeWrapper) {
+        container.innerHTML = '';
+        treeWrapper = document.createElement('div');
+        treeWrapper.className = 'burnish-tree';
+        container.appendChild(treeWrapper);
+    }
+    treeWrapper.appendChild(nodeEl);
+
+    // Add status, pipeline, and streaming content inside the node
     const statusEl = document.createElement('div');
     statusEl.className = 'burnish-copilot-status';
     statusEl.textContent = isPivot ? 'Reshaping data...' : 'Thinking...';
-    responseEl.appendChild(statusEl);
+    nodeContentEl.appendChild(statusEl);
 
-    // Pipeline visualization for tool chain tracing
     const pipelineEl = document.createElement('burnish-pipeline');
     pipelineEl.setAttribute('steps', '[]');
     pipelineEl.style.display = 'none';
-    responseEl.appendChild(pipelineEl);
+    nodeContentEl.appendChild(pipelineEl);
 
-    const contentEl = document.createElement('div');
-    contentEl.className = 'burnish-copilot-response-content';
-    responseEl.appendChild(contentEl);
+    const streamContentEl = document.createElement('div');
+    streamContentEl.className = 'burnish-copilot-response-content';
+    nodeContentEl.appendChild(streamContentEl);
 
-    container.appendChild(responseEl);
-
-    // Scroll to the new response
-    responseEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    nodeEl.setAttribute('aria-busy', 'true');
+    nodeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     try {
         const chatRes = await fetch('/api/chat', {
@@ -196,7 +221,7 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, 
         if (!chatRes.ok) {
             const err = await chatRes.json().catch(() => ({ error: 'Request failed' }));
             statusEl.textContent = '';
-            contentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(err.error || 'Request failed')}"></burnish-card>`;
+            streamContentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(err.error || 'Request failed')}"></burnish-card>`;
             isStreaming = false;
             return;
         }
@@ -215,35 +240,42 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, 
                 } else if (chunk.type === 'content') {
                     html += chunk.text;
                     const transformed = transformOutput(html);
-                    contentEl.innerHTML = DOMPurify.sanitize(transformed, PURIFY_CONFIG);
+                    streamContentEl.innerHTML = DOMPurify.sanitize(transformed, PURIFY_CONFIG);
                 } else if (chunk.type === 'workflow_trace') {
                     if (chunk.steps && chunk.steps.length > 0) {
                         pipelineEl.style.display = '';
                         pipelineEl.setAttribute('steps', JSON.stringify(chunk.steps));
                     }
                 } else if (chunk.type === 'stats') {
-                    const stats = chunk;
-                    const sec = (stats.durationMs / 1000).toFixed(1);
+                    const sec = (chunk.durationMs / 1000).toFixed(1);
                     statusEl.textContent = `${sec}s`;
                     statusEl.classList.add('burnish-copilot-status-done');
                 } else if (chunk.type === 'done') {
                     es.close();
-                    responseEl.setAttribute('aria-busy', 'false');
+                    nodeEl.setAttribute('aria-busy', 'false');
                     if (!statusEl.classList.contains('burnish-copilot-status-done')) {
                         statusEl.textContent = '';
                     }
 
+                    // Persist response into session node
+                    node.response = html;
+                    if (session.nodes.length === 1) {
+                        session.title = prompt.slice(0, 60);
+                    }
+                    saveState();
+                    renderSessionList();
+                    updateBreadcrumb();
+
                     // Add pivot suggestion chips if this was a data response
                     if (html && /<burnish-/.test(html)) {
-                        appendPivotSuggestions(responseEl, PURIFY_CONFIG, onNodeCreated);
+                        appendPivotSuggestions(streamContentEl, PURIFY_CONFIG, sessionHelpers);
                     }
 
                     isStreaming = false;
-                    if (onNodeCreated) onNodeCreated(conversationId, prompt);
                 } else if (chunk.type === 'error') {
                     es.close();
                     statusEl.textContent = '';
-                    contentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(chunk.message || 'Unknown error')}"></burnish-card>`;
+                    streamContentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(chunk.message || 'Unknown error')}"></burnish-card>`;
                     isStreaming = false;
                 }
             } catch { /* ignore parse errors */ }
@@ -252,17 +284,17 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, 
         es.onerror = () => {
             es.close();
             if (html) {
-                responseEl.setAttribute('aria-busy', 'false');
+                nodeEl.setAttribute('aria-busy', 'false');
                 statusEl.textContent = '';
             } else {
                 statusEl.textContent = '';
-                contentEl.innerHTML = '<burnish-card title="Connection Lost" status="error" body="Lost connection to the server."></burnish-card>';
+                streamContentEl.innerHTML = '<burnish-card title="Connection Lost" status="error" body="Lost connection to the server."></burnish-card>';
             }
             isStreaming = false;
         };
     } catch (err) {
         statusEl.textContent = '';
-        contentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(err.message || 'Failed to connect')}"></burnish-card>`;
+        streamContentEl.innerHTML = `<burnish-card title="Error" status="error" body="${escapeAttr(err.message || 'Failed to connect')}"></burnish-card>`;
         isStreaming = false;
     }
 }
@@ -271,7 +303,7 @@ export async function submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, 
  * Append pivot/transformation suggestion chips after a data response.
  * Allows users to quickly reshape the data without typing.
  */
-function appendPivotSuggestions(responseEl, PURIFY_CONFIG, onNodeCreated) {
+function appendPivotSuggestions(contentEl, PURIFY_CONFIG, sessionHelpers) {
     const suggestions = [
         { label: 'Group by status', prompt: 'group by status' },
         { label: 'Show as chart', prompt: 'show as bar chart' },
@@ -290,13 +322,12 @@ function appendPivotSuggestions(responseEl, PURIFY_CONFIG, onNodeCreated) {
         if (!btn || isStreaming) return;
         const prompt = btn.dataset.prompt;
         if (prompt) {
-            // Remove the suggestions after clicking
             chipsEl.remove();
-            submitCopilotPrompt(prompt, PURIFY_CONFIG, onNodeCreated, true);
+            submitCopilotPrompt(prompt, PURIFY_CONFIG, sessionHelpers, true);
         }
     });
 
-    responseEl.appendChild(chipsEl);
+    contentEl.appendChild(chipsEl);
 }
 
 /**

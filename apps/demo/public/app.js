@@ -814,9 +814,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (modeToggleContainer) renderModeToggle(modeToggleContainer);
 
     // Initialize copilot prompt bar for conversational pivots
-    initPromptBar(PURIFY_CONFIG, (conversationId, prompt) => {
-        // Optional: could create a navigation node for the copilot response
-        console.log(`[copilot] Response completed for: ${prompt}`);
+    initPromptBar(PURIFY_CONFIG, {
+        generateId,
+        getActiveSession,
+        createNodeEl,
+        renderMainContent,
+        saveState,
+        renderSessionList,
+        updateBreadcrumb,
     });
 
     // Suggestion buttons
