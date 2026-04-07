@@ -1,4 +1,4 @@
-// @burnish/app — headless SDK for navigation, sessions, and output transformation
+// @burnishdev/app — headless SDK for navigation, sessions, and output transformation
 
 export {
     getNodeById,

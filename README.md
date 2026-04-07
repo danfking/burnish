@@ -257,9 +257,9 @@ Connect web search + filesystem. Search, summarize, save.
 
 ```html
 <script type="module"
-  src="https://cdn.jsdelivr.net/npm/@burnish/components/dist/index.js"></script>
+  src="https://cdn.jsdelivr.net/npm/@burnishdev/components/dist/index.js"></script>
 <link rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@burnish/components/dist/tokens.css" />
+  href="https://cdn.jsdelivr.net/npm/@burnishdev/components/dist/tokens.css" />
 
 <burnish-card
   title="API Gateway"
@@ -275,15 +275,15 @@ Connect web search + filesystem. Search, summarize, save.
 > Available after npm publish.
 
 ```bash
-npm install @burnish/components
+npm install @burnishdev/components
 ```
 
 ```javascript
-import '@burnish/components';
+import '@burnishdev/components';
 
 // Components auto-register with burnish-* prefix.
 // Custom prefix:
-import { BurnishCard } from '@burnish/components';
+import { BurnishCard } from '@burnishdev/components';
 customElements.define('my-card', class extends BurnishCard {});
 ```
 
@@ -292,11 +292,11 @@ customElements.define('my-card', class extends BurnishCard {});
 > Available after npm publish.
 
 ```bash
-npm install @burnish/renderer
+npm install @burnishdev/renderer
 ```
 
 ```javascript
-import { findStreamElements, appendStreamElement } from '@burnish/renderer';
+import { findStreamElements, appendStreamElement } from '@burnishdev/renderer';
 
 const elements = findStreamElements(chunk);
 for (const el of elements) {
@@ -354,10 +354,10 @@ pnpm clean            # Clean all build artifacts
 ```
 burnish/
 ├── packages/
-│   ├── components/       @burnish/components — 10 Lit web components
-│   ├── renderer/         @burnish/renderer  — streaming parser + sanitizer
-│   ├── app/              @burnish/app — drill-down logic + stream orchestration
-│   └── server/           @burnish/server — LLM orchestrator + MCP hub
+│   ├── components/       @burnishdev/components — 10 Lit web components
+│   ├── renderer/         @burnishdev/renderer  — streaming parser + sanitizer
+│   ├── app/              @burnishdev/app — drill-down logic + stream orchestration
+│   └── server/           @burnishdev/server — LLM orchestrator + MCP hub
 ├── apps/
 │   └── demo/
 │       ├── server/       Hono API + dual-mode routing

@@ -32,10 +32,10 @@ Alternatively, contact the maintainer directly via GitHub: [@danfking](https://g
 
 This security policy covers:
 
-- `@burnish/components` — web component library
-- `@burnish/renderer` — streaming HTML parser and sanitizer
-- `@burnish/server` — MCP hub and LLM orchestrator
-- `@burnish/app` — headless SDK
+- `@burnishdev/components` — web component library
+- `@burnishdev/renderer` — streaming HTML parser and sanitizer
+- `@burnishdev/server` — MCP hub and LLM orchestrator
+- `@burnishdev/app` — headless SDK
 - `burnish` CLI
 
 **Out of scope**: Third-party MCP servers connected via Burnish. Security issues with MCP servers should be reported to their respective maintainers.

@@ -3,7 +3,7 @@
  * Accessible via the chart icon in the header toolbar.
  */
 
-import { PerfStore } from '@burnish/app';
+import { PerfStore } from '@burnishdev/app';
 import { escapeHtml } from './shared.js';
 
 const perfStore = new PerfStore();

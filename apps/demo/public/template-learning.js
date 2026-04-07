@@ -3,7 +3,7 @@
  * positively-rated responses and injecting proven templates.
  */
 
-import { TemplateStore, extractHtmlStructure, deriveToolKey } from '@burnish/app';
+import { TemplateStore, extractHtmlStructure, deriveToolKey } from '@burnishdev/app';
 
 /** Singleton template store instance */
 const templateStore = new TemplateStore();

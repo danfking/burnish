@@ -1,4 +1,4 @@
-// @burnish/components — Lit web components for rendering MCP tool call results
+// @burnishdev/components — Lit web components for rendering MCP tool call results
 export { BurnishCard } from './card.js';
 export { BurnishStatBar } from './stat-bar.js';
 export { BurnishTable } from './table.js';

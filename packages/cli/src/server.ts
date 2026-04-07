@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import open from 'open';
 
-import { McpHub, isWriteTool } from '@burnish/server';
+import { McpHub, isWriteTool } from '@burnishdev/server';
 import { buildConfigFile, cleanupTempConfig } from './config.js';
 import type { CliOptions } from './cli.js';
 

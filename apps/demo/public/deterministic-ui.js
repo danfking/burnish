@@ -9,7 +9,7 @@ import { recordToolPerf, refreshPerfPanel } from './perf-panel.js';
 import { getTemplateInstructions } from './template-learning.js';
 import { appendAmbientSuggestions } from './ambient-suggestions.js';
 
-// ── Inline risk assessment (mirrors @burnish/app risk-indicators.ts) ──
+// ── Inline risk assessment (mirrors @burnishdev/app risk-indicators.ts) ──
 
 const HIGH_RISK_RE = /^(delete|drop|remove|destroy|push|force)[_-]/i;
 const MEDIUM_RISK_RE = /^(create|update|write|set|modify|send)[_-]/i;

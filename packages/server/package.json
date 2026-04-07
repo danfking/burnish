@@ -1,5 +1,5 @@
 {
-  "name": "@burnish/server",
+  "name": "@burnishdev/server",
   "version": "0.1.0",
   "description": "MCP orchestration, LLM streaming, and session management for Burnish",
   "type": "module",

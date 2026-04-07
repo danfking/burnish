@@ -2,7 +2,7 @@
  * Drill-down helpers — prompt generation and write-tool detection.
  */
 
-// NOTE: Intentionally duplicated from @burnish/server/guards.ts for runtime isolation
+// NOTE: Intentionally duplicated from @burnishdev/server/guards.ts for runtime isolation
 // (this package runs in the browser, server runs in Node)
 const WRITE_TOOL_PATTERNS = /^(create|update|delete|remove|push|write|edit|move|fork|merge|add|set|close|lock|assign)/i;
 

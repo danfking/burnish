@@ -94,23 +94,23 @@ All commit messages must follow `type(scope): description`:
 ```
 burnish/
 ├── packages/
-│   ├── components/     # @burnish/components — Lit web components (card, table, chart, etc.)
-│   ├── renderer/       # @burnish/renderer — streaming HTML parser, sanitizer, component mapper
-│   ├── server/         # @burnish/server — MCP hub, LLM orchestrator, conversation store
-│   └── app/            # @burnish/app — headless SDK: nav tree, sessions, streaming, output transform
+│   ├── components/     # @burnishdev/components — Lit web components (card, table, chart, etc.)
+│   ├── renderer/       # @burnishdev/renderer — streaming HTML parser, sanitizer, component mapper
+│   ├── server/         # @burnishdev/server — MCP hub, LLM orchestrator, conversation store
+│   └── app/            # @burnishdev/app — headless SDK: nav tree, sessions, streaming, output transform
 ├── apps/
 │   └── demo/           # Thin demo shell — Hono routes + DOM rendering/events
-│       ├── server/     # index.ts (~200 LOC Hono wrapper over @burnish/server)
-│       └── public/     # SPA shell, app.js (DOM-only, imports @burnish/app + @burnish/renderer)
+│       ├── server/     # index.ts (~200 LOC Hono wrapper over @burnishdev/server)
+│       └── public/     # SPA shell, app.js (DOM-only, imports @burnishdev/app + @burnishdev/renderer)
 ├── package.json        # pnpm workspace root
 └── CLAUDE.md           # this file
 ```
 
 ### Package Responsibilities
-- **@burnish/components** — Lit web components, publishable to npm/CDN
-- **@burnish/renderer** — Stream parser, HTML sanitizer config, component mapper
-- **@burnish/server** — `McpHub` (MCP client management), `LlmOrchestrator` (dual CLI/API backends), `ConversationStore`, guards, catalog, prompt template
-- **@burnish/app** — Framework-agnostic headless SDK: `SessionStore` (IndexedDB), `StreamOrchestrator` (SSE), navigation tree utils, output transformer, drill-down helpers, summary utils
+- **@burnishdev/components** — Lit web components, publishable to npm/CDN
+- **@burnishdev/renderer** — Stream parser, HTML sanitizer config, component mapper
+- **@burnishdev/server** — `McpHub` (MCP client management), `LlmOrchestrator` (dual CLI/API backends), `ConversationStore`, guards, catalog, prompt template
+- **@burnishdev/app** — Framework-agnostic headless SDK: `SessionStore` (IndexedDB), `StreamOrchestrator` (SSE), navigation tree utils, output transformer, drill-down helpers, summary utils
 
 ## Conventions
 
@@ -211,13 +211,13 @@ Status values: `success`, `warning`, `error`, `muted` (maps to semantic colors)
 
 ```html
 <!-- CDN (simplest) -->
-<script type="module" src="https://cdn.jsdelivr.net/npm/@burnish/components/dist/index.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@burnishdev/components/dist/index.js"></script>
 ```
 
 ```javascript
-// npm install @burnish/components
+// npm install @burnishdev/components
 // Re-register with custom prefix if needed:
-import { BurnishCard } from '@burnish/components';
+import { BurnishCard } from '@burnishdev/components';
 customElements.define('xm-card', class extends BurnishCard {});
 ```
 

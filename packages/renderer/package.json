@@ -1,5 +1,5 @@
 {
-  "name": "@burnish/renderer",
+  "name": "@burnishdev/renderer",
   "version": "0.1.0",
   "description": "Streaming HTML renderer and component mapper for Burnish",
   "type": "module",

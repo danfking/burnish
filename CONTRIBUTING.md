@@ -61,10 +61,10 @@ chore: update dependencies
 
 ```
 packages/
-  components/   # @burnish/components — Lit web components
-  renderer/     # @burnish/renderer — streaming HTML parser
-  server/       # @burnish/server — MCP hub + LLM orchestrator
-  app/          # @burnish/app — headless SDK
+  components/   # @burnishdev/components — Lit web components
+  renderer/     # @burnishdev/renderer — streaming HTML parser
+  server/       # @burnishdev/server — MCP hub + LLM orchestrator
+  app/          # @burnishdev/app — headless SDK
   cli/          # burnish — CLI tool
 apps/
   demo/         # Demo app shell

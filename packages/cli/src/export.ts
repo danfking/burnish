@@ -2,7 +2,7 @@
  * Export MCP server schema as JSON to stdout.
  */
 
-import { McpHub } from '@burnish/server';
+import { McpHub } from '@burnishdev/server';
 import { buildConfigFile, cleanupTempConfig } from './config.js';
 import type { CliOptions } from './cli.js';
 

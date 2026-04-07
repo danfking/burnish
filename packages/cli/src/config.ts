@@ -6,7 +6,7 @@
 import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { McpServersConfig } from '@burnish/server';
+import type { McpServersConfig } from '@burnishdev/server';
 import type { CliOptions } from './cli.js';
 
 let _tmpDir: string | null = null;

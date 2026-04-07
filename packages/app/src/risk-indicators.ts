@@ -121,7 +121,7 @@ export interface ConfigWarning {
 
 /**
  * Shape of a single MCP server entry in the config file.
- * Mirrors McpServerConfig from @burnish/server but kept local to avoid
+ * Mirrors McpServerConfig from @burnishdev/server but kept local to avoid
  * a cross-package dependency — the app package must stay framework-agnostic.
  */
 interface ServerConfigEntry {

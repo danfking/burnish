@@ -19,7 +19,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 
-import { McpHub } from '@burnish/server';
+import { McpHub } from '@burnishdev/server';
 import { startServerWithHub, type ServerOptions } from './server.js';
 
 /**

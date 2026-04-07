@@ -1,4 +1,4 @@
-// @burnish/renderer — render engine for MCP UI
+// @burnishdev/renderer — render engine for MCP UI
 
 export {
     buildSanitizerConfig,

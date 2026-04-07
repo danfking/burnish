@@ -17,16 +17,16 @@ importers:
 
   apps/demo:
     dependencies:
-      '@burnish/app':
+      '@burnishdev/app':
         specifier: workspace:*
         version: link:../../packages/app
-      '@burnish/components':
+      '@burnishdev/components':
         specifier: workspace:*
         version: link:../../packages/components
-      '@burnish/renderer':
+      '@burnishdev/renderer':
         specifier: workspace:*
         version: link:../../packages/renderer
-      '@burnish/server':
+      '@burnishdev/server':
         specifier: workspace:*
         version: link:../../packages/server
       '@hono/node-server':
@@ -57,7 +57,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@burnish/server':
+      '@burnishdev/server':
         specifier: workspace:*
         version: link:../server
       '@hono/node-server':

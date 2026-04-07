@@ -1,4 +1,4 @@
-// @burnish/server — MCP orchestration and session management
+// @burnishdev/server — MCP orchestration and session management
 
 // ConversationStore is used by LlmOrchestrator in Copilot mode
 export {

@@ -11,10 +11,10 @@
     "clean": "echo 'nothing to clean'"
   },
   "dependencies": {
-    "@burnish/app": "workspace:*",
-    "@burnish/components": "workspace:*",
-    "@burnish/renderer": "workspace:*",
-    "@burnish/server": "workspace:*",
+    "@burnishdev/app": "workspace:*",
+    "@burnishdev/components": "workspace:*",
+    "@burnishdev/renderer": "workspace:*",
+    "@burnishdev/server": "workspace:*",
     "@hono/node-server": "^1.14.0",
     "hono": "^4.7.0"
   },

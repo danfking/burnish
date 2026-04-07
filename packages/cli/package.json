@@ -27,7 +27,7 @@
     "clean": "rm -rf dist assets"
   },
   "dependencies": {
-    "@burnish/server": "workspace:*",
+    "@burnishdev/server": "workspace:*",
     "@hono/node-server": "^1.14.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "hono": "^4.7.0",

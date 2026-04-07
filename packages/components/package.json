@@ -1,5 +1,5 @@
 {
-  "name": "@burnish/components",
+  "name": "@burnishdev/components",
   "version": "0.1.0",
   "description": "Lit web components for rendering MCP tool call results",
   "type": "module",
