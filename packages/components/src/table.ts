@@ -30,8 +30,10 @@ export class BurnishTable extends LitElement {
             font-size: var(--burnish-font-size-md, 14px); font-weight: 600;
         }
         .table-search {
-            padding: 5px 10px; border: 1px solid var(--burnish-border, #E5DDDD);
+            padding: 5px 10px; border: 1px solid var(--burnish-input-border, var(--burnish-border, #E5DDDD));
             border-radius: 4px; font-size: 12px; min-width: 150px; outline: none;
+            background: var(--burnish-input-bg, var(--burnish-surface, #fff));
+            color: var(--burnish-text, #2D1F1F); font-family: inherit;
         }
         .table-search:focus { border-color: var(--burnish-accent, #8B3A3A); }
         table { width: 100%; border-collapse: collapse; font-size: var(--burnish-font-size-base, 13px); }
@@ -73,13 +75,16 @@ export class BurnishTable extends LitElement {
         .table-pagination { display: flex; align-items: center; gap: 6px; }
         .page-btn {
             padding: 3px 8px; border: 1px solid var(--burnish-border, #E5DDDD);
-            border-radius: 3px; background: none; cursor: pointer; font-size: 12px;
+            border-radius: 3px; background: var(--burnish-surface, #fff); cursor: pointer;
+            font-size: 12px; color: var(--burnish-text, #2D1F1F);
         }
         .page-btn:hover:not(:disabled) { background: var(--burnish-surface-alt, #F8F5F5); }
         .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .page-size-select {
-            padding: 2px 4px; border: 1px solid var(--burnish-border, #E5DDDD);
-            border-radius: 3px; font-size: 11px; background: none;
+            padding: 2px 4px; border: 1px solid var(--burnish-input-border, var(--burnish-border, #E5DDDD));
+            border-radius: 3px; font-size: 11px;
+            background: var(--burnish-input-bg, var(--burnish-surface, #fff));
+            color: var(--burnish-text, #2D1F1F); font-family: inherit;
         }
         .no-results {
             padding: 24px 16px; text-align: center;
