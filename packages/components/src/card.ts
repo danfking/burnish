@@ -20,8 +20,9 @@ export class BurnishCard extends LitElement {
             width: 340px;
             max-width: 100%;
             flex: 1 1 340px;
-            min-width: 200px;
+            min-width: 0;
             box-sizing: border-box;
+            overflow: visible;
         }
         :host([expanded]) {
             width: 100%;
@@ -45,22 +46,24 @@ export class BurnishCard extends LitElement {
         .card:hover .expand-btn { display: flex; }
         .expand-btn:hover { color: var(--burnish-accent, #8B3A3A); }
         .source-badge {
-            position: absolute;
-            bottom: var(--burnish-space-sm, 8px);
-            right: var(--burnish-space-sm, 8px);
+            display: block;
+            text-align: right;
+            padding: var(--burnish-space-xs, 4px) var(--burnish-space-sm, 8px) var(--burnish-space-xs, 4px);
             font-size: 10px;
             font-weight: 500;
             color: var(--burnish-text-muted, #9C8F8F);
-            background: var(--burnish-surface-alt, #F8F5F5);
-            border: 1px solid var(--burnish-border-light, #F0EAEA);
-            border-radius: 3px;
-            padding: 1px 6px;
             line-height: 1.4;
             letter-spacing: 0.3px;
             opacity: 0.7;
             transition: opacity var(--burnish-transition-fast);
             pointer-events: none;
-            z-index: 1;
+        }
+        .source-badge span {
+            display: inline-block;
+            background: var(--burnish-surface-alt, #F8F5F5);
+            border: 1px solid var(--burnish-border-light, #F0EAEA);
+            border-radius: 3px;
+            padding: 1px 6px;
         }
         .card:hover .source-badge { opacity: 1; }
         .card {
@@ -68,6 +71,7 @@ export class BurnishCard extends LitElement {
             border-radius: var(--burnish-radius-md, 4px);
             border: 1px solid var(--burnish-border-muted, #E5DDDD);
             overflow: hidden;
+            box-sizing: border-box;
             box-shadow: var(--burnish-shadow-sm);
             transition: transform var(--burnish-transition-fast), box-shadow var(--burnish-transition-fast);
             position: relative;
@@ -85,10 +89,10 @@ export class BurnishCard extends LitElement {
         }
         .card:focus { outline: 2px solid var(--burnish-accent, #8B3A3A); outline-offset: 2px; }
         .card[data-status="success"]::before,
-        .card[data-status="healthy"]::before { background: var(--burnish-success, #16a34a); }
-        .card[data-status="warning"]::before { background: var(--burnish-warning, #ca8a04); }
+        .card[data-status="healthy"]::before { background: var(--burnish-success, #22c55e); }
+        .card[data-status="warning"]::before { background: var(--burnish-warning, #eab308); }
         .card[data-status="error"]::before,
-        .card[data-status="failing"]::before { background: var(--burnish-error, #dc2626); }
+        .card[data-status="failing"]::before { background: var(--burnish-error, #ef4444); }
         .card[data-status="info"]::before { background: var(--burnish-info, #6366f1); }
         .card-header {
             padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px) var(--burnish-space-sm, 8px);
@@ -99,7 +103,7 @@ export class BurnishCard extends LitElement {
             font-size: var(--burnish-font-size-xs, 11px); font-weight: 600;
             text-transform: uppercase; letter-spacing: 0.5px;
             padding: 2px var(--burnish-space-sm, 8px); border-radius: 10px;
-            flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            flex-shrink: 0; white-space: nowrap;
         }
         .card-badge[data-status="success"], .card-badge[data-status="healthy"] {
             color: var(--burnish-success); background: var(--burnish-border-success);
@@ -323,7 +327,7 @@ export class BurnishCard extends LitElement {
                     `;
                 })()}
                 ${this['item-id'] ? html`<div class="card-action" role="button" tabindex="0">Explore \u2192</div>` : ''}
-                ${this.source ? html`<span class="source-badge" title="Source: ${this.source}">${this.source}</span>` : ''}
+                ${this.source ? html`<div class="source-badge" title="Source: ${this.source}"><span>${this.source}</span></div>` : ''}
             </div>
         `;
     }

@@ -15,16 +15,16 @@
     --burnish-link: #7C3030;
 
     /* ── Colors: Status ── */
-    --burnish-success: #16a34a;
-    --burnish-warning: #ca8a04;
-    --burnish-error: #dc2626;
+    --burnish-success: #22c55e;
+    --burnish-warning: #eab308;
+    --burnish-error: #ef4444;
     --burnish-muted: #9C8F8F;
     --burnish-info: #6366f1;
 
     /* ── Colors: Status Borders (lighter, for bars/indicators) ── */
-    --burnish-border-success: #bbf7d0;
-    --burnish-border-warning: #fef08a;
-    --burnish-border-error: #fecaca;
+    --burnish-border-success: #dcfce7;
+    --burnish-border-warning: #fef9c3;
+    --burnish-border-error: #fee2e2;
     --burnish-border-muted: #E5DDDD;
     --burnish-border-info: #c7d2fe;
 
