@@ -13,6 +13,7 @@ import open from 'open';
 import { McpHub, isWriteTool } from '@burnishdev/server';
 import { buildConfigFile, cleanupTempConfig } from './config.js';
 import type { CliOptions } from './cli.js';
+import { formatMcpError } from './errors.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const assetsDir = resolve(__dirname, '../assets');
@@ -192,8 +193,16 @@ export async function startServerWithHub(hub: McpHub, opts?: ServerOptions): Pro
 
     const app = buildApp(hub);
 
-    serve({ fetch: app.fetch, port }, () => {
+    const server = serve({ fetch: app.fetch, port }, () => {
         console.log(`[burnish] Explorer UI: http://localhost:${port}`);
+    });
+
+    server.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`Error: Port ${port} is already in use. Try --port <n>`);
+            process.exit(1);
+        }
+        throw err;
     });
 
     if (shouldOpen) {
@@ -231,8 +240,16 @@ export async function startServer(opts: CliOptions): Promise<void> {
     // Start the HTTP server immediately (before MCP init completes)
     const app = buildApp(mcpHub);
 
-    serve({ fetch: app.fetch, port: opts.port }, () => {
+    const server = serve({ fetch: app.fetch, port: opts.port }, () => {
         console.log(`[burnish] Explorer UI: http://localhost:${opts.port}`);
+    });
+
+    server.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`Error: Port ${opts.port} is already in use. Try --port <n>`);
+            process.exit(1);
+        }
+        throw err;
     });
 
     // Initialize MCP servers
@@ -247,7 +264,7 @@ export async function startServer(opts: CliOptions): Promise<void> {
             // All servers failed — exit with clear message
             console.error('[burnish] Failed to connect to MCP server.');
             for (const s of failed) {
-                console.error(`  \u2717 ${s.name}: ${s.lastError || 'connection failed'}`);
+                console.error(`  \u2717 ${s.name}: ${formatMcpError(s.lastError || 'connection failed', s.name)}`);
             }
             console.error('\nCheck that the command exists and is executable.');
             console.error('Example: burnish -- npx @modelcontextprotocol/server-filesystem /tmp');
@@ -261,7 +278,7 @@ export async function startServer(opts: CliOptions): Promise<void> {
                 console.log(`  \u2713 ${s.name}: ${s.toolCount} tools`);
             }
             for (const s of failed) {
-                console.warn(`  \u2717 ${s.name}: ${s.lastError || 'connection failed'}`);
+                console.warn(`  \u2717 ${s.name}: ${formatMcpError(s.lastError || 'connection failed', s.name)}`);
             }
         } else {
             // All good
@@ -271,7 +288,9 @@ export async function startServer(opts: CliOptions): Promise<void> {
             }
         }
     } catch (err) {
-        console.error('[burnish] MCP server connection failed:', err instanceof Error ? err.message : err);
+        const rawMessage = err instanceof Error ? err.message : String(err);
+        const friendly = formatMcpError(rawMessage);
+        console.error(`[burnish] ${friendly}`);
         console.error('[burnish] The UI is running but no tools are available.');
     }
 
