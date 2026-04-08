@@ -1,0 +1,10 @@
+{
+  "name": "burnish-middleware-sdk-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Verify @burnishdev/server McpHub can be imported and instantiated",
+  "dependencies": {
+    "@burnishdev/server": "0.1.1"
+  }
+}
