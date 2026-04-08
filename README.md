@@ -31,7 +31,7 @@ Connect. Browse. Execute. Everything is driven by the server's tool schemas.
 - **Fully private** — runs locally, no external calls, no telemetry
 - **Zero config** — `pnpm dev:nomodel` and you're running
 
-### Copilot Mode — LLM-enhanced
+### LLM Insight Mode — LLM-enhanced
 
 Everything from Explorer, plus:
 
@@ -49,7 +49,7 @@ Everything from Explorer, plus:
 # Explorer — no LLM, no API key
 npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
 
-# Copilot — with LLM
+# LLM Insight — with LLM
 npx burnish --llm=cli -- npx @modelcontextprotocol/server-filesystem /tmp
 ```
 
@@ -67,7 +67,7 @@ pnpm dev:nomodel
 
 Open `http://localhost:3000`. Your configured MCP servers appear with all their tools ready to use.
 
-#### Copilot Mode (with LLM)
+#### LLM Insight Mode (with LLM)
 
 ```bash
 # Option A: Claude Code CLI auth (no API key needed)
@@ -107,7 +107,7 @@ Replace `@your-org/your-mcp-server` with your server's npm package or startup co
 | **Rich visualization** | Cards, tables, charts, metrics | Raw JSON | Limited | None (registry only) | Node output |
 | **Any MCP server** | Yes | Yes | 500 pre-wrapped apps | Registry, no execution | Via custom nodes |
 | **Auto-generated forms** | Yes (from schema) | Manual JSON input | Pre-built forms | No | Node config UI |
-| **Natural language** | Yes (Copilot) | No | Yes | No | No |
+| **Natural language** | Yes (LLM Insight) | No | Yes | No | No |
 | **Streaming results** | Progressive SSE | No | No | No | No |
 | **Local / private** | Yes, fully | Yes | Cloud-dependent | Cloud | Self-host (heavy) |
 | **Setup time** | `npx burnish` | `npx` | Account + config | Browse only | Docker + config |
@@ -124,7 +124,7 @@ Replace `@your-org/your-mcp-server` with your server's npm package or startup co
 - Themeable via `--burnish-*` CSS custom properties
 - No build step required — import from CDN as ES modules
 
-**Copilot (LLM-enhanced)**
+**LLM Insight (LLM-enhanced)**
 - Progressive streaming — components render as the LLM generates them
 - Three LLM backends: Anthropic API (streaming tool-call loop), Claude CLI (zero-config auth), OpenAI-compatible (Ollama, llama.cpp, vLLM, LM Studio)
 - Drill-down navigation with collapsible sections and session persistence
@@ -338,7 +338,7 @@ Configure in `apps/demo/mcp-servers.json`:
 }
 ```
 
-All configured servers connect at startup. Their tools are available immediately in Explorer mode and to the LLM in Copilot mode.
+All configured servers connect at startup. Their tools are available immediately in Explorer mode and to the LLM in LLM Insight mode.
 
 ## Development
 
@@ -346,7 +346,7 @@ All configured servers connect at startup. Their tools are available immediately
 pnpm install          # Install all dependencies
 pnpm build            # Build all packages
 pnpm dev:nomodel      # Explorer mode (no LLM)
-pnpm dev              # Copilot mode (auto-detect backend)
+pnpm dev              # LLM Insight mode (auto-detect backend)
 pnpm test             # Run Playwright tests
 pnpm clean            # Clean all build artifacts
 ```
@@ -384,7 +384,7 @@ burnish/
                                    │
            ┌───────────────────────┴───────────────────────┐
            │                                               │
-    Explorer Mode                                   Copilot Mode
+    Explorer Mode                                   LLM Insight Mode
            │                                               │
     ┌──────┴──────┐                              ┌─────────┴─────────┐
     │ Schema      │                              │ LLM               │
@@ -420,7 +420,7 @@ burnish/
 
 **Explorer mode** reads the MCP server's tool list, generates forms from JSON Schema, and maps results directly to components — no LLM in the loop.
 
-**Copilot mode** adds an LLM that interprets natural language, orchestrates tool calls, and generates HTML using the burnish component vocabulary. The system prompt teaches the LLM which tags to use; the renderer streams them into the browser progressively.
+**LLM Insight mode** adds an LLM that interprets natural language, orchestrates tool calls, and generates HTML using the burnish component vocabulary. The system prompt teaches the LLM which tags to use; the renderer streams them into the browser progressively.
 
 ## License
 

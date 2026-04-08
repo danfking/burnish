@@ -35,6 +35,10 @@
     --burnish-border: #E5DDDD;
     --burnish-border-light: #F0EAEA;
 
+    /* ── Form Inputs ── */
+    --burnish-input-bg: #ffffff;
+    --burnish-input-border: #E5DDDD;
+
     /* ── Spacing ── */
     --burnish-space-xs: 4px;
     --burnish-space-sm: 8px;
@@ -91,6 +95,8 @@
         --burnish-text-muted: #7A6B6B;
         --burnish-border: #3D3232;
         --burnish-border-light: #332929;
+        --burnish-input-bg: #171212;
+        --burnish-input-border: #544646;
         --burnish-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
         --burnish-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
         --burnish-muted: #7A6B6B;
@@ -119,6 +125,8 @@
     --burnish-text-muted: #7A6B6B;
     --burnish-border: #3D3232;
     --burnish-border-light: #332929;
+    --burnish-input-bg: #171212;
+    --burnish-input-border: #544646;
     --burnish-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
     --burnish-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
     --burnish-muted: #7A6B6B;

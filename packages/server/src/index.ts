@@ -1,6 +1,6 @@
 // @burnishdev/server — MCP orchestration and session management
 
-// ConversationStore is used by LlmOrchestrator in Copilot mode
+// ConversationStore is used by LlmOrchestrator in LLM Insight mode
 export {
     ConversationStore,
     type Message,

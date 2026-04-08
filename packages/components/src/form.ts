@@ -56,9 +56,9 @@ export class BurnishForm extends LitElement {
         .form-required { color: var(--burnish-error, #ef4444); margin-left: 2px; }
         .form-input, .form-textarea, .form-select {
             width: 100%; padding: 8px 12px;
-            border: 1px solid var(--burnish-border, #E5DDDD); border-radius: 6px;
+            border: 1px solid var(--burnish-input-border, var(--burnish-border, #E5DDDD)); border-radius: 6px;
             font-size: var(--burnish-font-size-base, 13px); font-family: inherit;
-            color: var(--burnish-text, #2D1F1F); background: var(--burnish-surface, #fff);
+            color: var(--burnish-text, #2D1F1F); background: var(--burnish-input-bg, var(--burnish-surface, #fff));
             box-sizing: border-box; transition: border-color 0.15s ease;
         }
         .form-input:focus, .form-textarea:focus, .form-select:focus {
@@ -85,9 +85,9 @@ export class BurnishForm extends LitElement {
         @keyframes spin { to { transform: rotate(360deg); } }
         .form-lookup-btn.loading svg { animation: spin 1s linear infinite; }
         .form-lookup-results {
-            border: 1px solid var(--burnish-border, #E5DDDD); border-radius: 6px;
+            border: 1px solid var(--burnish-input-border, var(--burnish-border, #E5DDDD)); border-radius: 6px;
             margin-top: 4px; max-height: 200px; overflow-y: auto;
-            background: var(--burnish-surface, #fff); box-shadow: var(--burnish-shadow-md);
+            background: var(--burnish-input-bg, var(--burnish-surface, #fff)); box-shadow: var(--burnish-shadow-md);
         }
         .form-lookup-item {
             padding: 8px 12px; cursor: pointer; font-size: 13px;
