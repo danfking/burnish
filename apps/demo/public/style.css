@@ -1181,6 +1181,8 @@ body {
     border-radius: 8px;
     font-size: 14px;
     outline: none;
+    background: var(--burnish-input-bg, var(--burnish-surface, #fff));
+    color: var(--burnish-text, #2D1F1F);
 }
 #llm-insight-prompt-bar input:focus {
     border-color: var(--burnish-accent, #8B3A3A);

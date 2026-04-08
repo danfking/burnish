@@ -81,6 +81,7 @@
 /* Dark mode: respect system preference, allow explicit override */
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
+        color-scheme: dark;
         --burnish-primary: #1A1212;
         --burnish-surface: #1F1A1A;
         --burnish-surface-alt: #2A2222;
@@ -111,6 +112,7 @@
 
 /* Explicit dark mode override */
 [data-theme="dark"] {
+    color-scheme: dark;
     --burnish-primary: #1A1212;
     --burnish-surface: #1F1A1A;
     --burnish-surface-alt: #2A2222;
