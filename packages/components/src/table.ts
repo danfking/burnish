@@ -143,6 +143,11 @@ export class BurnishTable extends LitElement {
             cols = (cols as unknown as string[]).map(c => ({ key: c, label: c }));
         }
         try { data = JSON.parse(this.rows || '[]'); } catch { /* graceful */ }
+        if (data.length > 0 && Array.isArray(data[0])) {
+            data = (data as unknown as unknown[][]).map(arr =>
+                Object.fromEntries(cols.map((c, i) => [c.key, arr[i]]))
+            );
+        }
 
         const statusField = this['status-field'] || this.getAttribute('status-field');
 
