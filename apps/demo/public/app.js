@@ -52,8 +52,8 @@ import {
     getEmptyState, setSessionHelpers,
 } from './deterministic-ui.js';
 
-// ── Copilot UI ──
-import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './copilot-ui.js';
+// ── LLM Insight UI ──
+import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './llm-insight-ui.js';
 
 // ── Performance tracking ──
 import { recordPerf, recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
@@ -808,12 +808,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateBreadcrumb();
 
-    // Detect copilot availability and render toggle
+    // Detect LLM Insight availability and render toggle
     const modeStatus = await detectMode();
     const modeToggleContainer = document.getElementById('mode-toggle');
     if (modeToggleContainer) renderModeToggle(modeToggleContainer);
 
-    // Initialize copilot prompt bar for conversational pivots
+    // Initialize LLM Insight prompt bar for conversational pivots
     initPromptBar(PURIFY_CONFIG, {
         generateId,
         getActiveSession,

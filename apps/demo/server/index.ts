@@ -2,7 +2,7 @@
  * Burnish Demo Server — dual-mode MCP navigator.
  *
  * Explorer mode: deterministic tool browsing and direct execution.
- * Copilot mode: LLM-powered streaming insights via SSE (when LLM_BACKEND != 'none').
+ * LLM Insight mode: LLM-powered streaming insights via SSE (when LLM_BACKEND != 'none').
  *
  * Security hardening:
  * - Input validation on all API routes
@@ -615,7 +615,7 @@ async function start() {
             mcpConfigPath: configPath,
             openaiBaseUrl,
         });
-        console.log(`[burnish] Copilot mode enabled (backend: ${llmBackend}, model: ${modelName})`);
+        console.log(`[burnish] LLM Insight mode enabled (backend: ${llmBackend}, model: ${modelName})`);
     } else {
         console.log('[burnish] Explorer-only mode (LLM_BACKEND=none)');
     }

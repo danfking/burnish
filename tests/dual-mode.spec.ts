@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Dual mode (Explorer/Copilot)', () => {
+test.describe('Dual mode (Explorer/LLM Insight)', () => {
     test('Explorer mode works without LLM', async ({ page }) => {
         await page.goto('/');
         // Should load and show server buttons
@@ -46,9 +46,9 @@ test.describe('Dual mode (Explorer/Copilot)', () => {
         }
     });
 
-    test('copilot prompt bar is hidden in Explorer mode', async ({ page }) => {
+    test('LLM Insight prompt bar is hidden in Explorer mode', async ({ page }) => {
         await page.goto('/');
-        const promptBar = page.locator('#copilot-prompt-bar');
+        const promptBar = page.locator('#llm-insight-prompt-bar');
         if (await promptBar.count() > 0) {
             await expect(promptBar).not.toBeVisible();
         }

@@ -15,7 +15,7 @@ mkdirSync(resolve(assets, 'renderer'), { recursive: true });
 const publicDir = resolve(root, 'apps/demo/public');
 const filesToCopy = [
     'app.js', 'shared.js', 'view-renderers.js', 'contextual-actions.js',
-    'deterministic-ui.js', 'copilot-ui.js', 'style.css', 'tokens.css',
+    'deterministic-ui.js', 'llm-insight-ui.js', 'style.css', 'tokens.css',
 ];
 for (const f of filesToCopy) {
     const src = resolve(publicDir, f);
