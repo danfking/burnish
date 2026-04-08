@@ -240,9 +240,35 @@ export async function startServer(opts: CliOptions): Promise<void> {
         await mcpHub.initialize(configPath);
         const serverInfo = mcpHub.getServerInfo();
         const totalTools = serverInfo.reduce((sum, s) => sum + s.toolCount, 0);
-        console.log(`[burnish] Connected: ${totalTools} tools available`);
-        for (const s of serverInfo) {
-            console.log(`  - ${s.name}: ${s.toolCount} tools (${s.status})`);
+        const connected = serverInfo.filter(s => s.status === 'connected');
+        const failed = serverInfo.filter(s => s.status !== 'connected');
+
+        if (connected.length === 0 && serverInfo.length > 0) {
+            // All servers failed — exit with clear message
+            console.error('[burnish] Failed to connect to MCP server.');
+            for (const s of failed) {
+                console.error(`  \u2717 ${s.name}: ${s.lastError || 'connection failed'}`);
+            }
+            console.error('\nCheck that the command exists and is executable.');
+            console.error('Example: burnish -- npx @modelcontextprotocol/server-filesystem /tmp');
+            await mcpHub.shutdown();
+            await cleanupTempConfig();
+            process.exit(1);
+        } else if (failed.length > 0) {
+            // Partial failure — warn but continue
+            console.warn(`[burnish] Connected: ${totalTools} tools available (${failed.length} server(s) failed)`);
+            for (const s of connected) {
+                console.log(`  \u2713 ${s.name}: ${s.toolCount} tools`);
+            }
+            for (const s of failed) {
+                console.warn(`  \u2717 ${s.name}: ${s.lastError || 'connection failed'}`);
+            }
+        } else {
+            // All good
+            console.log(`[burnish] Connected: ${totalTools} tools available`);
+            for (const s of serverInfo) {
+                console.log(`  - ${s.name}: ${s.toolCount} tools (${s.status})`);
+            }
         }
     } catch (err) {
         console.error('[burnish] MCP server connection failed:', err instanceof Error ? err.message : err);

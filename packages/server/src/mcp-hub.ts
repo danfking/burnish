@@ -83,7 +83,18 @@ export class McpHub {
                     await this.connectServer(name, serverConfig);
                     console.error(`[mcp-hub] Connected to "${name}"`);
                 } catch (err) {
-                    console.error(`[mcp-hub] Failed to connect to "${name}":`, err);
+                    const message = err instanceof Error ? err.message : String(err);
+                    console.error(`[mcp-hub] Failed to connect to "${name}":`, message);
+                    this.servers.push({
+                        name,
+                        client: null as any,
+                        transport: null as any,
+                        tools: [],
+                        config: serverConfig,
+                        status: 'disconnected',
+                        lastError: message,
+                        lastErrorTime: Date.now(),
+                    });
                 }
             }),
         );
@@ -374,7 +385,7 @@ export class McpHub {
     async shutdown(): Promise<void> {
         for (const server of this.servers) {
             try {
-                await server.client.close();
+                if (server.client) await server.client.close();
             } catch { /* ignore cleanup errors */ }
         }
         this.servers.length = 0;
