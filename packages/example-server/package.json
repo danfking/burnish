@@ -1,0 +1,43 @@
+{
+  "name": "@burnishdev/example-server",
+  "version": "0.1.0",
+  "description": "Example MCP server showcasing Burnish components with demo tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "burnish-example-server": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danfking/burnish.git",
+    "directory": "packages/example-server"
+  },
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/danfking/burnish",
+  "author": "danfking",
+  "keywords": ["mcp", "model-context-protocol", "example", "demo", "burnish"]
+}
