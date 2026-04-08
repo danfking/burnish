@@ -39,6 +39,11 @@ export interface ToolDef {
     serverName: string;
 }
 
+export interface ToolResult {
+    content: string;
+    isError: boolean;
+}
+
 interface CliTool {
     name: string;
     config: CliToolConfig;
@@ -274,10 +279,21 @@ export class McpHub {
     /**
      * Execute a tool call by name. Routes to the correct MCP server.
      */
+    private extractToolResult(result: any): ToolResult {
+        const isError = result.isError === true;
+        if (result.content && Array.isArray(result.content)) {
+            const content = result.content
+                .map((c: any) => (c.type === 'text' ? c.text : JSON.stringify(c)))
+                .join('\n');
+            return { content, isError };
+        }
+        return { content: JSON.stringify(result), isError };
+    }
+
     async executeTool(
         toolName: string,
         args: Record<string, unknown>,
-    ): Promise<string> {
+    ): Promise<ToolResult> {
         for (const server of this.servers) {
             const tool = server.tools.find(t => t.name === toolName);
             if (tool) {
@@ -289,13 +305,7 @@ export class McpHub {
 
                     server.status = 'connected'; // Mark healthy on success
 
-                    // Extract text content from result
-                    if (result.content && Array.isArray(result.content)) {
-                        return result.content
-                            .map((c: any) => (c.type === 'text' ? c.text : JSON.stringify(c)))
-                            .join('\n');
-                    }
-                    return JSON.stringify(result);
+                    return this.extractToolResult(result);
                 } catch (err) {
                     // Mark disconnected and attempt reconnect
                     server.status = 'disconnected';
@@ -312,13 +322,7 @@ export class McpHub {
                                 name: toolName,
                                 arguments: args,
                             });
-                            // Extract text content from retry result
-                            if (retryResult.content && Array.isArray(retryResult.content)) {
-                                return retryResult.content
-                                    .map((c: any) => (c.type === 'text' ? c.text : JSON.stringify(c)))
-                                    .join('\n');
-                            }
-                            return JSON.stringify(retryResult);
+                            return this.extractToolResult(retryResult);
                         }
                     }
                     throw err; // Reconnect failed or retry server not found
@@ -328,7 +332,8 @@ export class McpHub {
         // Check CLI tools
         const cliTool = this.cliTools.find(ct => ct.name === toolName);
         if (cliTool) {
-            return this.executeCliTool(cliTool);
+            const content = await this.executeCliTool(cliTool);
+            return { content, isError: false };
         }
 
         throw new Error(`Tool "${toolName}" not found on any connected server`);

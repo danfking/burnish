@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createInterface } from 'node:readline';
-import type { McpHub, ToolDef } from './mcp-hub.js';
+import type { McpHub, ToolDef, ToolResult } from './mcp-hub.js';
 import type { ConversationStore, Conversation } from './conversation.js';
 import { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt, buildRetryPrompt, buildAdaptiveSystemPrompt, buildAdaptiveNoToolsPrompt } from './prompt-template.js';
 import { resolveIntent } from './intent-resolver.js';
@@ -583,12 +583,13 @@ export class LlmOrchestrator {
                     yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: { server } };
                     console.log(`[llm] Executing tool: ${tc.name}`);
                     const result = await this.mcpHub.executeTool(tc.name, tc.input);
-                    step.status = 'success';
+                    step.status = result.isError ? 'error' : 'success';
                     yield { type: 'workflow_trace', steps: [...workflowSteps] };
                     toolResults.push({
                         type: 'tool_result',
                         tool_use_id: tc.id,
-                        content: result,
+                        content: result.content,
+                        ...(result.isError ? { is_error: true } : {}),
                     });
                 } catch (err) {
                     step.status = 'error';
@@ -657,7 +658,7 @@ export class LlmOrchestrator {
         // Phase 1: Execute tool directly
         yield { type: 'progress', stage: 'tool_call', detail: `Calling ${resolution.tool.name}...`, meta: { server: resolution.tool.serverName } };
 
-        let toolResult: string;
+        let toolResult: ToolResult;
         try {
             toolResult = await this.mcpHub.executeTool(resolution.tool.name, resolution.params);
         } catch (err) {
@@ -666,12 +667,12 @@ export class LlmOrchestrator {
             return;
         }
 
-        yield { type: 'workflow_trace', steps: [{ server: resolution.tool.serverName, tool: resolution.tool.name, status: 'success' }] };
+        yield { type: 'workflow_trace', steps: [{ server: resolution.tool.serverName, tool: resolution.tool.name, status: toolResult.isError ? 'error' : 'success' }] };
 
         // Phase 2: Ask LLM to format results (no tools, simple formatting task)
         yield { type: 'progress', stage: 'thinking', detail: 'Formatting results...', meta: { model: useModel } };
 
-        const formattingPrompt = buildFormattingPrompt(resolution.tool.name, toolResult);
+        const formattingPrompt = buildFormattingPrompt(resolution.tool.name, toolResult.content);
         const apiStartTime = Date.now();
 
         if (this.openaiClient) {
@@ -863,8 +864,8 @@ export class LlmOrchestrator {
                         try { args = JSON.parse(tc.arguments || '{}'); } catch { console.warn('[llm-openai] Failed to parse tool call arguments:', tc.arguments); }
 
                         const result = await this.mcpHub.executeTool(tc.name, args);
-                        step.status = 'success';
-                        resultContent = typeof result === 'string' ? result : JSON.stringify(result);
+                        step.status = result.isError ? 'error' : 'success';
+                        resultContent = result.content;
                     }
                 } catch (err) {
                     step.status = 'error';
@@ -1097,7 +1098,8 @@ export class LlmOrchestrator {
                     toolResults.push({
                         type: 'tool_result',
                         tool_use_id: tc.id,
-                        content: result,
+                        content: result.content,
+                        ...(result.isError ? { is_error: true } : {}),
                     });
                 } catch (err) {
                     toolResults.push({

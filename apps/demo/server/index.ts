@@ -268,7 +268,7 @@ app.post('/api/tools/execute', async (c) => {
         const startTime = performance.now();
         const result = await mcpHub.executeTool(toolName, args);
         const durationMs = Math.round(performance.now() - startTime);
-        return c.json({ result, toolName, serverName: tool.serverName, durationMs });
+        return c.json({ result: result.content, isError: result.isError, toolName, serverName: tool.serverName, durationMs });
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Tool execution failed';
         console.error('[burnish] Direct tool execution failed:', err);

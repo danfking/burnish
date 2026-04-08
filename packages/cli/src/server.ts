@@ -138,7 +138,7 @@ export function buildApp(hub: McpHub): Hono {
             const startTime = performance.now();
             const result = await hub.executeTool(toolName, args);
             const durationMs = Math.round(performance.now() - startTime);
-            return c.json({ result, toolName, serverName: tool.serverName, durationMs });
+            return c.json({ result: result.content, isError: result.isError, toolName, serverName: tool.serverName, durationMs });
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Tool execution failed';
             console.error('[burnish] Tool execution failed:', err);

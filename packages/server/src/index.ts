@@ -13,6 +13,7 @@ export {
     type McpServerConfig,
     type McpServersConfig,
     type ToolDef,
+    type ToolResult,
 } from './mcp-hub.js';
 
 export {
