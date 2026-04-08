@@ -277,6 +277,11 @@ export async function startServer(opts: CliOptions): Promise<void> {
             for (const s of failed) {
                 console.error(`  \u2717 ${s.name}: ${formatMcpError(s.lastError || 'connection failed', s.name)}`);
             }
+            if (process.env.DEBUG) {
+                for (const s of failed) {
+                    console.error(`  [DEBUG] ${s.name}:`, s.lastError);
+                }
+            }
             console.error('\nCheck that the command exists and is executable.');
             console.error('Example: burnish -- npx @modelcontextprotocol/server-filesystem /tmp');
             await mcpHub.shutdown();
@@ -290,6 +295,11 @@ export async function startServer(opts: CliOptions): Promise<void> {
             }
             for (const s of failed) {
                 console.warn(`  \u2717 ${s.name}: ${formatMcpError(s.lastError || 'connection failed', s.name)}`);
+            }
+            if (process.env.DEBUG) {
+                for (const s of failed) {
+                    console.error(`  [DEBUG] ${s.name}:`, s.lastError);
+                }
             }
         } else {
             // All good
