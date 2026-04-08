@@ -31,10 +31,10 @@ importers:
         version: link:../../packages/server
       '@hono/node-server':
         specifier: ^1.19.13
-        version: 1.19.13(hono@4.12.9)
+        version: 1.19.13(hono@4.12.12)
       hono:
-        specifier: ^4.7.0
-        version: 4.12.9
+        specifier: ^4.12.12
+        version: 4.12.12
     devDependencies:
       '@types/node':
         specifier: ^25.5.0
@@ -62,13 +62,13 @@ importers:
         version: link:../server
       '@hono/node-server':
         specifier: ^1.19.13
-        version: 1.19.13(hono@4.12.9)
+        version: 1.19.13(hono@4.12.12)
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.1
         version: 1.28.0(zod@4.3.6)
       hono:
-        specifier: ^4.7.0
-        version: 4.12.9
+        specifier: ^4.12.12
+        version: 4.12.12
       open:
         specifier: ^10.0.0
         version: 10.2.0
@@ -534,8 +534,8 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hono@4.12.9:
-    resolution: {integrity: sha512-wy3T8Zm2bsEvxKZM5w21VdHDDcwVS1yUFFY6i8UobSsKfFceT7TOwhbhfKsDyx7tYQlmRM5FLpIuYvNFyjctiA==}
+  hono@4.12.12:
+    resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
     engines: {node: '>=16.9.0'}
 
   http-errors@2.0.1:
@@ -903,9 +903,9 @@ snapshots:
   '@esbuild/win32-x64@0.27.4':
     optional: true
 
-  '@hono/node-server@1.19.13(hono@4.12.9)':
+  '@hono/node-server@1.19.13(hono@4.12.12)':
     dependencies:
-      hono: 4.12.9
+      hono: 4.12.12
 
   '@lit-labs/ssr-dom-shim@1.5.1': {}
 
@@ -915,7 +915,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.28.0(zod@4.3.6)':
     dependencies:
-      '@hono/node-server': 1.19.13(hono@4.12.9)
+      '@hono/node-server': 1.19.13(hono@4.12.12)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
@@ -925,7 +925,7 @@ snapshots:
       eventsource-parser: 3.0.6
       express: 5.2.1
       express-rate-limit: 8.3.1(express@5.2.1)
-      hono: 4.12.9
+      hono: 4.12.12
       jose: 6.2.2
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -1186,7 +1186,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.12.9: {}
+  hono@4.12.12: {}
 
   http-errors@2.0.1:
     dependencies:
