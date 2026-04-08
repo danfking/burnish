@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Burnish Components — CDN Demo</title>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@burnishdev/components@0.1.1/dist/index.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@burnishdev/components@0.1.1/src/tokens.css" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background: var(--burnish-bg, #ffffff);
+      color: var(--burnish-text, #1a1a1a);
+    }
+    h1 { margin-bottom: 0.5rem; }
+    h2 { margin-top: 2rem; color: #555; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .example { margin-bottom: 1.5rem; }
+    #status { padding: 0.5rem 1rem; border-radius: 4px; margin-bottom: 2rem; font-size: 0.9rem; }
+    #status.pass { background: #d4edda; color: #155724; }
+    #status.fail { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <h1>Burnish Component Gallery</h1>
+  <p>Components loaded from <code>cdn.jsdelivr.net</code>. No build step required.</p>
+  <div id="status">Checking component registration...</div>
+
+  <h2>Card</h2>
+  <div class="example">
+    <burnish-card
+      title="API Gateway"
+      status="success"
+      body="All systems operational"
+      meta='[{"label":"Uptime","value":"99.9%"},{"label":"Latency","value":"42ms"}]'>
+    </burnish-card>
+  </div>
+
+  <h2>Stat Bar</h2>
+  <div class="example">
+    <burnish-stat-bar
+      items='[{"label":"CPU","value":"42%"},{"label":"Memory","value":"68%","color":"warning"},{"label":"Disk","value":"23%","color":"success"}]'>
+    </burnish-stat-bar>
+  </div>
+
+  <h2>Table</h2>
+  <div class="example">
+    <burnish-table
+      title="Services"
+      columns='["Name","Status","Latency"]'
+      rows='[["API","healthy","12ms"],["DB","healthy","3ms"],["Cache","degraded","45ms"]]'>
+    </burnish-table>
+  </div>
+
+  <h2>Metric</h2>
+  <div class="example">
+    <burnish-metric label="Requests/sec" value="1,247" trend="up"></burnish-metric>
+  </div>
+
+  <script type="module">
+    // Verify components registered correctly
+    const expected = ['burnish-card', 'burnish-stat-bar', 'burnish-table', 'burnish-metric'];
+    const registered = expected.filter(tag => customElements.get(tag));
+    const statusEl = document.getElementById('status');
+
+    // Wait for custom elements to upgrade
+    await Promise.all(expected.map(tag => customElements.whenDefined(tag).catch(() => null)));
+
+    const registeredAfterWait = expected.filter(tag => customElements.get(tag));
+    if (registeredAfterWait.length === expected.length) {
+      statusEl.textContent = `PASS: All ${expected.length} components registered (${registeredAfterWait.join(', ')})`;
+      statusEl.className = 'pass';
+    } else {
+      const missing = expected.filter(tag => !customElements.get(tag));
+      statusEl.textContent = `FAIL: Missing components: ${missing.join(', ')}`;
+      statusEl.className = 'fail';
+    }
+  </script>
+</body>
+</html>
