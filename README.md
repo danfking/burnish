@@ -8,9 +8,6 @@
 ```bash
 npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
 ```
-
-> `npx burnish` is not yet published to npm — use [git clone](#from-source) for now.
-
 ---
 
 ## What is Burnish?
@@ -52,8 +49,6 @@ npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
 # LLM Insight — with LLM
 npx burnish --llm=cli -- npx @modelcontextprotocol/server-filesystem /tmp
 ```
-
-> Not yet available via npx — packages are pending npm publish. Use the git clone method below.
 
 ### From source
 
@@ -166,8 +161,6 @@ await withBurnishUI(server, { port: 3001 });
 npx burnish export -- npx @your-org/your-server > schema.json
 ```
 
-> SDK packages are not yet published to npm — this section describes the planned API.
-
 ## Recipes
 
 Multi-server combinations that show Burnish at its best. Each recipe is a `mcp-servers.json` config plus a prompt.
@@ -253,8 +246,6 @@ Connect web search + filesystem. Search, summarize, save.
 
 ### CDN (no build step)
 
-> Available after npm publish. The CDN URLs below will work once packages are released.
-
 ```html
 <script type="module"
   src="https://cdn.jsdelivr.net/npm/@burnishdev/components/dist/index.js"></script>
@@ -272,8 +263,6 @@ Connect web search + filesystem. Search, summarize, save.
 
 ### npm
 
-> Available after npm publish.
-
 ```bash
 npm install @burnishdev/components
 ```
@@ -288,8 +277,6 @@ customElements.define('my-card', class extends BurnishCard {});
 ```
 
 ### Renderer
-
-> Available after npm publish.
 
 ```bash
 npm install @burnishdev/renderer

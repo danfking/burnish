@@ -15,6 +15,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer } from './server.js';
 import { exportSchema } from './export.js';
+import { formatMcpError } from './errors.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_VERSION = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8')).version;
@@ -149,7 +150,35 @@ async function main() {
     await startServer(opts);
 }
 
+// Catch unhandled errors and show friendly messages instead of stack traces
+process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+        const port = (err as any).port || 'unknown';
+        console.error(`Error: Port ${port} is already in use. Try --port <n>`);
+    } else {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`Error: ${formatMcpError(message)}`);
+        if (process.env.DEBUG) {
+            console.error(err);
+        }
+    }
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    console.error(`Error: ${formatMcpError(message)}`);
+    if (process.env.DEBUG && reason instanceof Error) {
+        console.error(reason);
+    }
+    process.exit(1);
+});
+
 main().catch((err) => {
-    console.error('Fatal:', err.message || err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Error: ${formatMcpError(message)}`);
+    if (process.env.DEBUG) {
+        console.error(err);
+    }
     process.exit(1);
 });
