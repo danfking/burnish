@@ -158,6 +158,9 @@ process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
     } else {
         const message = err instanceof Error ? err.message : String(err);
         console.error(`Error: ${formatMcpError(message)}`);
+        if (process.env.DEBUG) {
+            console.error(err);
+        }
     }
     process.exit(1);
 });
@@ -165,11 +168,17 @@ process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
 process.on('unhandledRejection', (reason) => {
     const message = reason instanceof Error ? reason.message : String(reason);
     console.error(`Error: ${formatMcpError(message)}`);
+    if (process.env.DEBUG && reason instanceof Error) {
+        console.error(reason);
+    }
     process.exit(1);
 });
 
 main().catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`Error: ${formatMcpError(message)}`);
+    if (process.env.DEBUG) {
+        console.error(err);
+    }
     process.exit(1);
 });
