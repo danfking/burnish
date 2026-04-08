@@ -15,7 +15,7 @@
     "@burnishdev/components": "workspace:*",
     "@burnishdev/renderer": "workspace:*",
     "@burnishdev/server": "workspace:*",
-    "@hono/node-server": "^1.14.0",
+    "@hono/node-server": "^1.19.13",
     "hono": "^4.7.0"
   },
   "devDependencies": {
