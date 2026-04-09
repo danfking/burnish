@@ -9,13 +9,13 @@ export class BurnishStatBar extends LitElement {
     };
 
     static styles = css`
-        :host { display: block; width: 100%; min-width: 0; }
-        .stat-bar { display: flex; flex-direction: row; align-items: center; gap: var(--burnish-space-md, 12px); flex-wrap: wrap; }
+        :host { display: inline-flex; min-width: 0; }
+        .stat-bar { display: flex; flex-direction: row; align-items: center; gap: var(--burnish-space-md, 12px); flex-wrap: nowrap; }
         .stat-chip {
             display: flex; align-items: center; gap: var(--burnish-space-sm, 8px);
             background: var(--burnish-surface, #fff);
             border-radius: var(--burnish-radius-pill, 20px);
-            padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
+            padding: var(--burnish-space-xs, 4px) var(--burnish-space-md, 12px);
             box-shadow: var(--burnish-shadow-sm);
             font-size: var(--burnish-font-size-md, 14px);
             transition: all var(--burnish-transition-fast);
