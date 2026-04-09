@@ -56,12 +56,15 @@ export class BurnishSection extends LitElement {
         this.collapsed = false;
     }
 
-    private _toggle() { this.collapsed = !this.collapsed; }
+    private _toggle(e: Event) {
+        e.stopPropagation();
+        this.collapsed = !this.collapsed;
+    }
 
     render() {
         const countText = this.count != null ? `(${this.count})` : '';
         return html`
-            <div class="header" @click=${this._toggle}>
+            <div class="header" @click=${(e: Event) => this._toggle(e)}>
                 <svg class="chevron" viewBox="0 0 16 16" fill="none">
                     <path d="M5 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
