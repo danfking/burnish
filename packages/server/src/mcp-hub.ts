@@ -7,6 +7,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { CallToolResult, CompatibilityCallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve } from 'node:path';
@@ -52,8 +53,8 @@ interface CliTool {
 
 interface ConnectedServer {
     name: string;
-    client: Client;
-    transport: Transport;
+    client: Client | null;
+    transport: Transport | null;
     tools: ToolDef[];
     config: McpServerConfig;
     status: 'connected' | 'disconnected';
@@ -98,8 +99,8 @@ export class McpHub {
                     console.error(`[mcp-hub] Failed to connect to "${name}":`, message);
                     this.servers.push({
                         name,
-                        client: null as any,
-                        transport: null as any,
+                        client: null,
+                        transport: null,
                         tools: [],
                         config: serverConfig,
                         status: 'disconnected',
@@ -128,7 +129,7 @@ export class McpHub {
         transport: Transport,
     ): Promise<void> {
         const toolsResult = await client.listTools();
-        const tools: ToolDef[] = (toolsResult.tools || []).map((t: any) => ({
+        const tools: ToolDef[] = (toolsResult.tools || []).map((t) => ({
             name: t.name,
             description: t.description || '',
             inputSchema: t.inputSchema || { type: 'object', properties: {} },
@@ -180,7 +181,7 @@ export class McpHub {
 
         // Discover tools
         const toolsResult = await client.listTools();
-        const tools: ToolDef[] = (toolsResult.tools || []).map((t: any) => ({
+        const tools: ToolDef[] = (toolsResult.tools || []).map((t) => ({
             name: t.name,
             description: t.description || '',
             inputSchema: t.inputSchema || { type: 'object', properties: {} },
@@ -195,7 +196,7 @@ export class McpHub {
      */
     async checkHealth(name: string): Promise<boolean> {
         const server = this.servers.find(s => s.name === name);
-        if (!server) return false;
+        if (!server || !server.client) return false;
         try {
             await server.client.listTools();
             server.status = 'connected';
@@ -219,7 +220,7 @@ export class McpHub {
 
         console.error(`[mcp-hub] Attempting to reconnect "${name}"...`);
         try {
-            try { await server.client.close(); } catch { /* ignore */ }
+            try { if (server.client) await server.client.close(); } catch { /* ignore */ }
 
             // Re-connect using the saved config (connectServer pushes a new entry)
             await this.connectServer(name, server.config);
@@ -279,11 +280,11 @@ export class McpHub {
     /**
      * Execute a tool call by name. Routes to the correct MCP server.
      */
-    private extractToolResult(result: any): ToolResult {
-        const isError = result.isError === true;
-        if (result.content && Array.isArray(result.content)) {
+    private extractToolResult(result: CallToolResult | CompatibilityCallToolResult): ToolResult {
+        const isError = 'isError' in result && result.isError === true;
+        if ('content' in result && result.content && Array.isArray(result.content)) {
             const content = result.content
-                .map((c: any) => (c.type === 'text' ? c.text : JSON.stringify(c)))
+                .map((c) => (c.type === 'text' ? c.text : JSON.stringify(c)))
                 .join('\n');
             return { content, isError };
         }
@@ -296,7 +297,7 @@ export class McpHub {
     ): Promise<ToolResult> {
         for (const server of this.servers) {
             const tool = server.tools.find(t => t.name === toolName);
-            if (tool) {
+            if (tool && server.client) {
                 try {
                     const result = await server.client.callTool({
                         name: toolName,
@@ -317,7 +318,7 @@ export class McpHub {
                     if (reconnected) {
                         // Retry the tool call once after reconnect
                         const retryServer = this.servers.find(s => s.name === server.name);
-                        if (retryServer) {
+                        if (retryServer?.client) {
                             const retryResult = await retryServer.client.callTool({
                                 name: toolName,
                                 arguments: args,
