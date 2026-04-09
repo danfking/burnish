@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { resolveStatusColor } from './status-colors.js';
 
 export class BurnishSection extends LitElement {
     static properties = {
@@ -57,15 +58,6 @@ export class BurnishSection extends LitElement {
 
     private _toggle() { this.collapsed = !this.collapsed; }
 
-    private _getStatusColor(): string {
-        const s = (this.status || '').toLowerCase();
-        if (s === 'error' || s === 'failing') return 'var(--burnish-error, #dc2626)';
-        if (s === 'warning') return 'var(--burnish-warning, #ca8a04)';
-        if (s === 'success' || s === 'healthy') return 'var(--burnish-success, #16a34a)';
-        if (s === 'info') return 'var(--burnish-info, #6366f1)';
-        return 'var(--burnish-muted, #9C8F8F)';
-    }
-
     render() {
         const countText = this.count != null ? `(${this.count})` : '';
         return html`
@@ -73,7 +65,7 @@ export class BurnishSection extends LitElement {
                 <svg class="chevron" viewBox="0 0 16 16" fill="none">
                     <path d="M5 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span class="status-dot" style="background:${this.color || this._getStatusColor()}"></span>
+                <span class="status-dot" style="background:${resolveStatusColor(this.color || this.status)}"></span>
                 <span class="label" data-status="${this.status || ''}">${this.label}</span>
                 ${countText ? html`<span class="count">${countText}</span>` : ''}
             </div>
