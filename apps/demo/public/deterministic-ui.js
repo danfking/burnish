@@ -194,7 +194,7 @@ export async function executeToolDirect(toolName, args, label) {
         });
         var data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Execution failed');
-        var resultHtml = buildResultHtml(data.result, label, toolName, data.serverName);
+        var resultHtml = buildResultHtml(data.result, label, toolName, data.serverName, data.isError);
         var contentEl = node ? document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-content') : null;
         if (contentEl) {
             contentEl.innerHTML = DOMPurify.sanitize(resultHtml, PURIFY_CONFIG);

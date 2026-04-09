@@ -454,7 +454,7 @@ async function regenerateNode(nodeId) {
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    const resultHtml = buildResultHtml(data.result, node.promptDisplay, node._toolCall.toolName);
+                    const resultHtml = buildResultHtml(data.result, node.promptDisplay, node._toolCall.toolName, undefined, data.isError);
                     node.response = resultHtml;
                     node.type = 'components';
                     const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
@@ -1170,7 +1170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .map(([, v]) => v)
                     .join(', ');
                 const displayLabel = keyValues ? `${toolShortName}: ${keyValues}` : toolShortName;
-                const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+                const resultHtml = buildResultHtml(data.result, displayLabel, toolId, undefined, data.isError);
                 recordToolPerf({ toolName: toolId, latencyMs: 0, responseHtml: resultHtml });
                 refreshPerfPanel();
                 const writeNode = renderDeterministicNode(displayLabel, resultHtml);
@@ -1238,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             renderMainContent();
 
-            const resultHtml = buildResultHtml(data.result, displayLabel, toolId);
+            const resultHtml = buildResultHtml(data.result, displayLabel, toolId, undefined, data.isError);
             recordToolPerf({ toolName: toolId, latencyMs: data.durationMs || 0, responseHtml: resultHtml });
             refreshPerfPanel();
             node.response = resultHtml;

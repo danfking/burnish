@@ -73,7 +73,9 @@ export function renderCardsView(items, sourceToolName, dataId, sourceName) {
     let html = '<div class="burnish-cards-grid">';
     for (let i = 0; i < Math.min(items.length, 50); i++) {
         const item = items[i];
-        const title = item.full_name || item.name || item.title || item.login || 'Item';
+        // #313: Include message/sha/commit.message for commit objects
+        const title = item.full_name || item.name || item.title || item.message
+            || (item.commit && item.commit.message) || item.sha || item.login || 'Item';
         const rawBody = item.description || item.body || item.message || '';
         const body = stripMarkdown(rawBody).substring(0, 150);
         const status = inferCardStatus(item, sourceToolName);
@@ -176,9 +178,15 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
             }
             return html;
         }
-        return parsed.slice(0, 20).map(item =>
-            `<burnish-card title="${escapeAttr(String(item))}" status="info"${sourceAttr}></burnish-card>`
-        ).join('');
+        // #336: Render primitive arrays (e.g. directory paths) as a list card
+        const listBody = parsed.slice(0, 50).map(item => `- ${String(item)}`).join('\n');
+        return `<burnish-card title="${escapeAttr(label)}" status="info" body="${escapeAttr(listBody)}"${sourceAttr}></burnish-card>`;
+    }
+
+    // #314: Plain string content — render directly as a card body
+    if (typeof parsed === 'string') {
+        const body = parsed.substring(0, 2000) || '(empty)';
+        return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(body)}"${sourceAttr}></burnish-card>`;
     }
 
     if (typeof parsed === 'object' && parsed !== null) {
@@ -201,11 +209,13 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
             return html;
         }
 
+        // #335: Infer a meaningful title from the object, and show ALL scalar fields
+        const titleFields = ['name', 'path', 'filename', 'title', 'full_name', 'login', 'label'];
+        const inferredTitle = titleFields.reduce((acc, k) => acc || (parsed[k] ? String(parsed[k]) : ''), '') || label;
         const meta = Object.entries(parsed)
             .filter(([, v]) => (typeof v !== 'object' || v === null) && typeof v !== 'boolean')
-            .slice(0, 10)
             .map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v ?? '') }));
-        return `<burnish-card title="${escapeAttr(label)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'${sourceAttr}></burnish-card>`;
+        return `<burnish-card title="${escapeAttr(inferredTitle)}" status="success" meta='${escapeAttr(JSON.stringify(meta))}'${sourceAttr}></burnish-card>`;
     }
 
     return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(String(parsed))}"${sourceAttr}></burnish-card>`;
@@ -354,7 +364,13 @@ function tryParseDirectoryListing(result, label) {
     return html;
 }
 
-export function buildResultHtml(result, label, sourceToolName, sourceName) {
+export function buildResultHtml(result, label, sourceToolName, sourceName, isError) {
+    // #329: If MCP flagged this as an error, render an error card
+    if (isError) {
+        const sourceAttr = sourceName ? ` source="${escapeAttr(sourceName)}"` : '';
+        return `<burnish-card title="Error" status="error" body="${escapeAttr(String(result).substring(0, 2000))}"${sourceAttr}></burnish-card>`;
+    }
+
     try {
         const parsed = JSON.parse(result);
         const inner = renderParsedResult(parsed, label, sourceToolName, sourceName);
