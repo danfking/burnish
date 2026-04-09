@@ -1,42 +1,25 @@
 /**
- * LLM Orchestrator — handles tool-call loop with streaming.
+ * LLM Orchestrator — selects backend and manages the conversation flow.
  *
- * Two backends:
+ * Three backends:
  * - "api": Direct Anthropic SDK (needs ANTHROPIC_API_KEY)
  * - "cli": Spawns `claude` CLI subprocess (uses your Claude Code subscription auth)
+ * - "openai": OpenAI-compatible API (Ollama, llama.cpp, vLLM, LM Studio, OpenAI)
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
-import { spawn } from 'node:child_process';
-import { writeFile, unlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { createInterface } from 'node:readline';
-import type { McpHub, ToolDef, ToolResult } from './mcp-hub.js';
+import type { McpHub, ToolDef } from './mcp-hub.js';
 import type { ConversationStore, Conversation } from './conversation.js';
-import { buildSystemPrompt, buildNoToolsPrompt, buildFormattingPrompt, buildRetryPrompt, buildAdaptiveSystemPrompt, buildAdaptiveNoToolsPrompt } from './prompt-template.js';
-import { resolveIntent } from './intent-resolver.js';
-import { isWriteTool } from './guards.js';
-import { detectPivotCommand, buildPivotPrompt } from './pivot-detector.js';
+import { buildRetryPrompt } from './prompt-template.js';
+import { detectPivotCommand } from './pivot-detector.js';
+import { AnthropicBackend } from './backends/anthropic.js';
+import { ClaudeCliBackend } from './backends/claude-cli.js';
+import { OpenAiBackend } from './backends/openai.js';
 
-export interface WorkflowStep {
-    server: string;
-    tool: string;
-    status: 'pending' | 'running' | 'success' | 'error';
-}
-
-export type StreamChunk =
-    | { type: 'content'; text: string }
-    | { type: 'progress'; stage: string; detail?: string; meta?: { model?: string; server?: string } }
-    | { type: 'workflow_trace'; steps: WorkflowStep[] }
-    | { type: 'stats'; durationMs: number; inputTokens: number; outputTokens: number; costUsd?: number };
+// Re-export shared types so existing consumers can import from llm.js
+export type { WorkflowStep, StreamChunk } from './llm-types.js';
+import type { StreamChunk } from './llm-types.js';
 
 const DEFAULT_MAX_TOOL_ROUNDS = 8;
-
-/** Default max tokens for OpenAI-compatible completions. Can be overridden via a future config option. */
-const OPENAI_MAX_TOKENS = 4096;
 
 /** Allowed model name allowlist for CLI subprocess argument validation. */
 export const ALLOWED_MODELS = new Set([
@@ -54,11 +37,6 @@ export const ALLOWED_MODELS = new Set([
     'gpt-3.5-turbo',
 ]);
 
-function extractServerName(toolName: string): string | undefined {
-    const match = toolName.match(/^mcp__([^_]+)__/);
-    return match?.[1];
-}
-
 export interface LlmOrchestratorOptions {
     backend?: 'api' | 'cli' | 'openai';
     apiKey?: string;
@@ -75,12 +53,12 @@ export interface LlmOrchestratorOptions {
 
 export class LlmOrchestrator {
     private backend: 'api' | 'cli' | 'openai' = 'api';
-    private client: Anthropic | null = null;
-    private openaiClient: OpenAI | null = null;
     private model = 'sonnet';
-    private cwd: string | undefined;
-    private mcpConfigPath: string | undefined;
     private maxToolRounds = DEFAULT_MAX_TOOL_ROUNDS;
+
+    private anthropicBackend: AnthropicBackend | null = null;
+    private cliBackend: ClaudeCliBackend | null = null;
+    private openaiBackend: OpenAiBackend | null = null;
 
     constructor(
         private mcpHub: McpHub,
@@ -96,24 +74,28 @@ export class LlmOrchestrator {
             }
             this.model = options.model;
         }
-        if (options.cwd) this.cwd = options.cwd;
+
+        let mcpConfigPath: string | undefined;
         if (options.mcpConfigPath) {
             // Validate config path does not contain suspicious characters (path traversal guard)
             if (/\.\.[/\\]/.test(options.mcpConfigPath)) {
                 throw new Error('mcpConfigPath must not contain path traversal sequences');
             }
-            this.mcpConfigPath = options.mcpConfigPath;
+            mcpConfigPath = options.mcpConfigPath;
         }
+
         if (options.maxToolRounds != null) this.maxToolRounds = options.maxToolRounds;
 
         if (this.backend === 'api') {
             if (!options.apiKey) throw new Error('ANTHROPIC_API_KEY required for api backend');
-            this.client = new Anthropic({ apiKey: options.apiKey });
+            this.anthropicBackend = new AnthropicBackend(options.apiKey);
+        } else if (this.backend === 'cli') {
+            this.cliBackend = new ClaudeCliBackend(mcpConfigPath, options.cwd);
         } else if (this.backend === 'openai') {
-            this.openaiClient = new OpenAI({
-                apiKey: options.apiKey || 'not-needed',
-                baseURL: options.openaiBaseUrl || 'http://localhost:11434/v1',
-            });
+            this.openaiBackend = new OpenAiBackend(
+                options.apiKey,
+                options.openaiBaseUrl || 'http://localhost:11434/v1',
+            );
         }
 
         const baseUrlSuffix = this.backend === 'openai' && options.openaiBaseUrl
@@ -199,167 +181,39 @@ export class LlmOrchestrator {
         extraInstructions?: string,
     ): AsyncGenerator<StreamChunk> {
         if (this.backend === 'cli') {
-            yield* this.streamResponseCli(conversationId, useModel, noTools, extraInstructions);
+            if (!this.cliBackend) throw new Error('CLI backend not configured');
+            yield* this.cliBackend.streamResponse(
+                this.conversations,
+                conversationId,
+                this.mcpHub,
+                useModel,
+                noTools ?? false,
+                extraInstructions,
+            );
         } else if (this.backend === 'openai') {
-            yield* this.streamResponseOpenai(conversationId, useModel, noTools, extraInstructions);
+            if (!this.openaiBackend) throw new Error('OpenAI backend not configured');
+            yield* this.openaiBackend.streamResponse(
+                this.conversations,
+                conversationId,
+                this.mcpHub,
+                useModel,
+                noTools ?? false,
+                this.maxToolRounds,
+                (tools) => this.getRelevantTools(this.conversations.get(conversationId)!, tools),
+                extraInstructions,
+            );
         } else {
-            yield* this.streamResponseApi(conversationId, useModel, noTools, extraInstructions);
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // CLI Backend — uses `claude` CLI with your subscription auth
-    // ═══════════════════════════════════════════════════════════════
-
-    private async *streamResponseCli(
-        conversationId: string,
-        useModel = this.model,
-        noTools?: boolean,
-        extraInstructions?: string,
-    ): AsyncGenerator<StreamChunk> {
-        const conv = this.conversations.get(conversationId);
-        if (!conv) return;
-
-        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel, extraInstructions);
-        const userMessage = this.buildUserMessage(conv);
-
-        // Write system prompt to temp file (avoids command-line size limits)
-        const tempFile = join(tmpdir(), `burnish-prompt-${randomUUID()}.txt`);
-        await writeFile(tempFile, systemPrompt, 'utf-8');
-
-        try {
-            // CLI command: claude.cmd on Windows, claude on Unix
-            const claudeCmd = process.platform === 'win32' ? 'claude.cmd' : 'claude';
-
-            // Build allowed tools list from connected MCP servers
-            const mcpTools = this.mcpHub.getAllTools();
-            const allowedToolNames = noTools ? [] : mcpTools.map(t => `mcp__${t.serverName}__${t.name}`);
-
-            const mcpConfigPath = this.mcpConfigPath;
-            if (!mcpConfigPath) throw new Error('mcpConfigPath required for CLI backend');
-
-            const args = [
-                '--print',
-                '--verbose',
-                '--output-format', 'stream-json',
-                '--include-partial-messages',
-                '--model', useModel,
-                '--system-prompt-file', tempFile,
-                // Only include MCP config and tools when tools are not explicitly disabled
-                ...(noTools ? [] : ['--mcp-config', mcpConfigPath, '--strict-mcp-config']),
-                '--tools', '',
-                '--setting-sources', 'user',
-                ...(allowedToolNames.length > 0
-                    ? ['--allowedTools', ...allowedToolNames]
-                    : []),
-            ];
-
-            console.log(`[llm-cli] Launching with MCP config: ${mcpConfigPath}`);
-            yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } } as StreamChunk;
-
-            // Spawn the CLI process
-            const env = { ...process.env };
-            delete env.CLAUDECODE;
-
-            const proc = spawn(claudeCmd, args, {
-                stdio: ['pipe', 'pipe', 'pipe'],
-                env,
-                cwd: this.cwd,
-                shell: process.platform === 'win32',
-            });
-
-            // Send user message via stdin
-            proc.stdin.write(userMessage);
-            proc.stdin.end();
-
-            // Capture stderr for error reporting
-            let stderr = '';
-            proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
-
-            // Parse streaming JSON from stdout
-            const rl = createInterface({ input: proc.stdout });
-            let fullResponse = '';
-
-            for await (const line of rl) {
-                if (!line.trim()) continue;
-
-                let doc: any;
-                try { doc = JSON.parse(line); } catch { continue; }
-
-                if (doc.type === 'system' && doc.subtype === 'init') {
-                    const serverNames: string[] = (doc.mcp_servers || []).map((s: any) => s.name || 'unknown');
-                    const label = serverNames.length === 1
-                        ? `Connecting to MCP server…`
-                        : `Connecting to ${serverNames.length} MCP servers…`;
-                    const server = serverNames.length === 1 ? serverNames[0] : serverNames.join(', ');
-                    yield { type: 'progress', stage: 'connecting', detail: label, meta: { server } };
-                    continue;
-                }
-
-                if (doc.type === 'stream_event') {
-                    const event = doc.event;
-                    if (
-                        event?.type === 'content_block_delta' &&
-                        event.delta?.type === 'text_delta' &&
-                        event.delta?.text
-                    ) {
-                        fullResponse += event.delta.text;
-                        yield { type: 'content', text: event.delta.text };
-                    }
-                    continue;
-                }
-
-                if (doc.type === 'assistant' && doc.message?.content) {
-                    for (const block of doc.message.content) {
-                        if (block.type === 'thinking') {
-                            yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
-                        } else if (block.type === 'tool_use') {
-                            const fullToolName = block.name || '';
-                            const shortName = fullToolName.replace(/^mcp__\w+__/, '');
-                            const server = extractServerName(fullToolName);
-                            yield { type: 'progress', stage: 'tool_call', detail: `Calling ${shortName}…`, meta: server ? { server } : undefined };
-                        } else if (block.type === 'tool_result') {
-                            yield { type: 'progress', stage: 'tool_result', detail: 'Processing results…' };
-                        } else if (block.type === 'text' && block.text) {
-                            if (!fullResponse) {
-                                fullResponse += block.text;
-                                yield { type: 'content', text: block.text };
-                            }
-                        }
-                    }
-                    continue;
-                }
-
-                if (doc.type === 'result') {
-                    if (doc.result && !fullResponse) {
-                        fullResponse = doc.result;
-                        yield { type: 'content', text: doc.result };
-                    }
-                    const usage = doc.usage || {};
-                    yield {
-                        type: 'stats',
-                        durationMs: doc.duration_ms || 0,
-                        inputTokens: usage.input_tokens || 0,
-                        outputTokens: usage.output_tokens || 0,
-                        costUsd: doc.total_cost_usd,
-                    };
-                }
-            }
-
-            // Wait for process exit
-            const exitCode = await new Promise<number>((resolve) => {
-                proc.on('close', (code: number | null) => resolve(code ?? 0));
-            });
-
-            if (exitCode !== 0) {
-                console.warn(`[llm-cli] claude exited with code ${exitCode}: ${stderr}`);
-            }
-
-            if (fullResponse) {
-                this.conversations.addMessage(conversationId, 'assistant', fullResponse);
-            }
-        } finally {
-            await unlink(tempFile).catch(() => {});
+            if (!this.anthropicBackend) throw new Error('Anthropic backend not configured');
+            yield* this.anthropicBackend.streamResponse(
+                this.conversations,
+                conversationId,
+                this.mcpHub,
+                useModel,
+                noTools ?? false,
+                this.maxToolRounds,
+                (tools) => this.getRelevantTools(this.conversations.get(conversationId)!, tools),
+                extraInstructions,
+            );
         }
     }
 
@@ -368,8 +222,7 @@ export class LlmOrchestrator {
      * mentions a specific server name. This avoids overwhelming small models
      * (e.g. Qwen 2.5 7B) with too many tool definitions.
      */
-    private getRelevantTools(conv: Conversation): ToolDef[] {
-        const allTools = this.mcpHub.getAllTools();
+    private getRelevantTools(conv: Conversation, allTools: ToolDef[]): ToolDef[] {
         const serverInfo = this.mcpHub.getServerInfo();
 
         // Get the latest user message
@@ -397,515 +250,6 @@ export class LlmOrchestrator {
     }
 
     /**
-     * Build the user message from conversation history.
-     */
-    private buildUserMessage(conv: Conversation): string {
-        if (conv.messages.length === 1) {
-            return conv.messages[0].content;
-        }
-
-        // If the latest user message is a direct tool invocation (e.g. from a form
-        // submission), it already contains all needed context (tool name + params).
-        // Including truncated history would strip the tool context the LLM needs,
-        // so we return only the tool-call instruction.
-        const lastMsg = conv.messages[conv.messages.length - 1];
-        if (lastMsg.role === 'user' && /^Call the tool\b/i.test(lastMsg.content)) {
-            return lastMsg.content;
-        }
-
-        // Check if the latest user message is a pivot/transformation command.
-        // If so, include the full previous assistant response (not truncated)
-        // so the LLM can re-derive the view from the data.
-        if (lastMsg.role === 'user') {
-            const pivotCommand = detectPivotCommand(lastMsg.content);
-            if (pivotCommand) {
-                // Find the most recent assistant response with content
-                const lastAssistant = [...conv.messages]
-                    .reverse()
-                    .find(m => m.role === 'assistant' && m.content.length > 0);
-
-                if (lastAssistant) {
-                    console.log(`[llm] Pivot command detected: ${pivotCommand.type}${pivotCommand.field ? ` by ${pivotCommand.field}` : ''}`);
-                    return buildPivotPrompt(pivotCommand, lastAssistant.content);
-                }
-            }
-        }
-
-        return conv.messages
-            .map(m => {
-                if (m.role === 'user') return `User: ${m.content}`;
-                const content = m.content.length > 200
-                    ? '[Previous dashboard response]'
-                    : m.content;
-                return `Assistant: ${content}`;
-            })
-            .join('\n\n');
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // API Backend — direct Anthropic SDK with tool-call loop
-    // ═══════════════════════════════════════════════════════════════
-
-    private async *streamResponseApi(
-        conversationId: string,
-        useModel = this.model,
-        noTools?: boolean,
-        extraInstructions?: string,
-    ): AsyncGenerator<StreamChunk> {
-        if (!this.client) throw new Error('LLM not configured — call configure() first');
-
-        const conv = this.conversations.get(conversationId);
-        if (!conv) return;
-
-        // Check if the latest user message is a pivot command — if so,
-        // preserve the previous assistant response in full for context
-        const lastUserMsg = [...conv.messages].reverse().find(m => m.role === 'user');
-        const isPivot = lastUserMsg ? detectPivotCommand(lastUserMsg.content) !== null : false;
-        if (isPivot) {
-            console.log(`[llm-api] Pivot command detected, preserving full conversation context`);
-        }
-
-        const messages: Anthropic.MessageParam[] = conv.messages.map((m, i) => {
-            if (
-                m.role === 'assistant' &&
-                i < conv.messages.length - 1 &&
-                m.content.length > 200 &&
-                !isPivot
-            ) {
-                return { role: 'assistant' as const, content: '[Previous dashboard response]' };
-            }
-            return { role: m.role, content: m.content };
-        });
-
-        const mcpTools = noTools ? [] : this.getRelevantTools(conv);
-        const tools: Anthropic.Tool[] = mcpTools.map((t, i) => ({
-            name: t.name,
-            description: t.description,
-            input_schema: t.inputSchema as Anthropic.Tool['input_schema'],
-            ...(i === mcpTools.length - 1
-                ? { cache_control: { type: 'ephemeral' as const } }
-                : {}),
-        }));
-
-        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel, extraInstructions);
-        const system: Anthropic.MessageCreateParams['system'] = [
-            {
-                type: 'text' as const,
-                text: systemPrompt,
-                cache_control: { type: 'ephemeral' } as const,
-            },
-        ];
-
-        let fullResponse = '';
-        let totalInputTokens = 0;
-        let totalOutputTokens = 0;
-        let cacheReadTokens = 0;
-        let cacheCreationTokens = 0;
-        const apiStartTime = Date.now();
-        const workflowSteps: WorkflowStep[] = [];
-
-        yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } };
-
-        for (let round = 0; round < this.maxToolRounds; round++) {
-            const params: Anthropic.MessageCreateParams = {
-                model: useModel,
-                max_tokens: 4096,
-                system,
-                messages,
-                ...(tools.length > 0 ? { tools } : {}),
-            };
-
-            const stream = this.client.messages.stream(params);
-            let textAccumulator = '';
-            const pendingToolCalls: Array<{
-                id: string;
-                name: string;
-                input: Record<string, unknown>;
-            }> = [];
-
-            if (round === 0) {
-                yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
-            }
-
-            for await (const event of stream) {
-                if (
-                    event.type === 'content_block_delta' &&
-                    event.delta.type === 'text_delta'
-                ) {
-                    const text = event.delta.text;
-                    fullResponse += text;
-                    textAccumulator += text;
-                    yield { type: 'content', text };
-                }
-            }
-
-            const finalMessage = await stream.finalMessage();
-            totalInputTokens += finalMessage.usage?.input_tokens || 0;
-            totalOutputTokens += finalMessage.usage?.output_tokens || 0;
-            const usage = finalMessage.usage as unknown as Record<string, number>;
-            cacheReadTokens += usage?.cache_read_input_tokens || 0;
-            cacheCreationTokens += usage?.cache_creation_input_tokens || 0;
-            for (const block of finalMessage.content) {
-                if (block.type === 'tool_use') {
-                    pendingToolCalls.push({
-                        id: block.id,
-                        name: block.name,
-                        input: block.input as Record<string, unknown>,
-                    });
-                }
-            }
-
-            if (pendingToolCalls.length === 0) break;
-
-            const assistantContent: Anthropic.ContentBlockParam[] = [];
-            if (textAccumulator) {
-                assistantContent.push({ type: 'text', text: textAccumulator });
-            }
-            for (const tc of pendingToolCalls) {
-                assistantContent.push({
-                    type: 'tool_use',
-                    id: tc.id,
-                    name: tc.name,
-                    input: tc.input,
-                });
-            }
-            messages.push({ role: 'assistant', content: assistantContent });
-
-            const toolResults: Anthropic.ToolResultBlockParam[] = [];
-            for (const tc of pendingToolCalls) {
-                const server = extractServerName(tc.name) || 'unknown';
-                const shortName = tc.name.replace(/^mcp__\w+__/, '');
-                const step: WorkflowStep = { server, tool: shortName, status: 'running' };
-                workflowSteps.push(step);
-                yield { type: 'workflow_trace', steps: [...workflowSteps] };
-
-                try {
-                    yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: { server } };
-                    console.log(`[llm] Executing tool: ${tc.name}`);
-                    const result = await this.mcpHub.executeTool(tc.name, tc.input);
-                    step.status = result.isError ? 'error' : 'success';
-                    yield { type: 'workflow_trace', steps: [...workflowSteps] };
-                    toolResults.push({
-                        type: 'tool_result',
-                        tool_use_id: tc.id,
-                        content: result.content,
-                        ...(result.isError ? { is_error: true } : {}),
-                    });
-                } catch (err) {
-                    step.status = 'error';
-                    yield { type: 'workflow_trace', steps: [...workflowSteps] };
-                    toolResults.push({
-                        type: 'tool_result',
-                        tool_use_id: tc.id,
-                        content: `Error: ${err instanceof Error ? err.message : String(err)}`,
-                        is_error: true,
-                    });
-                }
-            }
-
-            messages.push({ role: 'user', content: toolResults });
-            yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
-            textAccumulator = '';
-        }
-
-        if (cacheReadTokens > 0 || cacheCreationTokens > 0) {
-            console.log(`[llm] Cache: ${cacheReadTokens} read, ${cacheCreationTokens} created`);
-        }
-
-        yield {
-            type: 'stats',
-            durationMs: Date.now() - apiStartTime,
-            inputTokens: totalInputTokens,
-            outputTokens: totalOutputTokens,
-        };
-
-        if (fullResponse) {
-            this.conversations.addMessage(conversationId, 'assistant', fullResponse);
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // Intent Resolver — deterministic tool selection for small models
-    // ═══════════════════════════════════════════════════════════════
-
-    /**
-     * Try to resolve the user prompt deterministically and execute the tool
-     * directly, bypassing the LLM tool-call loop. If successful, streams
-     * the tool result through the LLM for formatting only.
-     *
-     * Yields nothing (returns without yielding) if resolution fails or
-     * confidence is too low — the caller should then fall back to the
-     * normal LLM tool-call loop.
-     */
-    private async *tryDirectExecution(
-        conversationId: string,
-        useModel: string,
-    ): AsyncGenerator<StreamChunk> {
-        const conv = this.conversations.get(conversationId);
-        if (!conv || conv.messages.length === 0) return;
-
-        const lastMsg = conv.messages[conv.messages.length - 1];
-        if (lastMsg.role !== 'user') return;
-
-        const tools = this.mcpHub.getAllTools();
-        const serverNames = this.mcpHub.getServerInfo().map(s => s.name);
-
-        const resolution = resolveIntent(lastMsg.content, tools, serverNames);
-        if (!resolution || resolution.confidence < 0.5) return;
-
-        console.log(`[intent] Resolved: ${resolution.tool.name} (${resolution.confidence.toFixed(2)}) — ${resolution.reason}`);
-
-        // Phase 1: Execute tool directly
-        yield { type: 'progress', stage: 'tool_call', detail: `Calling ${resolution.tool.name}...`, meta: { server: resolution.tool.serverName } };
-
-        let toolResult: ToolResult;
-        try {
-            toolResult = await this.mcpHub.executeTool(resolution.tool.name, resolution.params);
-        } catch (err) {
-            // Tool execution failed — fall back (caller will continue to LLM loop)
-            console.warn(`[intent] Direct execution failed for ${resolution.tool.name}:`, err);
-            return;
-        }
-
-        yield { type: 'workflow_trace', steps: [{ server: resolution.tool.serverName, tool: resolution.tool.name, status: toolResult.isError ? 'error' : 'success' }] };
-
-        // Phase 2: Ask LLM to format results (no tools, simple formatting task)
-        yield { type: 'progress', stage: 'thinking', detail: 'Formatting results...', meta: { model: useModel } };
-
-        const formattingPrompt = buildFormattingPrompt(resolution.tool.name, toolResult.content);
-        const apiStartTime = Date.now();
-
-        if (this.openaiClient) {
-            const stream = await this.openaiClient.chat.completions.create({
-                model: useModel,
-                messages: [
-                    { role: 'system', content: formattingPrompt },
-                    { role: 'user', content: 'Format the tool results above as burnish-* HTML components.' },
-                ],
-                max_tokens: OPENAI_MAX_TOKENS,
-                stream: true,
-            });
-
-            let fullResponse = '';
-            for await (const chunk of stream) {
-                const content = chunk.choices?.[0]?.delta?.content;
-                if (content) {
-                    fullResponse += content;
-                    yield { type: 'content', text: content };
-                }
-            }
-
-            // Store response
-            this.conversations.addMessage(conversationId, 'assistant', fullResponse);
-
-            yield { type: 'stats', durationMs: Date.now() - apiStartTime, inputTokens: 0, outputTokens: 0 };
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // OpenAI-compatible Backend — Ollama, llama.cpp, vLLM, LM Studio, OpenAI
-    // ═══════════════════════════════════════════════════════════════
-
-    private async *streamResponseOpenai(
-        conversationId: string,
-        useModel = this.model,
-        noTools?: boolean,
-        extraInstructions?: string,
-    ): AsyncGenerator<StreamChunk> {
-        if (!this.openaiClient) throw new Error('OpenAI client not configured — call configure() first');
-
-        const conv = this.conversations.get(conversationId);
-        if (!conv) return;
-
-        const systemPrompt = noTools ? buildAdaptiveNoToolsPrompt(useModel) : buildAdaptiveSystemPrompt(useModel, extraInstructions);
-        const messages: OpenAI.ChatCompletionMessageParam[] = [
-            { role: 'system', content: systemPrompt },
-        ];
-
-        // Check if the latest user message is a pivot command
-        const lastUserMsgOpenai = [...conv.messages].reverse().find(m => m.role === 'user');
-        const isPivotOpenai = lastUserMsgOpenai ? detectPivotCommand(lastUserMsgOpenai.content) !== null : false;
-        if (isPivotOpenai) {
-            console.log(`[llm-openai] Pivot command detected, preserving full conversation context`);
-        }
-
-        // Build message history
-        for (let i = 0; i < conv.messages.length; i++) {
-            const m = conv.messages[i];
-            if (m.role === 'assistant' && i < conv.messages.length - 1 && m.content.length > 200 && !isPivotOpenai) {
-                messages.push({ role: 'assistant', content: '[Previous dashboard response]' });
-            } else {
-                messages.push({ role: m.role, content: m.content });
-            }
-        }
-
-        // Convert MCP tools to OpenAI function calling format (omit when noTools)
-        const mcpTools = noTools ? [] : this.getRelevantTools(conv);
-        const tools: OpenAI.ChatCompletionTool[] = mcpTools.map(t => ({
-            type: 'function' as const,
-            function: {
-                name: t.name,
-                description: t.description || '',
-                parameters: (t.inputSchema as Record<string, unknown>) || { type: 'object', properties: {} },
-            },
-        }));
-
-        let fullResponse = '';
-        const apiStartTime = Date.now();
-        let totalPromptTokens = 0;
-        let totalCompletionTokens = 0;
-        const workflowSteps: WorkflowStep[] = [];
-
-        yield { type: 'progress', stage: 'starting', detail: 'Sending request…', meta: { model: useModel } };
-
-        // Try deterministic intent resolution first (for small model reliability)
-        if (!noTools) {
-            let directHandled = false;
-            for await (const chunk of this.tryDirectExecution(conversationId, useModel)) {
-                yield chunk;
-                directHandled = true;
-            }
-            if (directHandled) return;
-        }
-
-        for (let round = 0; round < this.maxToolRounds; round++) {
-            if (round === 0) {
-                yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
-            }
-
-            const params: OpenAI.ChatCompletionCreateParams = {
-                model: useModel,
-                max_tokens: OPENAI_MAX_TOKENS,
-                messages,
-                stream: true,
-                ...(tools.length > 0 ? { tools } : {}),
-            };
-
-            const stream = await this.openaiClient.chat.completions.create(params);
-
-            let textAccumulator = '';
-            // Accumulate tool calls from streaming deltas
-            const toolCallAccumulator = new Map<number, { id: string; name: string; arguments: string }>();
-
-            for await (const chunk of stream) {
-                const choice = chunk.choices?.[0];
-                if (!choice) continue;
-
-                const delta = choice.delta;
-
-                // Text content
-                if (delta?.content) {
-                    fullResponse += delta.content;
-                    textAccumulator += delta.content;
-                    yield { type: 'content', text: delta.content };
-                }
-
-                // Tool call deltas — streamed incrementally
-                if (delta?.tool_calls) {
-                    for (const tc of delta.tool_calls) {
-                        const idx = tc.index;
-                        if (!toolCallAccumulator.has(idx)) {
-                            toolCallAccumulator.set(idx, {
-                                id: tc.id || '',
-                                name: tc.function?.name || '',
-                                arguments: '',
-                            });
-                        }
-                        const acc = toolCallAccumulator.get(idx)!;
-                        if (tc.id) acc.id = tc.id;
-                        if (tc.function?.name) acc.name = tc.function.name;
-                        if (tc.function?.arguments) acc.arguments += tc.function.arguments;
-                    }
-                }
-
-                // Accumulate usage from the final chunk
-                if (chunk.usage) {
-                    totalPromptTokens += chunk.usage.prompt_tokens || 0;
-                    totalCompletionTokens += chunk.usage.completion_tokens || 0;
-                }
-            }
-
-            const pendingToolCalls = [...toolCallAccumulator.values()].filter(tc => tc.name);
-
-            if (pendingToolCalls.length === 0) break;
-
-            // Build assistant message with tool calls for the conversation
-            const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
-                role: 'assistant',
-                content: textAccumulator || null,
-                tool_calls: pendingToolCalls.map((tc, i) => ({
-                    id: tc.id || `call_${round}_${i}`,
-                    type: 'function' as const,
-                    function: { name: tc.name, arguments: tc.arguments },
-                })),
-            };
-            messages.push(assistantMsg);
-
-            // Execute each tool call and add results
-            for (const tc of pendingToolCalls) {
-                const server = extractServerName(tc.name) || 'unknown';
-                const shortName = tc.name.replace(/^mcp__\w+__/, '');
-                const step: WorkflowStep = { server, tool: shortName, status: 'running' };
-                workflowSteps.push(step);
-                yield { type: 'workflow_trace', steps: [...workflowSteps] };
-
-                let resultContent: string;
-                try {
-                    // Block write tools from being auto-called by the model
-                    if (isWriteTool(tc.name)) {
-                        console.log(`[llm-openai] Blocked write tool: ${tc.name}`);
-                        step.status = 'error';
-                        resultContent = `Tool "${tc.name}" is a write operation and requires user confirmation. Generate a burnish-form component instead so the user can review and submit.`;
-                    } else {
-                        yield { type: 'progress', stage: 'tool_call', detail: `Calling ${tc.name}…`, meta: { server } };
-                        console.log(`[llm-openai] Executing tool: ${tc.name}`);
-
-                        let args: Record<string, unknown> = {};
-                        try { args = JSON.parse(tc.arguments || '{}'); } catch { console.warn('[llm-openai] Failed to parse tool call arguments:', tc.arguments); }
-
-                        const result = await this.mcpHub.executeTool(tc.name, args);
-                        step.status = result.isError ? 'error' : 'success';
-                        resultContent = result.content;
-                    }
-                } catch (err) {
-                    step.status = 'error';
-                    resultContent = `Error: ${err instanceof Error ? err.message : String(err)}`;
-                }
-
-                yield { type: 'workflow_trace', steps: [...workflowSteps] };
-
-                messages.push({
-                    role: 'tool',
-                    tool_call_id: tc.id || `call_${round}`,
-                    content: resultContent,
-                });
-            }
-
-            yield { type: 'progress', stage: 'thinking', detail: 'Thinking…', meta: { model: useModel } };
-            textAccumulator = '';
-        }
-
-        yield {
-            type: 'stats',
-            durationMs: Date.now() - apiStartTime,
-            inputTokens: totalPromptTokens,
-            outputTokens: totalCompletionTokens,
-        };
-
-        if (fullResponse) {
-            this.conversations.addMessage(conversationId, 'assistant', fullResponse);
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // Title Generation — lightweight LLM call to auto-title sessions
-    // ═══════════════════════════════════════════════════════════════
-
-    private static readonly TITLE_SYSTEM_PROMPT =
-        'Generate a concise 3-6 word title that describes the user\'s request. ' +
-        'Return ONLY the title text, no quotes, no punctuation at the end, no explanation.';
-
-    /**
      * Generate a short descriptive title for a session based on the first exchange.
      * Uses haiku for speed and cost efficiency.
      */
@@ -914,91 +258,16 @@ export class LlmOrchestrator {
         const userMessage = `User prompt: ${prompt}\n\nAssistant response (truncated): ${truncatedResponse}`;
 
         if (this.backend === 'cli') {
-            return this.generateTitleCli(userMessage);
+            if (!this.cliBackend) throw new Error('CLI backend not configured');
+            return this.cliBackend.generateTitle(userMessage);
         } else if (this.backend === 'openai') {
-            return this.generateTitleOpenai(userMessage);
+            if (!this.openaiBackend) throw new Error('OpenAI backend not configured');
+            return this.openaiBackend.generateTitle(this.model, userMessage);
         } else {
-            return this.generateTitleApi(userMessage);
+            if (!this.anthropicBackend) throw new Error('Anthropic backend not configured');
+            return this.anthropicBackend.generateTitle(userMessage);
         }
     }
-
-    private async generateTitleApi(userMessage: string): Promise<string> {
-        if (!this.client) throw new Error('LLM not configured');
-
-        const result = await this.client.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 30,
-            system: LlmOrchestrator.TITLE_SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: userMessage }],
-        });
-
-        const text = result.content
-            .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-            .map(b => b.text)
-            .join('');
-        return text.trim();
-    }
-
-    private async generateTitleOpenai(userMessage: string): Promise<string> {
-        if (!this.openaiClient) throw new Error('OpenAI client not configured');
-
-        const result = await this.openaiClient.chat.completions.create({
-            model: this.model,
-            max_tokens: 30,
-            messages: [
-                { role: 'system', content: LlmOrchestrator.TITLE_SYSTEM_PROMPT },
-                { role: 'user', content: userMessage },
-            ],
-        });
-
-        return (result.choices?.[0]?.message?.content || '').trim();
-    }
-
-    private async generateTitleCli(userMessage: string): Promise<string> {
-        const claudeCmd = process.platform === 'win32' ? 'claude.cmd' : 'claude';
-        const env = { ...process.env };
-        delete env.CLAUDECODE;
-
-        const fullPrompt = `${LlmOrchestrator.TITLE_SYSTEM_PROMPT}\n\n${userMessage}`;
-
-        return new Promise<string>((resolve, reject) => {
-            const proc = spawn(claudeCmd, [
-                '--print',
-                '--model', 'haiku',
-                '--tools', '',
-                '--setting-sources', 'user',
-            ], {
-                stdio: ['pipe', 'pipe', 'pipe'],
-                env,
-                shell: process.platform === 'win32',
-            });
-
-            proc.stdin.write(fullPrompt);
-            proc.stdin.end();
-
-            let stdout = '';
-            let stderr = '';
-            proc.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-            proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
-
-            proc.on('close', (code: number | null) => {
-                if (code !== 0) {
-                    reject(new Error(`claude exited with code ${code}: ${stderr}`));
-                } else {
-                    resolve(stdout.trim());
-                }
-            });
-        });
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // Lightweight Lookup — minimal prompt, no tools, text-in/text-out
-    // ═══════════════════════════════════════════════════════════════
-
-    private static readonly LOOKUP_SYSTEM_PROMPT =
-        'You are a lookup assistant. Given a user prompt describing what values are needed, ' +
-        'call the appropriate tool(s) and return ONLY a JSON array of strings with the valid values. ' +
-        'No explanation, no markdown — just the JSON array.';
 
     /**
      * Lightweight lookup: uses a minimal system prompt and tools to extract
@@ -1008,115 +277,38 @@ export class LlmOrchestrator {
         conversationId: string,
     ): AsyncGenerator<StreamChunk> {
         if (this.backend === 'cli') {
-            yield* this.streamResponseCli(conversationId, this.model);
+            if (!this.cliBackend) throw new Error('CLI backend not configured');
+            yield* this.cliBackend.streamResponse(
+                this.conversations,
+                conversationId,
+                this.mcpHub,
+                this.model,
+                false,
+            );
             return;
         }
         if (this.backend === 'openai') {
+            if (!this.openaiBackend) throw new Error('OpenAI backend not configured');
             // For openai backend, reuse the main streaming method for lookups
-            yield* this.streamResponseOpenai(conversationId, this.model);
+            yield* this.openaiBackend.streamResponse(
+                this.conversations,
+                conversationId,
+                this.mcpHub,
+                this.model,
+                false,
+                this.maxToolRounds,
+                (tools) => this.getRelevantTools(this.conversations.get(conversationId)!, tools),
+            );
             return;
         }
 
-        if (!this.client) throw new Error('LLM not configured — call configure() first');
-
-        const conv = this.conversations.get(conversationId);
-        if (!conv) return;
-
-        const messages: Anthropic.MessageParam[] = conv.messages.map(m => ({
-            role: m.role,
-            content: m.content,
-        }));
-
-        const mcpTools = this.mcpHub.getAllTools();
-        const tools: Anthropic.Tool[] = mcpTools.map(t => ({
-            name: t.name,
-            description: t.description,
-            input_schema: t.inputSchema as Anthropic.Tool['input_schema'],
-        }));
-
-        let fullResponse = '';
-
-        for (let round = 0; round < this.maxToolRounds; round++) {
-            const params: Anthropic.MessageCreateParams = {
-                model: this.model,
-                max_tokens: 1024,
-                system: LlmOrchestrator.LOOKUP_SYSTEM_PROMPT,
-                messages,
-                ...(tools.length > 0 ? { tools } : {}),
-            };
-
-            const stream = this.client.messages.stream(params);
-            let textAccumulator = '';
-            const pendingToolCalls: Array<{
-                id: string;
-                name: string;
-                input: Record<string, unknown>;
-            }> = [];
-
-            for await (const event of stream) {
-                if (
-                    event.type === 'content_block_delta' &&
-                    event.delta.type === 'text_delta'
-                ) {
-                    fullResponse += event.delta.text;
-                    textAccumulator += event.delta.text;
-                    yield { type: 'content', text: event.delta.text };
-                }
-            }
-
-            const finalMessage = await stream.finalMessage();
-            for (const block of finalMessage.content) {
-                if (block.type === 'tool_use') {
-                    pendingToolCalls.push({
-                        id: block.id,
-                        name: block.name,
-                        input: block.input as Record<string, unknown>,
-                    });
-                }
-            }
-
-            if (pendingToolCalls.length === 0) break;
-
-            const assistantContent: Anthropic.ContentBlockParam[] = [];
-            if (textAccumulator) {
-                assistantContent.push({ type: 'text', text: textAccumulator });
-            }
-            for (const tc of pendingToolCalls) {
-                assistantContent.push({
-                    type: 'tool_use',
-                    id: tc.id,
-                    name: tc.name,
-                    input: tc.input,
-                });
-            }
-            messages.push({ role: 'assistant', content: assistantContent });
-
-            const toolResults: Anthropic.ToolResultBlockParam[] = [];
-            for (const tc of pendingToolCalls) {
-                try {
-                    const result = await this.mcpHub.executeTool(tc.name, tc.input);
-                    toolResults.push({
-                        type: 'tool_result',
-                        tool_use_id: tc.id,
-                        content: result.content,
-                        ...(result.isError ? { is_error: true } : {}),
-                    });
-                } catch (err) {
-                    toolResults.push({
-                        type: 'tool_result',
-                        tool_use_id: tc.id,
-                        content: `Error: ${err instanceof Error ? err.message : String(err)}`,
-                        is_error: true,
-                    });
-                }
-            }
-
-            messages.push({ role: 'user', content: toolResults });
-            textAccumulator = '';
-        }
-
-        if (fullResponse) {
-            this.conversations.addMessage(conversationId, 'assistant', fullResponse);
-        }
+        if (!this.anthropicBackend) throw new Error('Anthropic backend not configured');
+        yield* this.anthropicBackend.streamLookupResponse(
+            this.conversations,
+            conversationId,
+            this.mcpHub,
+            this.model,
+            this.maxToolRounds,
+        );
     }
 }
