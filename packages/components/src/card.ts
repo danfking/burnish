@@ -75,6 +75,9 @@ export class BurnishCard extends LitElement {
             box-shadow: var(--burnish-shadow-sm);
             transition: transform var(--burnish-transition-fast), box-shadow var(--burnish-transition-fast);
             position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         .card::before {
             content: '';
@@ -123,8 +126,10 @@ export class BurnishCard extends LitElement {
             font-size: var(--burnish-font-size-base, 13px); color: var(--burnish-text-secondary);
             line-height: 1.5;
             overflow-wrap: anywhere; word-break: break-word;
-            max-height: 120px;
-            overflow-y: auto;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
         .card-body h1, .card-body h2, .card-body h3, .card-body h4 {
             font-size: 13px; font-weight: 600; margin: 8px 0 4px; color: var(--burnish-text, #2D1F1F);
@@ -150,6 +155,7 @@ export class BurnishCard extends LitElement {
             font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-link, #7C3030);
             opacity: 0.6; transition: opacity var(--burnish-transition-fast);
             cursor: pointer;
+            margin-top: auto;
         }
         .card-action:hover { background: rgba(139, 58, 58, 0.04); }
         .card:hover .card-action { opacity: 1; }

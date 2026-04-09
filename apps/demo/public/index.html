@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Burnish — Universal MCP Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l4 10h10l-8 6 3 10-9-7-9 7 3-10-8-6h10z' fill='%238B3A3A'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/tokens.css">
     <link rel="stylesheet" href="/style.css">
 
@@ -68,6 +69,9 @@
     <script type="module" src="/app.js"></script>
 </head>
 <body>
+    <!-- Sidebar backdrop (mobile) -->
+    <div id="sidebar-backdrop" class="burnish-sidebar-backdrop"></div>
+
     <!-- Session Panel (left) -->
     <aside id="session-panel" class="burnish-session-panel">
         <div class="burnish-session-panel-header">
@@ -142,7 +146,7 @@
 
     <!-- LLM Insight prompt bar (hidden unless LLM Insight mode active) -->
     <div id="llm-insight-prompt-bar">
-        <input type="text" placeholder="Ask a question in natural language..." id="llm-insight-input">
+        <textarea rows="1" placeholder="Ask a question in natural language..." id="llm-insight-input"></textarea>
     </div>
 
 </body>
