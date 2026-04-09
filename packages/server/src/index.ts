@@ -17,6 +17,7 @@ export {
 } from './mcp-hub.js';
 
 export {
+    safePath,
     isWriteTool,
     authorizeToolCall,
     consumeAuthorization,

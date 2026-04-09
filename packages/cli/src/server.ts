@@ -5,13 +5,13 @@
 
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
-import { resolve, dirname, normalize, extname } from 'node:path';
+import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import open from 'open';
 
-import { McpHub, isWriteTool } from '@burnishdev/server';
+import { McpHub, isWriteTool, safePath } from '@burnishdev/server';
 import { buildConfigFile, cleanupTempConfig } from './config.js';
 import type { CliOptions } from './cli.js';
 import { formatMcpError } from './errors.js';
@@ -27,18 +27,6 @@ export interface ServerOptions {
     port?: number;
     /** Open browser after starting (default: false). */
     open?: boolean;
-}
-
-/**
- * Resolve a user-supplied path against a base directory and verify
- * it does not escape outside the base (prevents path traversal).
- */
-function safePath(baseDir: string, userPath: string): string | null {
-    const resolved = normalize(resolve(baseDir, userPath));
-    const base = normalize(baseDir);
-    return resolved.startsWith(base + '\\') || resolved.startsWith(base + '/') || resolved === base
-        ? resolved
-        : null;
 }
 
 /** Map file extensions to MIME types. */

@@ -3,7 +3,21 @@
  * These run as CODE, not prompts — they cannot be ignored by the LLM.
  */
 
+import { resolve, normalize } from 'node:path';
+
 const WRITE_PATTERNS = /^(create|update|delete|remove|push|write|edit|move|fork|merge|add|set|close|lock|assign)/i;
+
+/**
+ * Resolve a user-supplied path against a base directory and verify
+ * it does not escape outside the base (prevents path traversal).
+ */
+export function safePath(baseDir: string, userPath: string): string | null {
+    const resolved = normalize(resolve(baseDir, userPath));
+    const base = normalize(baseDir);
+    return resolved.startsWith(base + '\\') || resolved.startsWith(base + '/') || resolved === base
+        ? resolved
+        : null;
+}
 
 /**
  * Classify a tool as read-only or write/mutate based on its name.
