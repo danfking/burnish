@@ -14,7 +14,7 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { resolve, dirname, normalize } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -22,6 +22,7 @@ import { tmpdir } from 'node:os';
 import {
     McpHub,
     isWriteTool,
+    safePath,
     ConversationStore,
     LlmOrchestrator,
     ALLOWED_MODELS,
@@ -29,17 +30,6 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = new Hono();
-
-/**
- * Resolve a user-supplied path against a base directory and verify
- * it does not escape outside the base (prevents path traversal).
- */
-function safePath(baseDir: string, userPath: string): string | null {
-    const resolved = normalize(resolve(baseDir, userPath));
-    const base = normalize(baseDir);
-    return resolved.startsWith(base + '\\') || resolved.startsWith(base + '/') || resolved === base
-        ? resolved : null;
-}
 
 // --- LLM backend detection ---
 /** Auto-detect which LLM backend to use based on environment variables. */
