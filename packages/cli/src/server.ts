@@ -146,6 +146,9 @@ export function buildApp(hub: McpHub): Hono {
         }
     });
 
+    // Catch-all for unknown API paths — return 404 instead of falling through to static files
+    app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
+
     // --- Static file serving from assets/ ---
 
     // Serve index.html at root
