@@ -95,7 +95,7 @@ export class BurnishCard extends LitElement {
         .card[data-status="failing"]::before { background: var(--burnish-error, #ef4444); }
         .card[data-status="info"]::before { background: var(--burnish-info, #6366f1); }
         .card-header {
-            padding: var(--burnish-space-md, 12px) var(--burnish-space-lg, 16px) var(--burnish-space-sm, 8px);
+            padding: var(--burnish-space-lg, 16px) var(--burnish-space-lg, 16px) var(--burnish-space-sm, 8px);
             display: flex; align-items: center; gap: 8px;
         }
         .card-title { font-size: var(--burnish-font-size-md, 14px); font-weight: 600; color: var(--burnish-text, #2D1F1F); flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -119,7 +119,7 @@ export class BurnishCard extends LitElement {
             color: var(--burnish-info, #6366f1); background: var(--burnish-border-info, #c7d2fe);
         }
         .card-body {
-            padding: 0 var(--burnish-space-lg, 16px) var(--burnish-space-md, 12px);
+            padding: 0 var(--burnish-space-lg, 16px) var(--burnish-space-lg, 16px);
             font-size: var(--burnish-font-size-base, 13px); color: var(--burnish-text-secondary);
             line-height: 1.5;
             overflow-wrap: anywhere; word-break: break-word;

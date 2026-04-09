@@ -858,7 +858,7 @@ body {
     padding: 16px;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--burnish-space-lg, 16px);
+    gap: var(--burnish-space-xl, 20px);
     border: 1px solid var(--burnish-border, #E5DDDD);
     border-top: none;
     border-radius: 0 0 var(--burnish-radius-md, 4px) var(--burnish-radius-md, 4px);
@@ -867,6 +867,16 @@ body {
 /* Non-card elements span full grid width */
 .burnish-node-content > :not(burnish-card) {
     grid-column: 1 / -1;
+}
+/* Stat-bars flow horizontally within result wrappers */
+.burnish-result-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--burnish-space-sm, 8px);
+    align-items: flex-start;
+}
+.burnish-result-wrapper > :not(burnish-stat-bar) {
+    width: 100%;
 }
 @media (max-width: 768px) {
     .burnish-node-content { grid-template-columns: 1fr; }
