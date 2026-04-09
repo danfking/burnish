@@ -65,6 +65,13 @@ export function renderModeToggle(container) {
             // Toggle prompt bar visibility
             const promptBar = document.getElementById('llm-insight-prompt-bar');
             if (promptBar) promptBar.style.display = currentMode === 'llm-insight' ? 'flex' : 'none';
+            // Hide/show LLM-generated nodes based on mode
+            const dashboard = document.getElementById('dashboard-container');
+            if (dashboard) {
+                dashboard.querySelectorAll('.burnish-node[data-execution-mode="llm-insight"]').forEach(el => {
+                    el.style.display = currentMode === 'llm-insight' ? '' : 'none';
+                });
+            }
         });
     });
 }
