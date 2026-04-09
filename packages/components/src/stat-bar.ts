@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { resolveStatusColor } from './status-colors.js';
 
 export class BurnishStatBar extends LitElement {
     static properties = {
@@ -43,17 +44,6 @@ export class BurnishStatBar extends LitElement {
         this._activeFilter = null;
     }
 
-    private _getColor(color?: string): string {
-        const map: Record<string, string> = {
-            success: 'var(--burnish-success, #16a34a)', healthy: 'var(--burnish-success, #16a34a)',
-            warning: 'var(--burnish-warning, #ca8a04)',
-            error: 'var(--burnish-error, #dc2626)', failing: 'var(--burnish-error, #dc2626)',
-            info: 'var(--burnish-info, #6366f1)',
-            muted: 'var(--burnish-muted, #9C8F8F)', 'no-data': 'var(--burnish-muted, #9C8F8F)',
-        };
-        return map[color || ''] || color || 'var(--burnish-muted, #9C8F8F)';
-    }
-
     private _handleClick(label: string) {
         // Toggle: click same chip to deselect
         this._activeFilter = this._activeFilter === label ? null : label;
@@ -77,7 +67,7 @@ export class BurnishStatBar extends LitElement {
                     return html`
                         <div class="stat-chip ${isActive ? 'active' : ''} ${isDimmed ? 'dimmed' : ''}"
                              @click=${() => this._handleClick(item.label)}>
-                            <span class="stat-dot" style="background:${this._getColor(item.color)}"></span>
+                            <span class="stat-dot" style="background:${resolveStatusColor(item.color)}"></span>
                             <span class="stat-value">${item.value}</span>
                             <span class="stat-label">${item.label}</span>
                         </div>
