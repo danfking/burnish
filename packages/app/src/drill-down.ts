@@ -70,13 +70,21 @@ export function generateFallbackForm(
     const props = schema.properties || {};
     const required = new Set(schema.required || []);
     const fields = Object.entries(props).map(([key, prop]) => {
+        const isArray = prop.type === 'array';
         const field: Record<string, any> = {
             key,
             label: prop.title || key.replace(/_/g, ' '),
             type: prop.type === 'number' || prop.type === 'integer' ? 'number' : prop.enum ? 'select' : 'text',
             required: required.has(key),
         };
-        if (prop.description) field.placeholder = prop.description;
+        if (isArray) {
+            field.placeholder = prop.description
+                ? `${prop.description} (comma-separated)`
+                : '(comma-separated)';
+            field.array = true;
+        } else if (prop.description) {
+            field.placeholder = prop.description;
+        }
         if (prop.default !== undefined) field.value = String(prop.default);
         if (prop.enum) field.options = prop.enum.map(String);
         return field;

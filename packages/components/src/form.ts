@@ -9,6 +9,7 @@ interface FormField {
     value?: string;
     options?: Array<{ value: string; label: string }>;
     lookup?: { prompt: string; placeholder?: string };
+    array?: boolean;
 }
 
 interface LookupResult {
@@ -222,13 +223,24 @@ export class BurnishForm extends LitElement {
     private _handleSubmit(e: Event) {
         e.preventDefault();
         const fields = this._getFields();
-        const values: Record<string, string> = {};
+        const values: Record<string, string | string[]> = {};
         for (const field of fields) {
             const input = this.shadowRoot?.querySelector(`[data-key="${field.key}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
-            if (input) values[field.key] = input.value;
+            if (input) {
+                if (field.array) {
+                    values[field.key] = input.value
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(s => s.length > 0);
+                } else {
+                    values[field.key] = input.value;
+                }
+            }
         }
         for (const field of fields) {
-            if (field.required && !values[field.key]?.trim()) {
+            const v = values[field.key];
+            const isEmpty = Array.isArray(v) ? v.length === 0 : !v?.trim();
+            if (field.required && isEmpty) {
                 this._status = 'error';
                 this._statusMsg = `${field.label} is required`;
                 return;
