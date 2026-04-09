@@ -283,3 +283,17 @@ export function getEmptyState() {
         </div>
     `;
 }
+
+export function getDashboardEmptyState() {
+    return `
+        <div class="burnish-dashboard-empty-state">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <rect x="4" y="8" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                <rect x="26" y="8" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                <rect x="4" y="26" width="40" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+            </svg>
+            <h2>Dashboard Mode</h2>
+            <p>Execute tools to populate the dashboard with live data. Each tool result will appear as a tile you can monitor at a glance.</p>
+        </div>
+    `;
+}

@@ -49,7 +49,7 @@ import {
 import {
     renderDeterministicToolListing, generateToolListingHtml,
     renderDeterministicNode, executeToolDirect,
-    getEmptyState, setSessionHelpers,
+    getEmptyState, getDashboardEmptyState, setSessionHelpers,
 } from './deterministic-ui.js';
 
 // ── LLM Insight UI ──
@@ -673,7 +673,7 @@ function renderMainContent() {
     const session = getActiveSession();
 
     if (!session || session.nodes.length === 0) {
-        container.innerHTML = getEmptyState();
+        container.innerHTML = getEmptyState() + getDashboardEmptyState();
         loadDynamicSuggestions(container);
         return;
     }

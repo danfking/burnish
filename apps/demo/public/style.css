@@ -1007,6 +1007,29 @@ body {
     margin-top: 0;
 }
 [data-dashboard="true"] .burnish-empty-state { display: none; }
+.burnish-dashboard-empty-state { display: none; }
+[data-dashboard="true"] .burnish-dashboard-empty-state {
+    display: block;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--burnish-text-secondary, #6B5A5A);
+    max-width: 480px;
+    margin: 0 auto;
+}
+.burnish-dashboard-empty-state svg {
+    color: var(--burnish-text-muted, #A89999);
+    margin-bottom: 16px;
+}
+.burnish-dashboard-empty-state h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--burnish-text, #2D1F1F);
+    margin-bottom: 8px;
+}
+.burnish-dashboard-empty-state p {
+    font-size: 14px;
+    line-height: 1.5;
+}
 #btn-dashboard-toggle.active {
     color: white;
     background: rgba(255,255,255,0.15);
