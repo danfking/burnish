@@ -2,10 +2,12 @@ import { LitElement, html, css } from 'lit';
 export class BurnishStatBar extends LitElement {
     static { this.properties = {
         items: { type: String },
+        variant: { type: String },
+        _activeFilter: { state: true },
     }; }
     static { this.styles = css `
-        :host { display: block; margin-bottom: var(--burnish-space-lg, 16px); }
-        .stat-bar { display: flex; gap: var(--burnish-space-md, 12px); flex-wrap: wrap; }
+        :host { display: block; width: 100%; min-width: 0; }
+        .stat-bar { display: flex; flex-direction: row; align-items: center; gap: var(--burnish-space-md, 12px); flex-wrap: wrap; }
         .stat-chip {
             display: flex; align-items: center; gap: var(--burnish-space-sm, 8px);
             background: var(--burnish-surface, #fff);
@@ -13,21 +15,43 @@ export class BurnishStatBar extends LitElement {
             padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
             box-shadow: var(--burnish-shadow-sm);
             font-size: var(--burnish-font-size-md, 14px);
-            transition: transform var(--burnish-transition-fast), box-shadow var(--burnish-transition-fast);
+            transition: all var(--burnish-transition-fast);
+            cursor: pointer;
+            user-select: none;
+            border: 2px solid transparent;
         }
         .stat-chip:hover { transform: translateY(-1px); box-shadow: var(--burnish-shadow-md); }
+        .stat-chip.active {
+            border-color: var(--burnish-accent, #8B3A3A);
+            box-shadow: var(--burnish-shadow-md);
+        }
+        .stat-chip.dimmed { opacity: 0.4; }
         .stat-dot { width: 10px; height: 10px; border-radius: var(--burnish-radius-round, 50%); }
         .stat-value { font-weight: 700; font-size: var(--burnish-font-size-xl, 18px); margin-right: var(--burnish-space-xs, 4px); }
         .stat-label { color: var(--burnish-text-secondary, #6B5A5A); }
+        :host([variant="compact"]) .stat-dot { display: none; }
     `; }
+    constructor() {
+        super();
+        this._activeFilter = null;
+    }
     _getColor(color) {
         const map = {
-            success: 'var(--burnish-success, #22c55e)', healthy: 'var(--burnish-success, #22c55e)',
-            warning: 'var(--burnish-warning, #eab308)',
-            error: 'var(--burnish-error, #ef4444)', failing: 'var(--burnish-error, #ef4444)',
+            success: 'var(--burnish-success, #16a34a)', healthy: 'var(--burnish-success, #16a34a)',
+            warning: 'var(--burnish-warning, #ca8a04)',
+            error: 'var(--burnish-error, #dc2626)', failing: 'var(--burnish-error, #dc2626)',
+            info: 'var(--burnish-info, #6366f1)',
             muted: 'var(--burnish-muted, #9C8F8F)', 'no-data': 'var(--burnish-muted, #9C8F8F)',
         };
         return map[color || ''] || color || 'var(--burnish-muted, #9C8F8F)';
+    }
+    _handleClick(label) {
+        this._activeFilter = this._activeFilter === label ? null : label;
+        this.dispatchEvent(new CustomEvent('burnish-filter', {
+            detail: { filter: this._activeFilter },
+            bubbles: true,
+            composed: true,
+        }));
     }
     render() {
         let data = [];
@@ -37,16 +61,19 @@ export class BurnishStatBar extends LitElement {
         catch { /* graceful */ }
         return html `
             <div class="stat-bar">
-                ${data.map(item => html `
-                    <div class="stat-chip">
+                ${data.map(item => {
+                    const isActive = this._activeFilter === item.label;
+                    const isDimmed = this._activeFilter && !isActive;
+                    return html `
+                    <div class="stat-chip ${isActive ? 'active' : ''} ${isDimmed ? 'dimmed' : ''}"
+                         @click=${() => this._handleClick(item.label)}>
                         <span class="stat-dot" style="background:${this._getColor(item.color)}"></span>
                         <span class="stat-value">${item.value}</span>
                         <span class="stat-label">${item.label}</span>
                     </div>
-                `)}
+                `})}
             </div>
         `;
     }
 }
 customElements.define('burnish-stat-bar', BurnishStatBar);
-//# sourceMappingURL=stat-bar.js.map
