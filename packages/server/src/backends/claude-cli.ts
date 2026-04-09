@@ -15,7 +15,7 @@ import { buildAdaptiveSystemPrompt, buildAdaptiveNoToolsPrompt } from '../prompt
 import { detectPivotCommand, buildPivotPrompt } from '../pivot-detector.js';
 import { extractServerName } from '../tool-executor.js';
 
-export class CliBackend {
+export class ClaudeCliBackend {
     constructor(
         private mcpConfigPath: string | undefined,
         private cwd: string | undefined,
@@ -30,7 +30,7 @@ export class CliBackend {
         const env = { ...process.env };
         delete env.CLAUDECODE;
 
-        const fullPrompt = `${CliBackend.TITLE_SYSTEM_PROMPT}\n\n${userMessage}`;
+        const fullPrompt = `${ClaudeCliBackend.TITLE_SYSTEM_PROMPT}\n\n${userMessage}`;
 
         return new Promise<string>((resolve, reject) => {
             const proc = spawn(claudeCmd, [

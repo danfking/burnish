@@ -12,7 +12,7 @@ import type { ConversationStore, Conversation } from './conversation.js';
 import { buildRetryPrompt } from './prompt-template.js';
 import { detectPivotCommand } from './pivot-detector.js';
 import { AnthropicBackend } from './backends/anthropic.js';
-import { CliBackend } from './backends/cli.js';
+import { ClaudeCliBackend } from './backends/claude-cli.js';
 import { OpenAiBackend } from './backends/openai.js';
 
 // Re-export shared types so existing consumers can import from llm.js
@@ -57,7 +57,7 @@ export class LlmOrchestrator {
     private maxToolRounds = DEFAULT_MAX_TOOL_ROUNDS;
 
     private anthropicBackend: AnthropicBackend | null = null;
-    private cliBackend: CliBackend | null = null;
+    private cliBackend: ClaudeCliBackend | null = null;
     private openaiBackend: OpenAiBackend | null = null;
 
     constructor(
@@ -90,7 +90,7 @@ export class LlmOrchestrator {
             if (!options.apiKey) throw new Error('ANTHROPIC_API_KEY required for api backend');
             this.anthropicBackend = new AnthropicBackend(options.apiKey);
         } else if (this.backend === 'cli') {
-            this.cliBackend = new CliBackend(mcpConfigPath, options.cwd);
+            this.cliBackend = new ClaudeCliBackend(mcpConfigPath, options.cwd);
         } else if (this.backend === 'openai') {
             this.openaiBackend = new OpenAiBackend(
                 options.apiKey,
