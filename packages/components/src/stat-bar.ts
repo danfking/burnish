@@ -9,8 +9,8 @@ export class BurnishStatBar extends LitElement {
     };
 
     static styles = css`
-        :host { display: inline-flex; min-width: 0; }
-        .stat-bar { display: flex; flex-direction: row; align-items: center; gap: var(--burnish-space-md, 12px); flex-wrap: nowrap; }
+        :host { display: inline-flex; min-width: 0; max-width: 100%; }
+        .stat-bar { display: flex; flex-direction: row; align-items: center; gap: var(--burnish-space-md, 12px); flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
         .stat-chip {
             display: flex; align-items: center; gap: var(--burnish-space-sm, 8px);
             background: var(--burnish-surface, #fff);
