@@ -2,7 +2,7 @@ app = "burnish-demo"
 primary_region = "iad"
 
 [build]
-  dockerfile = "deploy/demo/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   LLM_BACKEND = "none"
