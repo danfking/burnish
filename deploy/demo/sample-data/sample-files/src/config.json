@@ -1,0 +1,18 @@
+{
+  "server": {
+    "port": 3000,
+    "cors": ["https://app.acme.io", "http://localhost:5173"],
+    "logLevel": "info"
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "acme_analytics",
+    "pool": { "min": 2, "max": 10 }
+  },
+  "dashboard": {
+    "refreshInterval": 5000,
+    "maxDataPoints": 200,
+    "defaultTimeRange": "24h"
+  }
+}

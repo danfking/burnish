@@ -1,0 +1,10 @@
+[
+  { "name": "page_views", "value": 14523, "unit": "count", "trend": "up", "change": "+12.3%" },
+  { "name": "avg_response_time", "value": 142, "unit": "ms", "trend": "down", "change": "-8.1%" },
+  { "name": "error_rate", "value": 0.23, "unit": "percent", "trend": "flat", "change": "+0.01%" },
+  { "name": "active_sessions", "value": 847, "unit": "count", "trend": "up", "change": "+5.7%" },
+  { "name": "cpu_utilization", "value": 62.4, "unit": "percent", "trend": "up", "change": "+3.2%" },
+  { "name": "memory_usage", "value": 4812, "unit": "bytes", "trend": "flat", "change": "+0.5%" },
+  { "name": "cache_hit_rate", "value": 94.7, "unit": "percent", "trend": "up", "change": "+1.8%" },
+  { "name": "db_connections", "value": 28, "unit": "count", "trend": "flat", "change": "0%" }
+]

@@ -187,6 +187,18 @@ app.use('/api/tools/execute', async (c, next) => {
 
 // --- API Routes ---
 
+const startedAt = Date.now();
+
+app.get('/api/health', (c) => {
+    const serverInfo = mcpHub.getServerInfo();
+    return c.json({
+        status: 'ok',
+        servers: serverInfo.length,
+        uptime: Math.floor((Date.now() - startedAt) / 1000),
+        version: '0.1.1',
+    });
+});
+
 app.get('/api/servers', (c) => {
     try {
         return c.json({ servers: mcpHub.getServerInfo() });

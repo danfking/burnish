@@ -1,0 +1,7 @@
+.git
+node_modules
+test-results
+.claude
+tests
+*.md
+!deploy/**/*.md

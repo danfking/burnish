@@ -184,6 +184,141 @@ server.tool(
   }
 );
 
+// --- Tool: get-deployment-pipeline ---
+server.tool(
+  "get-deployment-pipeline",
+  "Returns deployment pipeline stages with status indicators for each stage",
+  {},
+  async () => {
+    const pipeline = {
+      name: "Production Release v2.4.1",
+      triggeredBy: "Alice Chen",
+      startedAt: "2026-04-10T09:15:00Z",
+      stages: [
+        { name: "Build", status: "success", duration: "2m 14s", details: "TypeScript compiled, 0 errors" },
+        { name: "Unit Tests", status: "success", duration: "1m 48s", details: "342 tests passed" },
+        { name: "Integration Tests", status: "success", duration: "4m 32s", details: "28 suites, all green" },
+        { name: "Security Scan", status: "running", duration: "1m 05s", details: "Scanning dependencies..." },
+        { name: "Staging Deploy", status: "pending", duration: null, details: "Waiting for security scan" },
+        { name: "Production Deploy", status: "pending", duration: null, details: "Requires manual approval" },
+      ],
+    };
+
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(pipeline, null, 2) }],
+    };
+  }
+);
+
+// --- Tool: get-monthly-trends ---
+server.tool(
+  "get-monthly-trends",
+  "Returns monthly trend data with labels and datasets for line chart visualization",
+  {},
+  async () => {
+    const trends = {
+      title: "Platform Growth — 2025",
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      datasets: [
+        {
+          label: "Active Users",
+          data: [1200, 1350, 1580, 1720, 1950, 2200, 2450, 2680, 2900, 3150, 3400, 3800],
+        },
+        {
+          label: "API Requests (k)",
+          data: [45, 52, 61, 73, 85, 98, 112, 128, 145, 162, 180, 205],
+        },
+        {
+          label: "Tool Executions (k)",
+          data: [12, 15, 19, 24, 31, 38, 47, 55, 64, 75, 88, 102],
+        },
+      ],
+    };
+
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(trends, null, 2) }],
+    };
+  }
+);
+
+// --- Tool: get-category-breakdown ---
+server.tool(
+  "get-category-breakdown",
+  "Returns category distribution data suitable for doughnut or bar chart visualization",
+  {},
+  async () => {
+    const breakdown = {
+      title: "MCP Server Usage by Category",
+      labels: ["Filesystem", "Database", "API Gateway", "DevOps", "Analytics", "Communication"],
+      datasets: [
+        {
+          label: "Tool Calls",
+          data: [3420, 2850, 2100, 1780, 1250, 890],
+        },
+      ],
+      summary: {
+        totalCalls: 12290,
+        mostPopular: "Filesystem",
+        fastestGrowing: "DevOps",
+        period: "Last 30 days",
+      },
+    };
+
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(breakdown, null, 2) }],
+    };
+  }
+);
+
+// --- Tool: search-knowledge-base ---
+server.tool(
+  "search-knowledge-base",
+  "Returns grouped knowledge base articles organized by section, with status and metadata",
+  {},
+  async () => {
+    const results = {
+      query: "getting started",
+      totalResults: 12,
+      sections: [
+        {
+          title: "Quick Start Guides",
+          count: 4,
+          articles: [
+            { title: "Installing Burnish", status: "Published", author: "Alice Chen", updated: "2026-04-01", views: 2840 },
+            { title: "Connecting Your First MCP Server", status: "Published", author: "Bob Martinez", updated: "2026-03-28", views: 1920 },
+            { title: "Explorer Mode Tutorial", status: "Published", author: "Carol Williams", updated: "2026-04-05", views: 1540 },
+            { title: "Custom Component Themes", status: "Draft", author: "David Kim", updated: "2026-04-09", views: 320 },
+          ],
+        },
+        {
+          title: "Architecture & Concepts",
+          count: 4,
+          articles: [
+            { title: "How MCP Tool Calling Works", status: "Published", author: "Eva Singh", updated: "2026-03-15", views: 3100 },
+            { title: "Component Rendering Pipeline", status: "Published", author: "Frank Osei", updated: "2026-03-20", views: 1680 },
+            { title: "Streaming & Progressive Display", status: "Published", author: "Grace Tanaka", updated: "2026-04-02", views: 1250 },
+            { title: "Security Model & Guards", status: "Review", author: "Henry Novak", updated: "2026-04-08", views: 890 },
+          ],
+        },
+        {
+          title: "Troubleshooting",
+          count: 4,
+          articles: [
+            { title: "Common Connection Issues", status: "Published", author: "Alice Chen", updated: "2026-03-25", views: 4200 },
+            { title: "Rate Limiting & Quotas", status: "Published", author: "Bob Martinez", updated: "2026-03-30", views: 1100 },
+            { title: "Tool Execution Errors", status: "Published", author: "Carol Williams", updated: "2026-04-03", views: 2350 },
+            { title: "Performance Tuning Guide", status: "Draft", author: "Eva Singh", updated: "2026-04-07", views: 450 },
+          ],
+        },
+      ],
+    };
+
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(results, null, 2) }],
+    };
+  }
+);
+
 // --- Start server ---
 async function main() {
   const transport = new StdioServerTransport();

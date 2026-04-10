@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "sample-files": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data/sample-files"]
+    },
+    "demo-database": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite", "--db-path", "/data/demo.db"]
+    },
+    "showcase": {
+      "command": "node",
+      "args": ["/app/packages/example-server/dist/index.js"]
+    }
+  }
+}
