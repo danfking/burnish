@@ -381,6 +381,12 @@ export function buildResultHtml(result, label, sourceToolName, sourceName, isErr
         if (dirHtml) return dirHtml;
 
         const sourceAttr = sourceName ? ` source="${escapeAttr(sourceName)}"` : '';
+        // Render markdown files through marked if available
+        const isMarkdown = /\.md$/i.test(label);
+        if (isMarkdown && typeof window.marked !== 'undefined') {
+            const rendered = DOMPurify.sanitize(window.marked.parse(result.substring(0, 5000)), PURIFY_CONFIG);
+            return `<div class="burnish-result-wrapper"><div class="burnish-markdown-content">${rendered}</div></div>`;
+        }
         return `<burnish-card title="${escapeAttr(label)}" status="success" body="${escapeAttr(result.substring(0, 1000))}"${sourceAttr}></burnish-card>`;
     }
 }

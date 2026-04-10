@@ -390,7 +390,7 @@ function createNodeEl(node) {
             <span class="burnish-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
             <span class="burnish-node-time">${formatTimeAgo(node.timestamp)}</span>
             ${node._executionMode === 'deterministic' ? `<span class="burnish-exec-badge burnish-exec-badge--direct" title="No LLM — direct tool execution">Direct</span>` : ''}
-            ${statsTooltip ? `<button class="burnish-node-info" title="${escapeAttr(statsTooltip)}">
+            ${statsTooltip ? `<button class="burnish-node-info" title="View details">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor">i</text></svg>
             </button>` : ''}
             <button class="burnish-node-maximize" title="Focus">
@@ -623,13 +623,13 @@ function updateNodeHeader(nodeId) {
 
     const infoBtn = el.querySelector('.burnish-node-info');
     if (infoBtn) {
-        infoBtn.title = parts.join(' \u2022 ');
+        infoBtn.title = 'View details';
     } else if (parts.length > 0) {
         const deleteBtn = el.querySelector('.burnish-node-delete');
         if (deleteBtn) {
             const btn = document.createElement('button');
             btn.className = 'burnish-node-info';
-            btn.title = parts.join(' \u2022 ');
+            btn.title = 'View details';
             btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor">i</text></svg>';
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -807,10 +807,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (item) switchSession(item.dataset.sessionId);
     });
 
-    // Mobile toggle for session panel
-    document.getElementById('btn-toggle-sessions')?.addEventListener('click', () => {
-        document.getElementById('session-panel')?.classList.toggle('open');
-    });
+    // Mobile toggle for session panel with backdrop
+    const sessionPanel = document.getElementById('session-panel');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    function toggleSidebar() {
+        const isOpen = sessionPanel?.classList.toggle('open');
+        sidebarBackdrop?.classList.toggle('visible', isOpen);
+    }
+    function closeSidebar() {
+        sessionPanel?.classList.remove('open');
+        sidebarBackdrop?.classList.remove('visible');
+    }
+    document.getElementById('btn-toggle-sessions')?.addEventListener('click', toggleSidebar);
+    sidebarBackdrop?.addEventListener('click', closeSidebar);
 
     // ── Restore from IndexedDB ──
     const state = await loadState();
