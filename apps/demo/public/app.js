@@ -166,8 +166,12 @@ async function switchSession(sessionId) {
 
     // Lazy-load nodes if not yet loaded
     const session = getActiveSession();
-    if (session && !persistence.isLoaded(session.id) && session._nodeIds) {
-        await persistence.loadNodes(session, session._nodeIds);
+    if (session && !persistence.isLoaded(session.id)) {
+        const nodeIds = session._nodeIds
+            || await persistence.getSessionNodeIds(session.id);
+        if (nodeIds && nodeIds.length > 0) {
+            await persistence.loadNodes(session, nodeIds);
+        }
         delete session._nodeIds;
         persistence.markLoaded(session.id);
     }
@@ -222,6 +226,11 @@ function updateBreadcrumb() {
     let pathNodes = [];
     if (session.activeNodeId) {
         pathNodes = getAncestryPath(session, session.activeNodeId);
+    }
+
+    // Skip the root node — it duplicates the session title segment
+    if (pathNodes.length > 0 && !pathNodes[0].parentId) {
+        pathNodes = pathNodes.slice(1);
     }
 
     const segments = [];
@@ -369,6 +378,7 @@ function createNodeEl(node) {
     div.className = 'burnish-node';
     div.dataset.nodeId = node.id;
     div.dataset.collapsed = String(node.collapsed);
+    if (node._executionMode) div.dataset.executionMode = node._executionMode;
 
     const statsParts = [];
     if (node.summary) statsParts.push(node.summary);
@@ -688,6 +698,13 @@ function renderMainContent() {
 
     for (const root of roots) {
         renderTreeNode(treeWrapper, session, root, activePath);
+    }
+
+    // Hide LLM-generated nodes when in explorer mode
+    if (getCurrentMode() !== 'llm-insight') {
+        treeWrapper.querySelectorAll('.burnish-node[data-execution-mode="llm-insight"]').forEach(el => {
+            el.style.display = 'none';
+        });
     }
 
     if (session.activeNodeId) {
