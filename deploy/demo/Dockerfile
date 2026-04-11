@@ -21,7 +21,7 @@ RUN git init && pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild
 # Copy source and build
 COPY packages/ packages/
 COPY apps/demo/ apps/demo/
-RUN pnpm -r build --filter '!burnish'
+RUN pnpm --filter '!burnish' -r build
 
 # Pre-install MCP server packages so npx doesn't download at runtime
 RUN npm install -g @modelcontextprotocol/server-filesystem@latest @modelcontextprotocol/server-sqlite@latest
