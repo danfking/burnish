@@ -3,7 +3,7 @@ FROM node:20-slim AS builder
 
 # Install pnpm + build tools for native modules (better-sqlite3)
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate \
-    && apt-get update && apt-get install -y python3 build-essential && rm -rf /var/lib/apt/lists/*
+    && apt-get update && apt-get install -y python3 build-essential git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
