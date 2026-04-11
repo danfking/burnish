@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="apps/demo/public/logo.png" alt="Burnish" width="120">
+</p>
+
 # Burnish
 
 **Explore any MCP server. No LLM required.**

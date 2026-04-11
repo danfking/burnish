@@ -61,6 +61,19 @@ if (existsSync(componentTokens)) {
     cpSync(componentTokens, resolve(assets, 'components/tokens.css'));
 }
 
+// Copy favicon, logo, and manifest files
+const assetFiles = [
+    'favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png',
+    'apple-touch-icon.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png',
+    'logo.png', 'site.webmanifest',
+];
+for (const f of assetFiles) {
+    const src = resolve(publicDir, f);
+    if (existsSync(src)) {
+        cpSync(src, resolve(assets, f));
+    }
+}
+
 // Copy index.html from demo
 // The import map already uses /app/, /renderer/, /components/ paths which match our layout
 const demoHtml = readFileSync(resolve(publicDir, 'index.html'), 'utf-8');
