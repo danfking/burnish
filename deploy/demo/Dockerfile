@@ -16,7 +16,7 @@ COPY packages/app/package.json packages/app/
 COPY packages/example-server/package.json packages/example-server/
 COPY apps/demo/package.json apps/demo/
 
-RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild
+RUN git init && pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild
 
 # Copy source and build
 COPY packages/ packages/
