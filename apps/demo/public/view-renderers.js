@@ -156,6 +156,11 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
         if (parsed.length === 0) {
             return `<burnish-card title="${escapeAttr(label)}" status="muted" body="No results"${sourceAttr}></burnish-card>`;
         }
+        // Stat-bar: array of {label, value} objects
+        if (typeof parsed[0] === 'object' && 'label' in parsed[0] && 'value' in parsed[0]
+            && Object.keys(parsed[0]).length <= 3 && parsed.every(i => 'label' in i && 'value' in i)) {
+            return `<burnish-stat-bar items='${escapeAttr(JSON.stringify(parsed))}'${sourceAttr}></burnish-stat-bar>`;
+        }
         if (typeof parsed[0] === 'object') {
             const dataId = 'vd-' + crypto.randomUUID();
             window._viewData[dataId] = { parsed, label, sourceToolName, sourceName };
@@ -190,8 +195,16 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
     }
 
     if (typeof parsed === 'object' && parsed !== null) {
+        // Chart: object with labels + datasets arrays
+        if (Array.isArray(parsed.labels) && Array.isArray(parsed.datasets)) {
+            const chartType = parsed.datasets.length === 1 && parsed.labels.length <= 8 ? 'doughnut' : 'line';
+            const title = parsed.title || label;
+            return `<burnish-chart type="${chartType}" config='${escapeAttr(JSON.stringify({ data: parsed }))}'${sourceAttr}></burnish-chart>`;
+        }
+
         const arrayKeys = ['items','results','data','entries','records','rows','nodes',
-            'repositories','issues','files','commits','pull_requests','comments'];
+            'repositories','issues','files','commits','pull_requests','comments',
+            'sections','articles','categories','groups','tasks','events','messages'];
         const nestedKey = arrayKeys.find(k => Array.isArray(parsed[k]) && parsed[k].length > 0);
 
         if (nestedKey && typeof parsed[nestedKey][0] === 'object') {
@@ -376,6 +389,24 @@ export function buildResultHtml(result, label, sourceToolName, sourceName, isErr
         const inner = renderParsedResult(parsed, label, sourceToolName, sourceName);
         return `<div class="burnish-result-wrapper" data-raw-result="${escapeAttr(result.substring(0, 50000))}">${inner}</div>`;
     } catch {
+        // Multi-content: newline-separated JSON objects (from tools returning multiple content items)
+        const lines = result.split('\n');
+        if (lines.length > 1) {
+            const parts = [];
+            let buf = '';
+            for (const line of lines) {
+                buf += (buf ? '\n' : '') + line;
+                try { parts.push(JSON.parse(buf)); buf = ''; } catch { /* accumulate */ }
+            }
+            if (parts.length > 1 && buf === '') {
+                let html = '';
+                for (const part of parts) {
+                    html += renderParsedResult(part, label, sourceToolName, sourceName);
+                }
+                return `<div class="burnish-result-wrapper" data-raw-result="${escapeAttr(result.substring(0, 50000))}">${html}</div>`;
+            }
+        }
+
         // Try to parse as a directory listing before falling back to plain text
         const dirHtml = tryParseDirectoryListing(result, label);
         if (dirHtml) return dirHtml;

@@ -2,6 +2,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 
 const server = new McpServer({
   name: "burnish-example-server",
@@ -267,11 +268,11 @@ server.tool(
 // --- Tool: search-knowledge-base ---
 server.tool(
   "search-knowledge-base",
-  "Returns grouped knowledge base articles organized by section, with status and metadata",
-  {},
-  async () => {
+  "Search the knowledge base for articles by keyword or topic",
+  { query: z.string().describe("Search query (e.g. 'getting started', 'troubleshooting', 'architecture')") },
+  async ({ query }) => {
     const results = {
-      query: "getting started",
+      query,
       totalResults: 12,
       sections: [
         {
