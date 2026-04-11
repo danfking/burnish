@@ -875,7 +875,13 @@ body {
     gap: var(--burnish-space-sm, 8px);
     align-items: flex-start;
 }
-.burnish-result-wrapper > :not(burnish-stat-bar) {
+.burnish-result-wrapper > :not(burnish-stat-bar):not(.burnish-metrics-grid) {
+    width: 100%;
+}
+.burnish-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--burnish-space-md, 12px);
     width: 100%;
 }
 @media (max-width: 768px) {

@@ -161,6 +161,36 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
             && Object.keys(parsed[0]).length <= 3 && parsed.every(i => 'label' in i && 'value' in i)) {
             return `<burnish-stat-bar items='${escapeAttr(JSON.stringify(parsed))}'${sourceAttr}></burnish-stat-bar>`;
         }
+        // Section-shaped arrays: items with {title/label, count?, articles/items/children (nested array)}
+        if (typeof parsed[0] === 'object' && parsed.every(item => {
+            const hasTitle = 'title' in item || 'label' in item || 'name' in item;
+            const hasNested = Object.values(item).some(v => Array.isArray(v) && v.length > 0);
+            return hasTitle && hasNested;
+        })) {
+            let html = '';
+            for (const section of parsed) {
+                const title = section.title || section.label || section.name || 'Section';
+                const nestedArrayKey = Object.keys(section).find(k => Array.isArray(section[k]) && section[k].length > 0);
+                const count = section.count || (nestedArrayKey ? section[nestedArrayKey].length : 0);
+                const status = section.status || 'info';
+                html += `<burnish-section label="${escapeAttr(String(title))}" count="${count}" status="${status}">`;
+                if (nestedArrayKey) {
+                    // Render nested items as compact cards directly (no stat-bar/view-switcher)
+                    for (const item of section[nestedArrayKey]) {
+                        if (typeof item === 'object' && item !== null) {
+                            const titleFields = ['name', 'title', 'path', 'filename', 'full_name', 'login', 'label'];
+                            const itemTitle = titleFields.reduce((acc, k) => acc || (item[k] ? String(item[k]) : ''), '') || title;
+                            const meta = Object.entries(item)
+                                .filter(([, v]) => (typeof v !== 'object' || v === null) && typeof v !== 'boolean')
+                                .map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v ?? '') }));
+                            html += `<burnish-card title="${escapeAttr(itemTitle)}" status="${escapeAttr(item.status || 'success')}" meta='${escapeAttr(JSON.stringify(meta))}'${sourceAttr}></burnish-card>`;
+                        }
+                    }
+                }
+                html += `</burnish-section>`;
+            }
+            return html;
+        }
         if (typeof parsed[0] === 'object') {
             const dataId = 'vd-' + crypto.randomUUID();
             window._viewData[dataId] = { parsed, label, sourceToolName, sourceName };
@@ -200,6 +230,25 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
             const chartType = parsed.datasets.length === 1 && parsed.labels.length <= 8 ? 'doughnut' : 'line';
             const title = parsed.title || label;
             return `<burnish-chart type="${chartType}" config='${escapeAttr(JSON.stringify({ data: parsed }))}'${sourceAttr}></burnish-chart>`;
+        }
+
+        // Pipeline: object with _ui_hint === "pipeline" and steps array
+        if (parsed._ui_hint === 'pipeline' && Array.isArray(parsed.steps)) {
+            return `<burnish-pipeline steps='${escapeAttr(JSON.stringify(parsed.steps))}'${sourceAttr}></burnish-pipeline>`;
+        }
+
+        // Metric: object with label + value + optional trend/unit, ≤5 keys
+        if ('label' in parsed && 'value' in parsed && ('trend' in parsed || 'unit' in parsed)) {
+            const keys = Object.keys(parsed).filter(k => !k.startsWith('_'));
+            if (keys.length <= 5) {
+                const attrs = [
+                    `label="${escapeAttr(String(parsed.label))}"`,
+                    `value="${escapeAttr(String(parsed.value))}"`,
+                    parsed.unit ? `unit="${escapeAttr(String(parsed.unit))}"` : '',
+                    parsed.trend ? `trend="${escapeAttr(String(parsed.trend))}"` : '',
+                ].filter(Boolean).join(' ');
+                return `<burnish-metric ${attrs}${sourceAttr}></burnish-metric>`;
+            }
         }
 
         const arrayKeys = ['items','results','data','entries','records','rows','nodes',
@@ -400,8 +449,13 @@ export function buildResultHtml(result, label, sourceToolName, sourceName, isErr
             }
             if (parts.length > 1 && buf === '') {
                 let html = '';
+                // Check if all parts are metric-shaped — wrap in grid
+                const allMetrics = parts.every(p => typeof p === 'object' && !Array.isArray(p) && 'label' in p && 'value' in p && ('trend' in p || 'unit' in p));
                 for (const part of parts) {
                     html += renderParsedResult(part, label, sourceToolName, sourceName);
+                }
+                if (allMetrics) {
+                    html = `<div class="burnish-metrics-grid">${html}</div>`;
                 }
                 return `<div class="burnish-result-wrapper" data-raw-result="${escapeAttr(result.substring(0, 50000))}">${html}</div>`;
             }

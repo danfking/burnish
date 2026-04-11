@@ -186,22 +186,108 @@ server.tool(
   {},
   async () => {
     const pipeline = {
-      name: "Production Release v2.4.1",
-      triggeredBy: "Alice Chen",
-      startedAt: "2026-04-10T09:15:00Z",
-      stages: [
-        { name: "Build", status: "success", duration: "2m 14s", details: "TypeScript compiled, 0 errors" },
-        { name: "Unit Tests", status: "success", duration: "1m 48s", details: "342 tests passed" },
-        { name: "Integration Tests", status: "success", duration: "4m 32s", details: "28 suites, all green" },
-        { name: "Security Scan", status: "running", duration: "1m 05s", details: "Scanning dependencies..." },
-        { name: "Staging Deploy", status: "pending", duration: null, details: "Waiting for security scan" },
-        { name: "Production Deploy", status: "pending", duration: null, details: "Requires manual approval" },
+      _ui_hint: "pipeline",
+      steps: [
+        { server: "ci", tool: "build", status: "success", duration: "2m 14s" },
+        { server: "ci", tool: "unit-tests", status: "success", duration: "1m 48s" },
+        { server: "ci", tool: "integration-tests", status: "success", duration: "4m 32s" },
+        { server: "security", tool: "dependency-scan", status: "running", duration: "1m 05s" },
+        { server: "deploy", tool: "staging", status: "pending" },
+        { server: "deploy", tool: "production", status: "pending" },
       ],
     };
 
     return {
       content: [{ type: "text" as const, text: JSON.stringify(pipeline, null, 2) }],
     };
+  }
+);
+
+// --- Tool: get-server-metrics ---
+server.tool(
+  "get-server-metrics",
+  "Returns live server performance metrics with trend indicators",
+  {},
+  async () => {
+    const metrics = [
+      { label: "Uptime", value: "99.97", unit: "%", trend: "flat" },
+      { label: "Avg Response", value: "42", unit: "ms", trend: "down" },
+      { label: "Active Users", value: "1,847", trend: "up" },
+      { label: "Error Rate", value: "0.03", unit: "%", trend: "down" },
+    ];
+    return {
+      content: metrics.map(m => ({ type: "text" as const, text: JSON.stringify(m) })),
+    };
+  }
+);
+
+// --- Tool: list-api-endpoints ---
+server.tool(
+  "list-api-endpoints",
+  "Returns API endpoint documentation with methods, paths, and descriptions",
+  {},
+  async () => {
+    const endpoints = [
+      { method: "GET", path: "/api/servers", status: "stable", auth: "optional", description: "List connected MCP servers" },
+      { method: "POST", path: "/api/tools/execute", status: "stable", auth: "required", description: "Execute a tool directly" },
+      { method: "GET", path: "/api/health", status: "stable", auth: "none", description: "Health check endpoint" },
+      { method: "POST", path: "/api/chat", status: "stable", auth: "required", description: "Create a new conversation" },
+      { method: "GET", path: "/api/chat/:id/stream", status: "stable", auth: "required", description: "Stream conversation responses via SSE" },
+      { method: "GET", path: "/api/models", status: "stable", auth: "optional", description: "List available LLM models" },
+      { method: "GET", path: "/api/prompts", status: "beta", auth: "optional", description: "List MCP prompt templates" },
+      { method: "POST", path: "/api/prompts/execute", status: "beta", auth: "required", description: "Execute a prompt template" },
+      { method: "GET", path: "/api/resources", status: "beta", auth: "optional", description: "List MCP resources" },
+      { method: "GET", path: "/api/resources/:uri", status: "beta", auth: "required", description: "Read a specific resource" },
+      { method: "POST", path: "/api/tools/batch", status: "experimental", auth: "required", description: "Execute multiple tools in sequence" },
+      { method: "GET", path: "/api/sessions", status: "stable", auth: "required", description: "List active sessions" },
+      { method: "DELETE", path: "/api/sessions/:id", status: "stable", auth: "required", description: "Delete a session" },
+      { method: "GET", path: "/api/schema/:tool", status: "stable", auth: "none", description: "Get JSON schema for a tool" },
+      { method: "POST", path: "/api/webhooks", status: "experimental", auth: "required", description: "Register a webhook for tool events" },
+    ];
+    return { content: [{ type: "text" as const, text: JSON.stringify(endpoints) }] };
+  }
+);
+
+// --- Tool: create-bug-report ---
+server.tool(
+  "create-bug-report",
+  "Submit a bug report with details for tracking",
+  {
+    title: z.string().describe("Bug title"),
+    severity: z.enum(["low", "medium", "high", "critical"]).describe("Severity level"),
+    description: z.string().describe("Detailed description of the bug"),
+    steps_to_reproduce: z.string().optional().describe("Steps to reproduce the issue"),
+  },
+  async ({ title, severity, description, steps_to_reproduce }) => {
+    const report = {
+      id: "BUG-" + Math.floor(Math.random() * 9000 + 1000),
+      title,
+      severity,
+      description,
+      steps_to_reproduce: steps_to_reproduce || "Not provided",
+      status: "Open",
+      assignee: "Unassigned",
+      createdAt: new Date().toISOString(),
+    };
+    return { content: [{ type: "text" as const, text: JSON.stringify(report) }] };
+  }
+);
+
+// --- Tool: get-team-performance ---
+server.tool(
+  "get-team-performance",
+  "Returns quarterly team performance data for bar chart visualization",
+  {},
+  async () => {
+    const performance = {
+      title: "Team Performance — Q1 2026",
+      labels: ["Frontend", "Backend", "DevOps", "QA", "Design"],
+      datasets: [
+        { label: "Tasks Completed", data: [48, 62, 35, 41, 28] },
+        { label: "Story Points", data: [142, 198, 95, 120, 78] },
+      ],
+    };
+    return { content: [{ type: "text" as const, text: JSON.stringify(performance) }] };
   }
 );
 
