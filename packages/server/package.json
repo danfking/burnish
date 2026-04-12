@@ -1,6 +1,6 @@
 {
   "name": "@burnishdev/server",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "MCP orchestration and session management for Burnish",
   "type": "module",
   "main": "dist/index.js",
