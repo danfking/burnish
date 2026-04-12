@@ -1,0 +1,67 @@
+# Clean-machine smoke test for the PUBLISHED `burnish` npm package.
+#
+# This is a PRE-RELEASE verification gate (see #386). It is intentionally
+# NOT triggered on push or pull_request — it pulls `burnish@latest` from
+# npm, so it only makes sense AFTER a new version has been published.
+#
+# Triggers:
+#   - workflow_dispatch: run manually from the Actions tab, optionally
+#     overriding the package spec (e.g. `burnish@0.2.0`) to test a specific
+#     version before promoting it.
+#   - push of a `v*` tag: automatic post-release smoke check.
+#
+# Runs on fresh macOS, Windows, and Ubuntu runners with no cached node_modules
+# from the repo — this is the whole point: simulate a user running
+# `npx burnish` on a clean machine.
+
+name: smoke-test
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'npm package spec to test (e.g. burnish@latest or burnish@0.2.0)'
+        required: false
+        default: 'burnish@latest'
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  smoke:
+    name: smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # We only need the smoke scripts — NOT the full repo checkout into
+      # a working directory that could contaminate the test. Check out
+      # into a sibling dir and run the script from there.
+      - name: Checkout (scripts only)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/smoke-test.sh
+            scripts/smoke-test.ps1
+          sparse-checkout-cone-mode: false
+
+      - name: Run smoke test (bash)
+        if: runner.os != 'Windows'
+        env:
+          BURNISH_SMOKE_PKG: ${{ github.event.inputs.package || 'burnish@latest' }}
+        run: bash scripts/smoke-test.sh
+
+      - name: Run smoke test (PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          BURNISH_SMOKE_PKG: ${{ github.event.inputs.package || 'burnish@latest' }}
+        run: pwsh -File scripts/smoke-test.ps1
