@@ -292,6 +292,37 @@ pnpm test             # Run Playwright tests
 pnpm clean            # Clean all build artifacts
 ```
 
+### Pre-release smoke test
+
+`scripts/smoke-test.sh` (and `scripts/smoke-test.ps1` for Windows) verifies
+that the **published** `burnish` npm package works end-to-end on a clean
+machine. It is a pre-release verification gate, NOT a per-PR check — it
+pulls `burnish@latest` from npm and only makes sense after a version has
+been published.
+
+Run manually:
+
+```bash
+bash scripts/smoke-test.sh
+# or on Windows:
+pwsh -File scripts/smoke-test.ps1
+```
+
+To test a specific version instead of `latest`:
+
+```bash
+BURNISH_SMOKE_PKG=burnish@0.2.0 bash scripts/smoke-test.sh
+```
+
+In CI, the `.github/workflows/smoke-test.yml` workflow runs the same script
+on macOS, Windows, and Ubuntu. It triggers on:
+
+- `workflow_dispatch` — run manually from the Actions tab (accepts a
+  `package` input to pin a specific version before promoting it).
+- Any `v*` tag push — automatic post-release verification.
+
+It is intentionally not triggered on push or pull_request.
+
 ```
 burnish/
 ├── packages/
