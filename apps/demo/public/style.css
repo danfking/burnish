@@ -645,6 +645,12 @@ body {
     background: transparent;
     border-radius: var(--burnish-radius-md, 8px);
     transition: all var(--burnish-transition-normal);
+    /* Keep result cards comfortably contained — without this they stretch
+       edge-to-edge inside .burnish-dashboard, making the Focus toggle feel
+       like a no-op (the un-focused state already fills the viewport). */
+    max-width: min(820px, 100%);
+    width: 100%;
+    margin-inline: auto;
 }
 .burnish-node[data-collapsed="false"] {
     position: relative;
