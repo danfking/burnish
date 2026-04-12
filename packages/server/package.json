@@ -1,7 +1,7 @@
 {
   "name": "@burnishdev/server",
   "version": "0.1.1",
-  "description": "MCP orchestration, LLM streaming, and session management for Burnish",
+  "description": "MCP orchestration and session management for Burnish",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,9 +19,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.82.0",
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "openai": "^6.33.0"
+    "@modelcontextprotocol/sdk": "^1.12.1"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
@@ -38,5 +36,5 @@
   "license": "AGPL-3.0",
   "homepage": "https://github.com/danfking/burnish",
   "author": "danfking",
-  "keywords": ["mcp", "model-context-protocol", "server", "llm", "orchestration", "burnish"]
+  "keywords": ["mcp", "model-context-protocol", "server", "burnish"]
 }

@@ -53,10 +53,11 @@ import {
 } from './deterministic-ui.js';
 
 // ── LLM Insight UI ──
-import { detectMode, getCurrentMode, renderModeToggle, createInsightSlot, streamInsight, initPromptBar, resetConversation } from './llm-insight-ui.js';
+// LLM Insight mode is provided by the pro overlay (@burnishdev/server-pro).
+// This public demo runs Explorer-only — no chat routes, no mode toggle.
 
 // ── Performance tracking ──
-import { recordPerf, recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
+import { recordToolPerf, togglePerfPanel, refreshPerfPanel } from './perf-panel.js';
 
 // ── Theme toggle ──
 document.getElementById('theme-toggle')?.addEventListener('click', () => {
@@ -700,12 +701,10 @@ function renderMainContent() {
         renderTreeNode(treeWrapper, session, root, activePath);
     }
 
-    // Hide LLM-generated nodes when in explorer mode
-    if (getCurrentMode() !== 'llm-insight') {
-        treeWrapper.querySelectorAll('.burnish-node[data-execution-mode="llm-insight"]').forEach(el => {
-            el.style.display = 'none';
-        });
-    }
+    // Explorer-only: always hide any legacy LLM-generated nodes
+    treeWrapper.querySelectorAll('.burnish-node[data-execution-mode="llm-insight"]').forEach(el => {
+        el.style.display = 'none';
+    });
 
     if (session.activeNodeId) {
         setTimeout(() => scrollToNode(session.activeNodeId, false), 100);
@@ -834,21 +833,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateBreadcrumb();
 
-    // Detect LLM Insight availability and render toggle
-    const modeStatus = await detectMode();
-    const modeToggleContainer = document.getElementById('mode-toggle');
-    if (modeToggleContainer) renderModeToggle(modeToggleContainer);
-
-    // Initialize LLM Insight prompt bar for conversational pivots
-    initPromptBar(PURIFY_CONFIG, {
-        generateId,
-        getActiveSession,
-        createNodeEl,
-        renderMainContent,
-        saveState,
-        renderSessionList,
-        updateBreadcrumb,
-    });
+    // Explorer-only demo: no LLM Insight toggle or prompt bar wiring.
+    // The mode-toggle and prompt-bar containers (if present in HTML) stay empty.
 
     // Suggestion buttons
     document.addEventListener('click', (e) => {
