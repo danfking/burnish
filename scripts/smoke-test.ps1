@@ -91,6 +91,24 @@ try {
                 } else {
                     Fail "response body did not contain 'burnish' or '<script'"
                 }
+
+                # Static asset checks — v0.2.0 shipped with a safePath bug that
+                # made every CSS/JS request 404 while the bare '/' route still
+                # worked. Verify at least one CSS + one component JS load with
+                # 200 and a non-empty body.
+                foreach ($asset in @('/tokens.css', '/style.css', '/components/card.js')) {
+                    try {
+                        $assetResp = Invoke-WebRequest -Uri ($Url + $asset) -UseBasicParsing -TimeoutSec 15
+                        $assetLen = if ($assetResp.Content) { $assetResp.Content.Length } else { 0 }
+                        if ($assetResp.StatusCode -eq 200 -and $assetLen -gt 0) {
+                            Pass "GET $Url$asset returned 200 ($assetLen bytes)"
+                        } else {
+                            Fail "GET $Url$asset returned HTTP $($assetResp.StatusCode), $assetLen bytes"
+                        }
+                    } catch {
+                        Fail "GET $Url$asset failed: $($_.Exception.Message)"
+                    }
+                }
             } else {
                 Fail "GET $Url returned HTTP $($response.StatusCode)"
             }

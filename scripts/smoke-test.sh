@@ -128,6 +128,21 @@ if [ "$READY" -eq 1 ]; then
         head -c 400 "$BODY_FILE" 2>/dev/null | sed 's/^/    | /'
         echo
     fi
+
+    # Static asset checks — v0.2.0 shipped with a safePath bug that made every
+    # CSS/JS request 404 while the bare '/' route still worked. HTML-only smoke
+    # checks do not catch this. We now verify that at least one CSS file, one
+    # component JS, and the tokens file all load with 200 and a non-empty body.
+    for ASSET in "/tokens.css" "/style.css" "/components/card.js"; do
+        ASSET_FILE="$TMPDIR_SMOKE/asset$(echo "$ASSET" | tr '/' '_')"
+        ASSET_CODE="$(curl -sS -o "$ASSET_FILE" -w '%{http_code}' "${URL}${ASSET}" || echo 000)"
+        ASSET_SIZE="$(wc -c < "$ASSET_FILE" 2>/dev/null || echo 0)"
+        if [ "$ASSET_CODE" = "200" ] && [ "$ASSET_SIZE" -gt 0 ]; then
+            pass "GET ${URL}${ASSET} returned 200 (${ASSET_SIZE} bytes)"
+        else
+            fail "GET ${URL}${ASSET} returned HTTP $ASSET_CODE, ${ASSET_SIZE} bytes"
+        fi
+    done
 fi
 
 # ----------------------------------------------------------------------
