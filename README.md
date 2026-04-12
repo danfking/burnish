@@ -398,33 +398,9 @@ burnish/
 
 Burnish reads the MCP server's tool list, generates forms from JSON Schema, and maps results directly to components — no LLM in the loop. Everything runs locally.
 
-## Privacy & Telemetry
+## Coming soon: Navigator
 
-Burnish collects **opt-in**, anonymous telemetry to measure real adoption (see [issue #382](https://github.com/danfking/burnish/issues/382)). It is **off by default**. On the first interactive run of the CLI you'll see a prompt asking whether to enable it — pressing Enter or anything other than `y` keeps it off.
-
-**What we send (only if you opt in):**
-
-- `v` — burnish CLI version
-- `os` — OS family: `darwin`, `linux`, `win32`, or `other`
-- `node` — Node.js major version
-- `bucket` — coarse invocation-count bucket: `1`, `2-5`, `6-20`, or `21+`
-- `id` — a random install ID (UUID) generated once on first opt-in
-- `schema_version` — payload schema version (currently `"1"`)
-
-**What we never send:** server URLs, tool names, schemas, arguments, file paths, hostnames, usernames, IP addresses we can see beyond the TCP connection, or any content from your MCP servers. There is no per-tool or per-schema tracking.
-
-**How to opt out at any time:**
-
-1. Set the environment variable `BURNISH_TELEMETRY=0` (also accepts `false`, `off`, `no`). This overrides any stored choice.
-2. Or delete / edit the stored choice file:
-   - macOS / Linux: `~/.config/burnish/telemetry.json` (honors `$XDG_CONFIG_HOME`)
-   - Windows: `%APPDATA%\burnish\telemetry.json`
-
-Telemetry is a single fire-and-forget HTTPS POST to `https://burnish-demo.fly.dev/telemetry/v1/ping` with a short timeout. If the endpoint is unreachable, the CLI behaves identically — nothing is retried or queued. Telemetry is skipped entirely in non-interactive and CI environments when no choice has been stored.
-
-## Coming soon: Copilot
-
-Copilot is the planned LLM-powered natural-language layer over Explorer mode — ask a question and Burnish picks the right tools across your connected servers, rendering the answer with the same components you see today. Explorer mode (what you use now) stays free, local, and zero-LLM.
+Navigator is the planned LLM-powered natural-language layer over Explorer mode — ask a question and Burnish picks the right tools across your connected servers, rendering the answer with the same components you see today. Explorer mode (what you use now) stays free, local, and zero-LLM.
 
 [Join the waitlist →](https://github.com/danfking/burnish/discussions/389)
 
