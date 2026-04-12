@@ -1,5 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { isWriteTool, authorizeToolCall, consumeAuthorization, guardToolExecution } from './guards.js';
+import { resolve } from 'node:path';
+import { isWriteTool, authorizeToolCall, consumeAuthorization, guardToolExecution, safePath } from './guards.js';
+
+describe('safePath', () => {
+    const baseDir = resolve('/tmp/burnish-assets');
+
+    it('accepts a URL-style path with a leading slash and treats it as relative to baseDir', () => {
+        // Regression: v0.2.0 shipped a safePath that called path.resolve(baseDir, '/style.css'),
+        // which on POSIX returns '/style.css' and on Windows returns the current drive root.
+        // Both fail the startsWith(baseDir) check, causing every CLI static asset to 404.
+        expect(safePath(baseDir, '/style.css')).toBe(resolve(baseDir, 'style.css'));
+        expect(safePath(baseDir, '/components/card.js')).toBe(resolve(baseDir, 'components/card.js'));
+    });
+
+    it('accepts a relative path', () => {
+        expect(safePath(baseDir, 'tokens.css')).toBe(resolve(baseDir, 'tokens.css'));
+    });
+
+    it('rejects path traversal attempts', () => {
+        expect(safePath(baseDir, '../etc/passwd')).toBe(null);
+        expect(safePath(baseDir, '/../../etc/passwd')).toBe(null);
+    });
+});
 
 describe('isWriteTool', () => {
     it('identifies write tools by name prefix', () => {

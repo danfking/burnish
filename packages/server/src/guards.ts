@@ -10,9 +10,16 @@ const WRITE_PATTERNS = /^(create|update|delete|remove|push|write|edit|move|fork|
 /**
  * Resolve a user-supplied path against a base directory and verify
  * it does not escape outside the base (prevents path traversal).
+ *
+ * Leading slashes on userPath are stripped so it is treated as relative
+ * to baseDir — otherwise Node's path.resolve() interprets a URL-style
+ * path like "/style.css" as absolute and discards baseDir entirely,
+ * causing every static file request in the CLI to fail validation and
+ * return 404. Regression shipped in v0.2.0, fixed in v0.2.1.
  */
 export function safePath(baseDir: string, userPath: string): string | null {
-    const resolved = normalize(resolve(baseDir, userPath));
+    const relative = userPath.replace(/^[/\\]+/, '');
+    const resolved = normalize(resolve(baseDir, relative));
     const base = normalize(baseDir);
     return resolved.startsWith(base + '\\') || resolved.startsWith(base + '/') || resolved === base
         ? resolved
