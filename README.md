@@ -82,13 +82,13 @@ All configured servers connect at startup. Their tools are available immediately
 
 Let your users explore your server without cloning anything. Drop this into your README:
 
-```markdown
+````markdown
 [![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
 
 ```bash
 npx burnish -- npx @your-org/your-mcp-server
 ```
-```
+````
 
 A hosted "Explore with Burnish" shields.io badge is tracked in [#385](https://github.com/danfking/burnish/issues/385).
 
