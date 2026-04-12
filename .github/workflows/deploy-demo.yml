@@ -4,6 +4,20 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/demo/**'
+      - 'packages/**'
+      - 'deploy/demo/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/deploy-demo.yml'
+
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
 
 jobs:
   deploy:
