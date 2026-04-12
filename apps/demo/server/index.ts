@@ -102,6 +102,134 @@ app.use('/api/tools/execute', async (c, next) => {
     await next();
 });
 
+// --- Telemetry ingestion (burnish CLI opt-in pings) ---
+//
+// Accepts anonymous opt-in telemetry from the burnish CLI (see
+// packages/cli/src/telemetry.ts and issue #382). There is intentionally no
+// persistent storage for v1.0 — we log validated payloads to stdout as a
+// single JSON line prefixed with `telemetry_ping ` so they are greppable in
+// `fly logs`. A real datastore can be swapped in later if volume warrants it.
+//
+// The route deliberately sits outside `/api/*` so that the optional
+// BURNISH_API_KEY Bearer auth does NOT apply — the CLI has no credentials.
+
+const TELEMETRY_RATE_LIMIT_MAX = 60; // 60 pings/min per IP
+const TELEMETRY_RATE_WINDOW_MS = 60_000;
+const TELEMETRY_MAX_BODY_BYTES = 1024; // 1KB hard cap
+
+interface TelemetryBucket {
+    tokens: number;
+    lastRefill: number;
+}
+const telemetryBuckets = new Map<string, TelemetryBucket>();
+
+function evictOldestTelemetryBucket(): void {
+    if (telemetryBuckets.size >= RATE_BUCKET_MAX_ENTRIES) {
+        const oldestKey = telemetryBuckets.keys().next().value;
+        if (oldestKey) telemetryBuckets.delete(oldestKey);
+    }
+}
+
+function checkTelemetryRateLimit(ip: string): boolean {
+    const now = Date.now();
+    let bucket = telemetryBuckets.get(ip);
+    if (!bucket) {
+        evictOldestTelemetryBucket();
+        bucket = { tokens: TELEMETRY_RATE_LIMIT_MAX, lastRefill: now };
+        telemetryBuckets.set(ip, bucket);
+    }
+    const elapsed = now - bucket.lastRefill;
+    const refill = Math.floor(elapsed / TELEMETRY_RATE_WINDOW_MS) * TELEMETRY_RATE_LIMIT_MAX;
+    if (refill > 0) {
+        bucket.tokens = Math.min(TELEMETRY_RATE_LIMIT_MAX, bucket.tokens + refill);
+        bucket.lastRefill = now;
+    }
+    if (bucket.tokens <= 0) return false;
+    bucket.tokens--;
+    return true;
+}
+
+const TELEMETRY_ALLOWED_KEYS = new Set(['v', 'os', 'node', 'bucket', 'id', 'schema_version']);
+const TELEMETRY_ALLOWED_OS = new Set(['darwin', 'linux', 'win32', 'other']);
+const TELEMETRY_ALLOWED_BUCKETS = new Set(['1', '2-5', '6-20', '21+']);
+
+function validateTelemetryPayload(body: unknown): string | null {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return 'payload must be a JSON object';
+    }
+    const obj = body as Record<string, unknown>;
+    const keys = Object.keys(obj);
+    for (const k of keys) {
+        if (!TELEMETRY_ALLOWED_KEYS.has(k)) return `unexpected field: ${k}`;
+    }
+    for (const required of TELEMETRY_ALLOWED_KEYS) {
+        if (!(required in obj)) return `missing field: ${required}`;
+    }
+    if (typeof obj.v !== 'string' || obj.v.length > 32) return 'v must be a short string';
+    if (typeof obj.os !== 'string' || !TELEMETRY_ALLOWED_OS.has(obj.os)) return 'os invalid';
+    if (typeof obj.node !== 'string' || obj.node.length > 8) return 'node must be a short string';
+    if (typeof obj.bucket !== 'string' || !TELEMETRY_ALLOWED_BUCKETS.has(obj.bucket)) return 'bucket invalid';
+    if (typeof obj.id !== 'string' || obj.id.length < 8 || obj.id.length > 64) return 'id invalid';
+    if (typeof obj.schema_version !== 'string' || obj.schema_version.length > 8) return 'schema_version invalid';
+    return null;
+}
+
+// CORS preflight — allow POST from any origin (CLI is the main caller but
+// other tools may legitimately ping).
+app.options('/telemetry/v1/ping', (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'content-type');
+    c.header('Access-Control-Max-Age', '86400');
+    return c.body(null, 204);
+});
+
+app.post('/telemetry/v1/ping', async (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+
+    const ip = getClientIp(c.req.raw, c.req.raw.headers);
+    if (!checkTelemetryRateLimit(ip)) {
+        return c.json({ error: 'Too many requests' }, 429);
+    }
+
+    // Enforce 1KB cap before parsing JSON.
+    const lenHeader = c.req.header('content-length');
+    if (lenHeader) {
+        const len = parseInt(lenHeader, 10);
+        if (!isNaN(len) && len > TELEMETRY_MAX_BODY_BYTES) {
+            return c.json({ error: 'payload too large' }, 413);
+        }
+    }
+
+    let raw: string;
+    try {
+        raw = await c.req.text();
+    } catch {
+        return c.json({ error: 'invalid body' }, 400);
+    }
+    if (raw.length > TELEMETRY_MAX_BODY_BYTES) {
+        return c.json({ error: 'payload too large' }, 413);
+    }
+
+    let body: unknown;
+    try {
+        body = JSON.parse(raw);
+    } catch {
+        return c.json({ error: 'invalid JSON' }, 400);
+    }
+
+    const validationError = validateTelemetryPayload(body);
+    if (validationError) {
+        return c.json({ error: validationError }, 400);
+    }
+
+    // Structured single-line log for `fly logs | grep telemetry_ping`.
+    // No IP is logged — we only use it for rate limiting, then drop it.
+    console.log('telemetry_ping ' + JSON.stringify({ ...(body as Record<string, unknown>), at: new Date().toISOString() }));
+
+    return c.body(null, 204);
+});
+
 // --- API Routes ---
 
 const startedAt = Date.now();
