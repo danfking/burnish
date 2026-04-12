@@ -559,10 +559,6 @@ async function deleteNode(nodeId) {
     if (!node) return;
 
     const removeIds = new Set(getDescendantIds(session, nodeId));
-    const count = removeIds.size;
-    const noun = count === 1 ? 'this step' : `this step and ${count - 1} descendant${count > 2 ? 's' : ''}`;
-
-    if (!confirm(`Delete ${noun}? This cannot be undone.`)) return;
 
     if (node.parentId) {
         const parent = getNodeById(session, node.parentId);
