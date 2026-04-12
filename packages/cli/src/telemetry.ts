@@ -17,8 +17,15 @@
  * - **Fire-and-forget.** A single HTTPS POST with a short timeout. All errors
  *   are swallowed. Telemetry never blocks CLI startup.
  *
- * TODO(danfking): wire the real endpoint before v1.0 ships. The placeholder
- * below is not provisioned. Until it is, failed pings are silent no-ops.
+ * The ingestion endpoint is a `POST /telemetry/v1/ping` route on the
+ * existing burnish-demo Fly app (apps/demo/server/index.ts). For v1.0 the
+ * "backend" is just `fly logs | grep telemetry_ping` — validated payloads
+ * are logged as single JSON lines. A real datastore can be added later.
+ *
+ * TODO(danfking): after merging this PR, run `flyctl deploy` against the
+ * burnish-demo app so the new `/telemetry/v1/ping` route is live. Until
+ * the updated image is deployed, CLI pings will 404 and be silently dropped
+ * (which is fine — the CLI swallows all errors).
  */
 
 import { randomUUID } from 'node:crypto';
@@ -27,9 +34,11 @@ import { homedir, platform } from 'node:os';
 import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 
-// Placeholder — not provisioned yet. See TODO at top of file.
-const TELEMETRY_ENDPOINT = 'https://telemetry.burnish.dev/v1/ping';
+// Ingestion route on the burnish-demo Fly app. See apps/demo/server/index.ts
+// and the TODO at the top of this file regarding deployment.
+const TELEMETRY_ENDPOINT = 'https://burnish-demo.fly.dev/telemetry/v1/ping';
 const TELEMETRY_TIMEOUT_MS = 1500;
+const TELEMETRY_SCHEMA_VERSION = '1';
 
 export type TelemetryDecision = 'enabled' | 'disabled';
 
@@ -171,6 +180,7 @@ export interface TelemetryPayload {
     node: string;
     bucket: '1' | '2-5' | '6-20' | '21+';
     id: string;
+    schema_version: string;
 }
 
 export function buildPayload(version: string, id: string, count: number): TelemetryPayload {
@@ -180,6 +190,7 @@ export function buildPayload(version: string, id: string, count: number): Teleme
         node: String(process.versions.node.split('.')[0] || 'unknown'),
         bucket: countBucket(count),
         id,
+        schema_version: TELEMETRY_SCHEMA_VERSION,
     };
 }
 

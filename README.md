@@ -362,6 +362,7 @@ Burnish collects **opt-in**, anonymous telemetry to measure real adoption (see [
 - `node` — Node.js major version
 - `bucket` — coarse invocation-count bucket: `1`, `2-5`, `6-20`, or `21+`
 - `id` — a random install ID (UUID) generated once on first opt-in
+- `schema_version` — payload schema version (currently `"1"`)
 
 **What we never send:** server URLs, tool names, schemas, arguments, file paths, hostnames, usernames, IP addresses we can see beyond the TCP connection, or any content from your MCP servers. There is no per-tool or per-schema tracking.
 
@@ -372,7 +373,7 @@ Burnish collects **opt-in**, anonymous telemetry to measure real adoption (see [
    - macOS / Linux: `~/.config/burnish/telemetry.json` (honors `$XDG_CONFIG_HOME`)
    - Windows: `%APPDATA%\burnish\telemetry.json`
 
-Telemetry is a single fire-and-forget HTTPS POST with a short timeout. If the endpoint is unreachable, the CLI behaves identically — nothing is retried or queued. Telemetry is skipped entirely in non-interactive and CI environments when no choice has been stored.
+Telemetry is a single fire-and-forget HTTPS POST to `https://burnish-demo.fly.dev/telemetry/v1/ping` with a short timeout. If the endpoint is unreachable, the CLI behaves identically — nothing is retried or queued. Telemetry is skipped entirely in non-interactive and CI environments when no choice has been stored.
 
 ## License
 

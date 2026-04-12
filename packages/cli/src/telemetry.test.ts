@@ -49,11 +49,12 @@ describe('telemetry', () => {
     describe('buildPayload', () => {
         it('includes all required fields and nothing else', () => {
             const p = buildPayload('1.2.3', 'abc-id', 1);
-            expect(Object.keys(p).sort()).toEqual(['bucket', 'id', 'node', 'os', 'v']);
+            expect(Object.keys(p).sort()).toEqual(['bucket', 'id', 'node', 'os', 'schema_version', 'v']);
             expect(p.v).toBe('1.2.3');
             expect(p.id).toBe('abc-id');
             expect(['darwin', 'linux', 'win32', 'other']).toContain(p.os);
             expect(p.node).toMatch(/^\d+$/);
+            expect(p.schema_version).toBe('1');
         });
 
         it('buckets counts coarsely', () => {
