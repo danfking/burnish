@@ -1,22 +1,103 @@
 <p align="center">
-  <img src="apps/demo/public/logo.png" alt="Burnish" width="120">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-demo.gif">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero-demo.gif">
+    <img src="docs/assets/hero-demo.gif" alt="Burnish Explorer: pick an MCP server, see every tool, fill a form, get a rendered answer — no LLM." width="820">
+  </picture>
 </p>
 
-# Burnish
+<h1 align="center">Burnish</h1>
 
-**Explore any MCP server. No LLM required.**
+<p align="center"><strong>Swagger UI for MCP servers.</strong></p>
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Explore with Burnish](https://img.shields.io/badge/Explore%20with-Burnish-8B3A3A?style=flat)](https://burnish-demo.fly.dev/)
+<p align="center">Explore any MCP server in your browser. No LLM, no API key, no config.</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/burnish"><img src="https://img.shields.io/npm/v/burnish.svg?color=8B3A3A&label=npm" alt="npm version"></a>
+  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL--3.0-8B3A3A.svg" alt="License: AGPL-3.0"></a>
+  <a href="https://github.com/danfking/burnish/actions"><img src="https://img.shields.io/github/actions/workflow/status/danfking/burnish/ci.yml?branch=main&label=CI" alt="CI status"></a>
+  <a href="https://github.com/danfking/burnish"><img src="https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A" alt="Explore with Burnish"></a>
+</p>
+
+---
+
+## Quickstart
 
 ```bash
 npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
 ```
----
 
-## What is Burnish?
+That's it. Burnish spawns the MCP server, reads its tool list, opens your browser, and renders every tool as an interactive form. Click one, fill it in, see the result as cards, tables, or charts — not raw JSON.
 
-**Swagger UI for the MCP ecosystem.** Connect to any MCP server and immediately see every tool it exposes — with descriptions, auto-generated input forms, and results rendered as cards, tables, charts, and metrics. No LLM. No API key. No data leaving your machine.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/quickstart-screenshot-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/quickstart-screenshot-light.png">
+    <img src="docs/assets/quickstart-screenshot-light.png" alt="Burnish Explorer showing a populated MCP server with rendered tool results" width="820">
+  </picture>
+</p>
+
+Try the hosted demo: **[burnish-demo.fly.dev](https://burnish-demo.fly.dev)**
+
+## Why Burnish?
+
+- **Zero LLM.** No OpenAI key, no Anthropic key, no inference cost. Ever. Explorer mode is 100% deterministic — schemas in, forms out, results rendered.
+- **Zero config.** Point `npx burnish` at an MCP server command and it runs. No JSON files, no accounts, no Docker.
+- **Zero data leaving your machine.** The CLI runs locally and talks only to the MCP server you pointed it at. No analytics pixels, no telemetry by default.
+
+## Compared to the alternatives
+
+| | Burnish | MCP Inspector | Composio / Rube | Smithery | n8n |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Works without LLM** | ✅ | ✅ | ❌ | ➖ | ❌ |
+| **Rich visualization** | ✅ Cards, tables, charts | ❌ Raw JSON | ➖ Limited | ➖ Registry only | ➖ Node output |
+| **Any MCP server** | ✅ | ✅ | ➖ 500 pre-wrapped | ➖ Browse only | ➖ Custom nodes |
+| **Auto-generated forms** | ✅ From schema | ❌ Manual JSON | ➖ Pre-built only | ❌ | ➖ Node config UI |
+| **Local / private** | ✅ Fully | ✅ | ❌ Cloud | ❌ Cloud | ➖ Self-host (heavy) |
+| **Zero setup** | ✅ `npx burnish` | ✅ `npx` | ❌ Account required | ➖ Browse only | ❌ Docker required |
+| **Composable** | ✅ Any server combo | ❌ Single server | ❌ Locked ecosystem | ➖ | ➖ Workflow builder |
+
+✅ Full support · ➖ Partial / limited · ❌ Not supported
+
+## What you can point it at
+
+```bash
+# A stdio server (most common)
+npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
+
+# GitHub (needs a PAT)
+GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... \
+  npx burnish -- npx @modelcontextprotocol/server-github
+
+# An SSE / HTTP MCP server
+npx burnish --sse https://your-mcp-server.example.com/sse
+
+# A multi-server config file
+npx burnish --config ./mcp-servers.json
+```
+
+All configured servers connect at startup. Their tools are available immediately — discoverable, documented, and executable from the browser.
+
+## For MCP server owners
+
+Let your users explore your server without cloning anything. Drop this into your README:
+
+```markdown
+[![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
+
+```bash
+npx burnish -- npx @your-org/your-mcp-server
+```
+```
+
+A hosted "Explore with Burnish" shields.io badge is tracked in [#385](https://github.com/danfking/burnish/issues/385).
+
+## Links
+
+- **Hosted demo** — [burnish-demo.fly.dev](https://burnish-demo.fly.dev)
+- **Discussions** — [github.com/danfking/burnish/discussions](https://github.com/danfking/burnish/discussions)
+- **Issues** — [github.com/danfking/burnish/issues](https://github.com/danfking/burnish/issues)
+- **Registries** — Smithery, Glama, mcp.so listings coming at launch (tracked in [#383](https://github.com/danfking/burnish/issues/383))
 
 ## Features
 
@@ -25,74 +106,16 @@ Connect. Browse. Execute. Everything is driven by the server's tool schemas.
 - **Instant tool discovery** — every tool listed with its description and input schema
 - **Auto-generated forms** — JSON Schema in, interactive form out
 - **Rich results** — responses rendered as cards, tables, charts, stat bars, not raw JSON
-- **Fully private** — runs locally, no external calls, no telemetry
+- **Fully private** — runs locally, no external calls, no telemetry by default
 - **Zero config** — `npx burnish` and you're running
+- **Drill-down navigation** — collapsible sections and session persistence
+- **Framework-agnostic** — standard web components, no React/Vue/Angular lock-in
+- **Themeable** — `--burnish-*` CSS custom properties
+- **No build step** — import components from CDN as ES modules
 
-## Quick Start
+## Component reference
 
-### One command (once published to npm)
-
-```bash
-npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
-```
-
-### From source
-
-```bash
-git clone https://github.com/danfking/burnish.git
-cd burnish
-pnpm install
-pnpm build
-pnpm dev
-```
-
-Open `http://localhost:3000`. Your configured MCP servers appear with all their tools ready to use.
-
-Configure your MCP servers in `apps/demo/mcp-servers.json`.
-
-## Add the badge to your MCP server README
-
-Help your users try your MCP server without installing anything. Paste this line at the top of your README.
-
-<!-- TODO(@danfking): confirm brand hex 8B3A3A matches the final logo palette — see #385 -->
-
-```markdown
-[![Explore with Burnish](https://img.shields.io/badge/Explore%20with-Burnish-8B3A3A?style=flat)](https://burnish-demo.fly.dev/?server=<YOUR_SERVER_URL>)
-```
-
-Replace `<YOUR_SERVER_URL>` with the URL (or npm package) of your MCP server. The hosted Burnish demo loads your server in the browser — no LLM, no account, no install.
-
-Prefer a local command? Point your users at the CLI instead:
-
-```bash
-# Explore your MCP server with Burnish (no LLM required)
-npx burnish -- npx @your-org/your-mcp-server
-```
-
-## Why Burnish?
-
-| | Burnish | MCP Inspector | Composio / Rube | Smithery | n8n |
-|---|---|---|---|---|---|
-| **Works without LLM** | Yes | Yes | No | N/A | No |
-| **Rich visualization** | Cards, tables, charts, metrics | Raw JSON | Limited | None (registry only) | Node output |
-| **Any MCP server** | Yes | Yes | 500 pre-wrapped apps | Registry, no execution | Via custom nodes |
-| **Auto-generated forms** | Yes (from schema) | Manual JSON input | Pre-built forms | No | Node config UI |
-| **Local / private** | Yes, fully | Yes | Cloud-dependent | Cloud | Self-host (heavy) |
-| **Setup time** | `npx burnish` | `npx` | Account + config | Browse only | Docker + config |
-| **Composable** | Any server combo | Single server | Locked ecosystem | N/A | Workflow builder |
-
-## Key Features
-
-- Schema-driven tool discovery and form generation
-- 10 web components: cards, tables, charts, forms, stat bars, metrics, sections, messages, actions, pipelines
-- DOMPurify-sanitized rendering
-- Works with any MCP server — filesystem, GitHub, databases, custom tools
-- Framework-agnostic — standard web components, no React/Vue/Angular lock-in
-- Themeable via `--burnish-*` CSS custom properties
-- No build step required — import from CDN as ES modules
-- Drill-down navigation with collapsible sections and session persistence
-
-## Component Reference
+10 Lit 3 web components, each driven by JSON attributes:
 
 | Component | Tag | Key Attributes | Purpose |
 |-----------|-----|----------------|---------|
@@ -111,7 +134,7 @@ npx burnish -- npx @your-org/your-mcp-server
 
 **Action types:** `read` (auto-invoke, safe) and `write` (shows form, requires user confirmation).
 
-## SDK Integration
+## SDK integration
 
 ### Middleware
 
@@ -122,94 +145,13 @@ import { withBurnishUI } from "burnish/middleware";
 await withBurnishUI(server, { port: 3001 });
 ```
 
-### Schema Export
+### Schema export
 
 ```bash
 npx burnish export -- npx @your-org/your-server > schema.json
 ```
 
-## Recipes
-
-Multi-server combinations that show Burnish at its best. Each recipe is a `mcp-servers.json` config plus a prompt.
-
-### Incident Triage
-
-Connect PagerDuty + GitHub + your database. Surface the alert, related commits, and recent error rates in one view.
-
-```json
-{
-  "mcpServers": {
-    "pagerduty": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-pagerduty"],
-      "env": { "PAGERDUTY_API_KEY": "${PAGERDUTY_API_KEY}" }
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" }
-    },
-    "postgres": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DATABASE_URL}"]
-    }
-  }
-}
-```
-
-**Prompt:** "Show open PagerDuty incidents, then for the highest-severity one, find related commits from the last 24 hours and query the error_logs table for matching stack traces."
-
-### Project Standup
-
-Connect GitHub + Linear (or Jira) + Slack. Get a daily digest without opening three tabs.
-
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}" }
-    },
-    "linear": {
-      "command": "npx",
-      "args": ["-y", "mcp-linear"],
-      "env": { "LINEAR_API_KEY": "${LINEAR_API_KEY}" }
-    },
-    "slack": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-slack"],
-      "env": { "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}" }
-    }
-  }
-}
-```
-
-**Prompt:** "Summarize yesterday's merged PRs, open Linear issues assigned to me, and any unread Slack threads in #engineering."
-
-### Research Brief
-
-Connect web search + filesystem. Search, summarize, save.
-
-```json
-{
-  "mcpServers": {
-    "brave-search": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-brave-search"],
-      "env": { "BRAVE_API_KEY": "${BRAVE_API_KEY}" }
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./research"]
-    }
-  }
-}
-```
-
-**Prompt:** "Search for recent benchmarks on MCP server performance, summarize the top 5 results, and save the summary to research/mcp-benchmarks.md."
-
-## Use in Your Own Project
+## Use in your own project
 
 ### CDN (no build step)
 
@@ -260,9 +202,9 @@ for (const el of elements) {
 
 ## Configuration
 
-### MCP Servers
+### MCP servers
 
-Configure in `apps/demo/mcp-servers.json`:
+Configure in `apps/demo/mcp-servers.json` when running from source, or pass `--config` to the CLI:
 
 ```json
 {
@@ -287,57 +229,14 @@ All configured servers connect at startup. Their tools are available immediately
 ## Development
 
 ```bash
+git clone https://github.com/danfking/burnish.git
+cd burnish
 pnpm install          # Install all dependencies
 pnpm build            # Build all packages
 pnpm dev              # Start the demo
 pnpm test             # Run Playwright tests
 pnpm clean            # Clean all build artifacts
 ```
-
-### Pre-release smoke test
-
-`scripts/smoke-test.sh` (and `scripts/smoke-test.ps1` for Windows) verifies
-that the **published** `burnish` npm package works end-to-end on a clean
-machine. It is a pre-release verification gate, NOT a per-PR check — it
-pulls `burnish@latest` from npm and only makes sense after a version has
-been published.
-
-Run manually:
-
-```bash
-bash scripts/smoke-test.sh
-# or on Windows:
-pwsh -File scripts/smoke-test.ps1
-```
-
-To test a specific version instead of `latest`:
-
-```bash
-BURNISH_SMOKE_PKG=burnish@0.2.0 bash scripts/smoke-test.sh
-```
-
-A ready-to-use GitHub Actions workflow lives at
-`docs/smoke-test.workflow.yml.txt`. Maintainers can install it by copying
-that file to `.github/workflows/smoke-test.yml`:
-
-```bash
-cp docs/smoke-test.workflow.yml.txt .github/workflows/smoke-test.yml
-git add .github/workflows/smoke-test.yml
-git commit -m "ci: install smoke-test workflow (#386)"
-```
-
-(It is shipped as a `.txt` template because adding workflow files requires
-a token with the `workflow` OAuth scope, which routine contributor PRs do
-not need to carry.)
-
-Once installed, the workflow runs the same scripts on macOS, Windows, and
-Ubuntu. It triggers on:
-
-- `workflow_dispatch` — run manually from the Actions tab (accepts a
-  `package` input to pin a specific version before promoting it).
-- Any `v*` tag push — automatic post-release verification.
-
-It is intentionally not triggered on push or pull_request.
 
 ```
 burnish/
@@ -359,7 +258,7 @@ burnish/
 - Node.js 20+
 - [pnpm](https://pnpm.io/) 9+
 
-## How It Works
+## How it works
 
 ```
     ┌──────────────────────────────────┐
@@ -403,6 +302,30 @@ Burnish reads the MCP server's tool list, generates forms from JSON Schema, and 
 Navigator is the planned LLM-powered natural-language layer over Explorer mode — ask a question and Burnish picks the right tools across your connected servers, rendering the answer with the same components you see today. Explorer mode (what you use now) stays free, local, and zero-LLM.
 
 [Join the waitlist →](https://github.com/danfking/burnish/discussions/389)
+
+## Privacy & Telemetry
+
+Burnish collects **opt-in**, anonymous telemetry to measure real adoption (see [issue #382](https://github.com/danfking/burnish/issues/382)). It is **off by default**. On the first interactive run of the CLI you'll see a prompt asking whether to enable it — pressing Enter or anything other than `y` keeps it off.
+
+**What we send (only if you opt in):**
+
+- `v` — burnish CLI version
+- `os` — OS family: `darwin`, `linux`, `win32`, or `other`
+- `node` — Node.js major version
+- `bucket` — coarse invocation-count bucket: `1`, `2-5`, `6-20`, or `21+`
+- `id` — a random install ID (UUID) generated once on first opt-in
+- `schema_version` — payload schema version (currently `"1"`)
+
+**What we never send:** server URLs, tool names, schemas, arguments, file paths, hostnames, usernames, IP addresses we can see beyond the TCP connection, or any content from your MCP servers. There is no per-tool or per-schema tracking.
+
+**How to opt out at any time:**
+
+1. Set the environment variable `BURNISH_TELEMETRY=0` (also accepts `false`, `off`, `no`). This overrides any stored choice.
+2. Or delete / edit the stored choice file:
+   - macOS / Linux: `~/.config/burnish/telemetry.json` (honors `$XDG_CONFIG_HOME`)
+   - Windows: `%APPDATA%\burnish\telemetry.json`
+
+Telemetry is a single fire-and-forget HTTPS POST to `https://burnish-demo.fly.dev/telemetry/v1/ping` with a short timeout. If the endpoint is unreachable, the CLI behaves identically — nothing is retried or queued. Telemetry is skipped entirely in non-interactive and CI environments when no choice has been stored.
 
 ## License
 
