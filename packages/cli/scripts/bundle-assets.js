@@ -11,19 +11,29 @@ mkdirSync(resolve(assets, 'components'), { recursive: true });
 mkdirSync(resolve(assets, 'app'), { recursive: true });
 mkdirSync(resolve(assets, 'renderer'), { recursive: true });
 
-// Copy demo public files
+// Copy all top-level files from apps/demo/public/ to assets/.
+//
+// Previously this was a hand-maintained allowlist, which drifted from reality
+// whenever a new .js file was added: 0.2.1 shipped without template-learning.js,
+// perf-panel.js, and ambient-suggestions.js, so the landing page 404'd those
+// imports and the MCP server buttons failed to render. Glob-copy everything
+// top-level (by extension allowlist, not filename allowlist) so adding a new
+// asset to the demo app just works, and remove this class of bug permanently.
+//
+// Subdirectories under public/ are intentionally NOT recursed — compiled
+// packages (components/, app/, renderer/) are copied separately below.
+// index.html is also handled explicitly at the bottom of this script.
 const publicDir = resolve(root, 'apps/demo/public');
-const filesToCopy = [
-    'app.js', 'shared.js', 'view-renderers.js', 'contextual-actions.js',
-    'deterministic-ui.js', 'style.css', 'tokens.css',
-];
-for (const f of filesToCopy) {
-    const src = resolve(publicDir, f);
-    if (existsSync(src)) {
-        cpSync(src, resolve(assets, f));
-    } else {
-        console.warn(`[burnish] Warning: ${f} not found in demo public/`);
-    }
+const PUBLIC_EXT_ALLOWLIST = new Set([
+    '.js', '.mjs', '.css', '.html', '.json', '.svg',
+    '.png', '.ico', '.webmanifest',
+]);
+for (const entry of readdirSync(publicDir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (entry.name === 'index.html') continue; // written explicitly at bottom
+    const ext = extname(entry.name).toLowerCase();
+    if (!PUBLIC_EXT_ALLOWLIST.has(ext)) continue;
+    cpSync(resolve(publicDir, entry.name), resolve(assets, entry.name));
 }
 
 /**
@@ -61,18 +71,8 @@ if (existsSync(componentTokens)) {
     cpSync(componentTokens, resolve(assets, 'components/tokens.css'));
 }
 
-// Copy favicon, logo, and manifest files
-const assetFiles = [
-    'favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png',
-    'apple-touch-icon.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png',
-    'logo.png', 'site.webmanifest',
-];
-for (const f of assetFiles) {
-    const src = resolve(publicDir, f);
-    if (existsSync(src)) {
-        cpSync(src, resolve(assets, f));
-    }
-}
+// Favicons, logos, and manifests are now handled by the glob-copy above
+// (the PUBLIC_EXT_ALLOWLIST includes .ico, .png, .svg, .webmanifest).
 
 // Copy index.html from demo
 // The import map already uses /app/, /renderer/, /components/ paths which match our layout

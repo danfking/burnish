@@ -143,6 +143,37 @@ if [ "$READY" -eq 1 ]; then
             fail "GET ${URL}${ASSET} returned HTTP $ASSET_CODE, ${ASSET_SIZE} bytes"
         fi
     done
+
+    # Dynamic-import check — v0.2.1 shipped with a hand-maintained bundle
+    # allowlist that forgot template-learning.js, perf-panel.js, and
+    # ambient-suggestions.js, so the landing page 404'd those imports at
+    # runtime and MCP server buttons never rendered. Parse /app.js for its
+    # relative imports and verify each one loads.
+    APP_JS="$TMPDIR_SMOKE/app.js"
+    if curl -sSf -o "$APP_JS" "${URL}/app.js" 2>/dev/null; then
+        IMPORT_LIST="$(grep -oE "['\"][./][^'\"]*\.(js|mjs|css)['\"]" "$APP_JS" 2>/dev/null \
+            | tr -d "'\"" | sort -u)"
+        if [ -n "$IMPORT_LIST" ]; then
+            while IFS= read -r IMPORT; do
+                [ -z "$IMPORT" ] && continue
+                case "$IMPORT" in
+                    /*) URL_PATH="$IMPORT" ;;
+                    ./*) URL_PATH="/${IMPORT#./}" ;;
+                    *)  URL_PATH="/$IMPORT" ;;
+                esac
+                IMP_CODE="$(curl -sS -o /dev/null -w '%{http_code}' "${URL}${URL_PATH}" || echo 000)"
+                if [ "$IMP_CODE" = "200" ]; then
+                    pass "app.js import ${URL_PATH} -> 200"
+                else
+                    fail "app.js import ${URL_PATH} -> HTTP $IMP_CODE (bundle drift?)"
+                fi
+            done <<< "$IMPORT_LIST"
+        else
+            pass "app.js has no relative imports to verify"
+        fi
+    else
+        fail "could not fetch ${URL}/app.js for dynamic-import verification"
+    fi
 fi
 
 # ----------------------------------------------------------------------
