@@ -8,6 +8,7 @@
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
+[![SafeSkill 74/100](https://img.shields.io/badge/SafeSkill-74%2F100_Passes%20with%20Notes-yellow)](https://safeskill.dev/scan/danfking-burnish)
 
 ```bash
 npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
