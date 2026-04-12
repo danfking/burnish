@@ -4,7 +4,7 @@
 
 import { PURIFY_CONFIG, WRITE_TOOL_RE, escapeHtml, escapeAttr } from './shared.js';
 import { buildResultHtml } from './view-renderers.js';
-import { getCurrentMode, createInsightSlot, streamInsight } from './llm-insight-ui.js';
+// LLM Insight streaming is provided by the pro overlay in burnish-pro.
 import { recordToolPerf, refreshPerfPanel } from './perf-panel.js';
 import { getTemplateInstructions } from './template-learning.js';
 import { appendAmbientSuggestions } from './ambient-suggestions.js';
@@ -243,14 +243,6 @@ export async function executeToolDirect(toolName, args, label) {
         // Append ambient suggestions based on result data
         if (contentEl) {
             appendAmbientSuggestions(contentEl, data.result, toolName, args, PURIFY_CONFIG);
-        }
-        // Stream AI insights in LLM Insight mode (with learned templates)
-        if (getCurrentMode() === 'llm-insight' && contentEl) {
-            const insightSlot = createInsightSlot(contentEl);
-            const summary = JSON.stringify(data.result).substring(0, 2000);
-            getTemplateInstructions(toolName).then(extra => {
-                streamInsight(insightSlot, toolName, summary, PURIFY_CONFIG, extra || undefined);
-            });
         }
     } catch (err) {
         var errorHtml = '<burnish-card title="Error" status="error" body="' + escapeAttr(err.message) + '"></burnish-card>';

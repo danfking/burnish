@@ -1,5 +1,5 @@
 /**
- * Model Performance Panel — shows aggregated LLM performance metrics.
+ * Tool Performance Panel — shows aggregated tool execution metrics.
  * Accessible via the chart icon in the header toolbar.
  */
 
@@ -12,25 +12,7 @@ const perfStore = new PerfStore();
 let panelOpen = false;
 
 /**
- * Record a performance entry after an LLM response.
- * @param {{model: string, toolName: string, latencyMs: number, inputTokens: number, outputTokens: number, costUsd?: number, responseHtml: string}} data
- */
-export function recordPerf(data) {
-    const componentCount = countBurnishComponents(data.responseHtml || '');
-    perfStore.add({
-        model: data.model || 'unknown',
-        toolName: data.toolName || 'none',
-        latencyMs: data.latencyMs || 0,
-        inputTokens: data.inputTokens || 0,
-        outputTokens: data.outputTokens || 0,
-        costUsd: data.costUsd || 0,
-        componentSuccess: componentCount > 0,
-        componentCount,
-    });
-}
-
-/**
- * Record a performance entry for a direct tool execution (no LLM).
+ * Record a performance entry for a direct tool execution.
  * @param {{toolName: string, latencyMs: number, responseHtml: string}} data
  */
 export function recordToolPerf(data) {
@@ -97,7 +79,6 @@ function hidePerfPanel() {
 }
 
 function renderPerfContent(panel) {
-    const modelStats = perfStore.getModelStats();
     const toolStats = perfStore.getToolStats();
     const allRecords = perfStore.getAll();
     const totalCount = perfStore.count;
@@ -105,13 +86,12 @@ function renderPerfContent(panel) {
     // Summary stats
     const totalLatency = allRecords.reduce((a, r) => a + r.latencyMs, 0);
     const avgLatency = totalCount > 0 ? Math.round(totalLatency / totalCount) : 0;
-    const totalCost = allRecords.reduce((a, r) => a + r.costUsd, 0);
     const successCount = allRecords.filter(r => r.componentSuccess).length;
     const successRate = totalCount > 0 ? Math.round(successCount / totalCount * 100) : 0;
 
     let html = `
         <div class="burnish-perf-header">
-            <h3 class="burnish-perf-title">Model Performance</h3>
+            <h3 class="burnish-perf-title">Tool Performance</h3>
             <button class="burnish-perf-close" title="Close">&times;</button>
         </div>
         <div class="burnish-perf-body">
@@ -122,7 +102,7 @@ function renderPerfContent(panel) {
         <div class="burnish-perf-summary">
             <div class="burnish-perf-stat">
                 <span class="burnish-perf-stat-value">${totalCount}</span>
-                <span class="burnish-perf-stat-label">Requests</span>
+                <span class="burnish-perf-stat-label">Executions</span>
             </div>
             <div class="burnish-perf-stat">
                 <span class="burnish-perf-stat-value">${formatMs(avgLatency)}</span>
@@ -132,42 +112,8 @@ function renderPerfContent(panel) {
                 <span class="burnish-perf-stat-value">${successRate}%</span>
                 <span class="burnish-perf-stat-label">Component Rate</span>
             </div>
-            <div class="burnish-perf-stat">
-                <span class="burnish-perf-stat-value">${formatCost(totalCost)}</span>
-                <span class="burnish-perf-stat-label">Total Cost</span>
-            </div>
         </div>
     `;
-
-    // Per-model breakdown
-    if (modelStats.length > 0) {
-        html += `<h4 class="burnish-perf-section-title">Per Model</h4>`;
-        html += `<div class="burnish-perf-table-wrap"><table class="burnish-perf-table">
-            <thead>
-                <tr>
-                    <th>Model</th>
-                    <th>Requests</th>
-                    <th>Avg Latency</th>
-                    <th>Tokens (In/Out)</th>
-                    <th>Component Rate</th>
-                    <th>Cost</th>
-                </tr>
-            </thead>
-            <tbody>`;
-        for (const s of modelStats) {
-            const rate = Math.round(s.componentSuccessRate * 100);
-            const rateClass = rate >= 80 ? 'success' : rate >= 50 ? 'warning' : 'error';
-            html += `<tr>
-                <td class="burnish-perf-model-name">${escapeHtml(s.model)}</td>
-                <td>${s.requestCount}</td>
-                <td>${formatMs(s.avgLatencyMs)}</td>
-                <td>${formatNumber(s.totalInputTokens)} / ${formatNumber(s.totalOutputTokens)}</td>
-                <td><span class="burnish-perf-rate burnish-perf-rate--${rateClass}">${rate}%</span></td>
-                <td>${formatCost(s.totalCostUsd)}</td>
-            </tr>`;
-        }
-        html += `</tbody></table></div>`;
-    }
 
     // Per-tool breakdown
     if (toolStats.length > 0) {
@@ -196,14 +142,13 @@ function renderPerfContent(panel) {
         html += `</tbody></table></div>`;
     }
 
-    // Recent records
+    // Recent executions
     if (allRecords.length > 0) {
-        html += `<h4 class="burnish-perf-section-title">Recent Requests</h4>`;
+        html += `<h4 class="burnish-perf-section-title">Recent Executions</h4>`;
         html += `<div class="burnish-perf-table-wrap"><table class="burnish-perf-table burnish-perf-table--recent">
             <thead>
                 <tr>
                     <th>Time</th>
-                    <th>Model</th>
                     <th>Tool</th>
                     <th>Latency</th>
                     <th>Components</th>
@@ -216,7 +161,6 @@ function renderPerfContent(panel) {
             const statusClass = r.componentSuccess ? 'success' : 'error';
             html += `<tr>
                 <td class="burnish-perf-time">${formatTime(r.timestamp)}</td>
-                <td>${escapeHtml(r.model)}</td>
                 <td class="burnish-perf-tool-name" title="${escapeHtml(r.toolName)}">${escapeHtml(shortTool)}</td>
                 <td>${formatMs(r.latencyMs)}</td>
                 <td><span class="burnish-perf-status burnish-perf-status--${statusClass}">${statusIcon} ${r.componentCount}</span></td>
@@ -229,8 +173,8 @@ function renderPerfContent(panel) {
     if (totalCount === 0) {
         html += `
             <div class="burnish-perf-empty">
-                <p>No performance data yet.</p>
-                <p>Execute tool calls to start tracking model performance metrics.</p>
+                <p>No tool executions yet.</p>
+                <p>Run a tool to start tracking latency and component rendering metrics.</p>
             </div>
         `;
     }
@@ -271,18 +215,6 @@ export function refreshPerfPanel() {
 function formatMs(ms) {
     if (ms < 1000) return ms + 'ms';
     return (ms / 1000).toFixed(1) + 's';
-}
-
-function formatCost(usd) {
-    if (usd === 0) return '$0.00';
-    if (usd < 0.01) return '<$0.01';
-    return '$' + usd.toFixed(2);
-}
-
-function formatNumber(n) {
-    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-    return String(n);
 }
 
 function formatTime(ts) {
