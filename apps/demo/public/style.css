@@ -27,7 +27,7 @@ body {
 }
 .burnish-header-left { display: flex; align-items: center; gap: 16px; }
 .burnish-header-right { display: flex; align-items: center; gap: 8px; }
-.burnish-logo-icon { width: 20px; height: 20px; vertical-align: middle; }
+.burnish-logo-icon { width: 28px; height: 28px; vertical-align: middle; margin-right: 6px; }
 .burnish-logo { font-weight: 700; font-size: 16px; letter-spacing: 1px; }
 .burnish-breadcrumb {
     font-size: 13px; opacity: 0.7;
