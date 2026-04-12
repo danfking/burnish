@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { startServer } from './server.js';
 import { exportSchema } from './export.js';
 import { formatMcpError } from './errors.js';
+import { runTelemetry } from './telemetry.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_VERSION = JSON.parse(readFileSync(resolve(__dirname, '../package.json'), 'utf-8')).version;
@@ -141,6 +142,10 @@ async function main() {
         printHelp();
         process.exit(1);
     }
+
+    // Opt-in anonymous telemetry. Prompts once on first run, then persists.
+    // BURNISH_TELEMETRY=0 disables. Never blocks or throws — see telemetry.ts.
+    await runTelemetry(PKG_VERSION);
 
     if (opts.command === 'export') {
         await exportSchema(opts);
