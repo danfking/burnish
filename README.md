@@ -24,10 +24,12 @@
 ## Quickstart
 
 ```bash
-npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
+npx burnish -- npx -y @burnishdev/example-server
 ```
 
-That's it. Burnish spawns the MCP server, reads its tool list, opens your browser, and renders every tool as an interactive form. Click one, fill it in, see the result as cards, tables, or charts — not raw JSON.
+That's it. Burnish spawns the example MCP server, reads its tool list, opens your browser, and renders every tool as an interactive form. The example server ships with a dozen tools — creating bug reports, listing team members, searching records — so you can click through, fill in forms, and see results rendered as cards, tables, and charts without writing a line of your own MCP code.
+
+Want to try it against a different server? Point `burnish` at any stdio or SSE MCP server — see [What you can point it at](#what-you-can-point-it-at) below.
 
 <p align="center">
   <picture>
@@ -62,12 +64,15 @@ Try the hosted demo: **[burnish-demo.fly.dev](https://burnish-demo.fly.dev)**
 ## What you can point it at
 
 ```bash
-# A stdio server (most common)
-npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
+# The Burnish example server — richest default demo
+npx burnish -- npx -y @burnishdev/example-server
+
+# Any published stdio MCP server
+npx burnish -- npx -y @modelcontextprotocol/server-filesystem /tmp
 
 # GitHub (needs a PAT)
 GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... \
-  npx burnish -- npx @modelcontextprotocol/server-github
+  npx burnish -- npx -y @modelcontextprotocol/server-github
 
 # An SSE / HTTP MCP server
 npx burnish --sse https://your-mcp-server.example.com/sse
@@ -209,6 +214,10 @@ Configure in `apps/demo/mcp-servers.json` when running from source, or pass `--c
 ```json
 {
   "mcpServers": {
+    "example": {
+      "command": "npx",
+      "args": ["-y", "@burnishdev/example-server"]
+    },
     "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
