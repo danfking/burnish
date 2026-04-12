@@ -7,7 +7,7 @@
 **Explore any MCP server. No LLM required.**
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
+[![Explore with Burnish](https://img.shields.io/badge/Explore%20with-Burnish-8B3A3A?style=flat)](https://burnish-demo.fly.dev/)
 
 ```bash
 npx burnish -- npx @modelcontextprotocol/server-filesystem /tmp
@@ -50,22 +50,24 @@ Open `http://localhost:3000`. Your configured MCP servers appear with all their 
 
 Configure your MCP servers in `apps/demo/mcp-servers.json`.
 
-## For MCP Server Owners
+## Add the badge to your MCP server README
 
-Let your users explore your server instantly. Add this badge to your README:
+Help your users try your MCP server without installing anything. Paste this line at the top of your README.
+
+<!-- TODO(@danfking): confirm brand hex 8B3A3A matches the final logo palette — see #385 -->
 
 ```markdown
-[![Explore with Burnish](https://img.shields.io/badge/Explore-with%20Burnish-8B3A3A)](https://github.com/danfking/burnish)
+[![Explore with Burnish](https://img.shields.io/badge/Explore%20with-Burnish-8B3A3A?style=flat)](https://burnish-demo.fly.dev/?server=<YOUR_SERVER_URL>)
 ```
 
-Then add a quick-start snippet so users can connect in one command:
+Replace `<YOUR_SERVER_URL>` with the URL (or npm package) of your MCP server. The hosted Burnish demo loads your server in the browser — no LLM, no account, no install.
+
+Prefer a local command? Point your users at the CLI instead:
 
 ```bash
 # Explore your MCP server with Burnish (no LLM required)
 npx burnish -- npx @your-org/your-mcp-server
 ```
-
-Replace `@your-org/your-mcp-server` with your server's npm package or startup command.
 
 ## Why Burnish?
 
