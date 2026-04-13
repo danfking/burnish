@@ -430,7 +430,8 @@ export function buildResultHtml(result, label, sourceToolName, sourceName, isErr
     // #329: If MCP flagged this as an error, render an error card
     if (isError) {
         const sourceAttr = sourceName ? ` source="${escapeAttr(sourceName)}"` : '';
-        return `<burnish-card title="Error" status="error" body="${escapeAttr(String(result).substring(0, 2000))}"${sourceAttr}></burnish-card>`;
+        const errorBody = String(result || '').substring(0, 2000) || 'Tool execution failed';
+        return `<burnish-card title="Error" status="error" body="${escapeAttr(errorBody)}"${sourceAttr}></burnish-card>`;
     }
 
     try {
