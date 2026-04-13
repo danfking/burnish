@@ -559,10 +559,6 @@ async function deleteNode(nodeId) {
     if (!node) return;
 
     const removeIds = new Set(getDescendantIds(session, nodeId));
-    const count = removeIds.size;
-    const noun = count === 1 ? 'this step' : `this step and ${count - 1} descendant${count > 2 ? 's' : ''}`;
-
-    if (!confirm(`Delete ${noun}? This cannot be undone.`)) return;
 
     if (node.parentId) {
         const parent = getNodeById(session, node.parentId);
@@ -860,17 +856,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Deterministic server button — render tool listing
-        if (btn.classList.contains('burnish-suggestion-server')) {
-            const serverName = btn.dataset.label;
-            const cachedServers = getCachedServers();
-            const serverData = cachedServers?.find(s => s.name === serverName);
-            if (serverData && serverData.tools.length > 0) {
-                renderDeterministicToolListing(serverName, serverData.tools);
-                return;
-            }
-        }
-
         // For any other suggestion, show available servers
         if (btn.dataset.prompt) {
             const cachedServers = getCachedServers();
@@ -878,6 +863,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const first = cachedServers[0];
                 renderDeterministicToolListing(first.name, first.tools);
             }
+        }
+    });
+
+    // ── Server card drill-down (landing page) ──
+    document.addEventListener('burnish-card-action', (e) => {
+        const card = e.target;
+        if (!card || !card.closest('#server-buttons')) return;
+        const { itemId } = e.detail || {};
+        if (!itemId) return;
+        const cachedServers = getCachedServers();
+        const serverData = cachedServers?.find(s => s.name === itemId);
+        if (serverData && serverData.tools.length > 0) {
+            renderDeterministicToolListing(itemId, serverData.tools);
         }
     });
 
@@ -1418,13 +1416,23 @@ async function loadDynamicSuggestions(container) {
             if (servers.length === 0) {
                 serverBtns.innerHTML = '<span class="burnish-no-servers">No servers connected</span>';
             } else {
-                serverBtns.innerHTML = servers.map(s => `
-                    <button class="burnish-suggestion burnish-suggestion-server" data-label="${escapeAttr(s.name)}">
-                        <span class="burnish-server-status ${s.status === 'connected' ? 'connected' : 'disconnected'}"></span>
-                        ${escapeHtml(s.name)}
-                        <span class="burnish-suggestion-sub">${s.toolCount} tools</span>
-                    </button>
-                `).join('');
+                serverBtns.innerHTML = servers.map(s => {
+                    const hasInstructions = typeof s.instructions === 'string' && s.instructions.trim().length > 0;
+                    const bodyText = hasInstructions
+                        ? s.instructions.trim()
+                        : `No description provided`;
+                    const statusVal = s.status === 'connected' ? 'success' : 'error';
+                    const statusLabel = `${s.toolCount} tools`;
+                    return `
+                    <burnish-card
+                        title="${escapeAttr(s.name)}"
+                        status="${escapeAttr(statusVal)}"
+                        status-label="${escapeAttr(statusLabel)}"
+                        body="${escapeAttr(bodyText)}"
+                        item-id="${escapeAttr(s.name)}"
+                    ></burnish-card>
+                `;
+                }).join('');
             }
         }
 

@@ -71,9 +71,7 @@
     <script>
     (function initTheme() {
         const stored = localStorage.getItem('burnish:theme');
-        if (stored) {
-            document.documentElement.setAttribute('data-theme', stored);
-        }
+        document.documentElement.setAttribute('data-theme', stored || 'dark');
     })();
     </script>
 

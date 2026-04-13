@@ -60,6 +60,7 @@ interface ConnectedServer {
     status: 'connected' | 'disconnected';
     lastError?: string;
     lastErrorTime?: number;
+    instructions?: string;
 }
 
 export class McpHub {
@@ -136,6 +137,7 @@ export class McpHub {
             serverName: name,
         }));
 
+        const instructions = client.getInstructions();
         this.servers.push({
             name,
             client,
@@ -143,6 +145,7 @@ export class McpHub {
             tools,
             config: {},
             status: 'connected',
+            instructions,
         });
     }
 
@@ -188,7 +191,8 @@ export class McpHub {
             serverName: name,
         }));
 
-        this.servers.push({ name, client, transport, tools, config, status: 'connected' });
+        const instructions = client.getInstructions();
+        this.servers.push({ name, client, transport, tools, config, status: 'connected', instructions });
     }
 
     /**
@@ -251,12 +255,13 @@ export class McpHub {
     /**
      * Get connected server info.
      */
-    getServerInfo(): Array<{ name: string; toolCount: number; status: string; lastError?: string; tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> }> {
+    getServerInfo(): Array<{ name: string; toolCount: number; status: string; lastError?: string; instructions?: string; tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> }> {
         const serverInfo = this.servers.map(s => ({
             name: s.name,
             toolCount: s.tools.length,
             status: s.status,
             lastError: s.lastError,
+            instructions: s.instructions,
             tools: s.tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })),
         }));
 
@@ -266,6 +271,7 @@ export class McpHub {
                 toolCount: this.cliTools.length,
                 status: 'connected' as const,
                 lastError: undefined,
+                instructions: undefined,
                 tools: this.cliTools.map(ct => ({
                     name: ct.toolDef.name,
                     description: ct.toolDef.description,

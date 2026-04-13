@@ -251,32 +251,18 @@ body {
 }
 .burnish-server-buttons {
     display: flex;
-    gap: 10px;
-    justify-content: center;
     flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
     margin-bottom: 16px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.burnish-server-buttons > * {
+    flex: 0 1 340px;
 }
 .burnish-server-buttons:empty { display: none; }
-.burnish-suggestion-server {
-    font-weight: 600;
-    font-size: 13px;
-    padding: 10px 20px;
-    text-transform: capitalize;
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.burnish-server-status {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 6px;
-    flex-shrink: 0;
-}
-.burnish-server-status.connected { background: var(--burnish-success, #22c55e); }
-.burnish-server-status.disconnected { background: var(--burnish-error, #ef4444); }
 .burnish-tool-shortcuts {
     display: flex;
     gap: 8px;
@@ -294,14 +280,6 @@ body {
     padding-top: 12px;
 }
 .burnish-starter-prompts:empty { display: none; padding: 0; }
-.burnish-suggestion-sub {
-    display: block;
-    width: 100%;
-    font-size: 11px;
-    color: var(--burnish-text-muted, #9C8F8F);
-    font-weight: 400;
-    margin-top: 2px;
-}
 .burnish-suggestion-skeleton-pill {
     width: 140px;
     height: 40px;
@@ -645,6 +623,12 @@ body {
     background: transparent;
     border-radius: var(--burnish-radius-md, 8px);
     transition: all var(--burnish-transition-normal);
+    /* Keep result cards comfortably contained — without this they stretch
+       edge-to-edge inside .burnish-dashboard, making the Focus toggle feel
+       like a no-op (the un-focused state already fills the viewport). */
+    max-width: min(820px, 100%);
+    width: 100%;
+    margin-inline: auto;
 }
 .burnish-node[data-collapsed="false"] {
     position: relative;
@@ -1193,7 +1177,7 @@ body {
     .burnish-theme-toggle span { display: none; }
     .burnish-empty-state { padding: 40px 16px 40px; }
     .burnish-empty-state h2 { font-size: 22px; }
-    .burnish-server-buttons { flex-direction: column; align-items: center; }
+    .burnish-server-buttons > * { flex: 1 1 100%; }
     .burnish-tool-shortcuts { flex-direction: column; align-items: center; }
     .burnish-starter-prompts { flex-direction: column; align-items: center; }
 }
