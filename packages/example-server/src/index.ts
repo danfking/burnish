@@ -1,260 +1,636 @@
 #!/usr/bin/env node
+/**
+ * @burnishdev/example-server
+ *
+ * A connected-graph demo MCP server. The dataset is a fictional consulting
+ * company (clients, contacts, departments, team members, projects, tasks,
+ * comments, incidents, incident logs, orders) wired together with
+ * deterministic IDs so Burnish's drill-down navigation has somewhere to go.
+ *
+ * Tool surface (27 tools):
+ *   - 8 entity types × 3 read tools (list / get / search) = 24
+ *   - 3 write tools: create-task, add-comment, update-task-status
+ */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { buildFixture, type FixtureStore } from "./fixtures.js";
+
+const store: FixtureStore = buildFixture();
 
 const server = new McpServer(
   {
     name: "burnish-example-server",
-    version: "0.1.0",
+    version: "0.2.0",
   },
   {
     instructions:
-      "A demo MCP server for the Burnish Explorer. Showcases auto-generated forms, rich result rendering, and connected drill-down navigation with a fictional project-management dataset.",
+      "A deep-graph demo MCP server for the Burnish Explorer. A fictional consulting company with projects, clients, team members, tasks, comments, incidents, and orders — all interconnected, so you can click from a project into a task into a comment into the comment's author and keep going. Showcases Burnish's drill-down navigation, auto-generated forms, and rich result rendering.",
   }
 );
 
-// --- Tool: get-project-info ---
-server.tool(
-  "get-project-info",
-  "Returns structured project metadata suitable for rendering as a status card",
-  {},
-  async () => {
-    const info = {
-      name: "Burnish",
-      version: "0.1.0",
-      description:
-        "Universal UI layer for MCP servers — explore, test, and visualize any MCP server with rich components",
-      status: "Active",
-      lastUpdated: "2026-04-05",
-      contributors: 12,
-      openIssues: 8,
-      stars: 342,
-      license: "AGPL-3.0",
-      language: "TypeScript",
-      repository: "https://github.com/danfking/burnish",
-    };
+// ──────────────────────── Helpers ────────────────────────
 
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(info, null, 2) }],
-    };
+function asText<T>(value: T): { content: { type: "text"; text: string }[] } {
+  return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
+}
+
+function notFound(kind: string, id: string) {
+  return asText({ error: `${kind} not found`, id });
+}
+
+function searchObjects<T extends Record<string, unknown>>(items: T[], query: string, keys: (keyof T)[]): T[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return items.filter((item) =>
+    keys.some((k) => {
+      const v = item[k];
+      return typeof v === "string" && v.toLowerCase().includes(q);
+    })
+  );
+}
+
+// ──────────────────────── Projects ────────────────────────
+
+server.tool(
+  "list-projects",
+  "List all projects with status, client, and team size. Cards are clickable to show project details.",
+  { status: z.enum(["planning", "active", "on-hold", "completed"]).optional().describe("Filter by status") },
+  async ({ status }) => {
+    const items = store.projects
+      .filter((p) => !status || p.status === status)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        status: p.status,
+        clientId: p.clientId,
+        leadMemberId: p.leadMemberId,
+        teamSize: p.teamMemberIds.length,
+        startDate: p.startDate,
+        description: p.description,
+      }));
+    return asText(items);
   }
 );
 
-// --- Tool: list-users ---
 server.tool(
-  "list-users",
-  "Returns a list of users with their roles and status, suitable for rendering as a data table",
-  {},
-  async () => {
-    const users = [
-      {
-        id: 1,
-        name: "Alice Chen",
-        email: "alice@example.com",
-        role: "Admin",
-        status: "Active",
-        joined: "2025-01-15",
-      },
-      {
-        id: 2,
-        name: "Bob Martinez",
-        email: "bob@example.com",
-        role: "Developer",
-        status: "Active",
-        joined: "2025-02-20",
-      },
-      {
-        id: 3,
-        name: "Carol Williams",
-        email: "carol@example.com",
-        role: "Designer",
-        status: "Active",
-        joined: "2025-03-10",
-      },
-      {
-        id: 4,
-        name: "David Kim",
-        email: "david@example.com",
-        role: "Developer",
-        status: "Inactive",
-        joined: "2025-04-05",
-      },
-      {
-        id: 5,
-        name: "Eva Singh",
-        email: "eva@example.com",
-        role: "PM",
-        status: "Active",
-        joined: "2025-05-12",
-      },
-      {
-        id: 6,
-        name: "Frank Osei",
-        email: "frank@example.com",
-        role: "Developer",
-        status: "Active",
-        joined: "2025-06-01",
-      },
-      {
-        id: 7,
-        name: "Grace Tanaka",
-        email: "grace@example.com",
-        role: "QA",
-        status: "On Leave",
-        joined: "2025-07-18",
-      },
-      {
-        id: 8,
-        name: "Henry Novak",
-        email: "henry@example.com",
-        role: "DevOps",
-        status: "Active",
-        joined: "2025-08-22",
-      },
-    ];
+  "get-project",
+  "Get detailed information for a single project, including its team, tasks, and orders.",
+  { projectId: z.string().describe("Project id, e.g. 'project-1'") },
+  async ({ projectId }) => {
+    const project = store.projects.find((p) => p.id === projectId);
+    if (!project) return notFound("project", projectId);
+
+    const client = store.clients.find((c) => c.id === project.clientId);
+    const lead = store.members.find((m) => m.id === project.leadMemberId);
+    const team = project.teamMemberIds
+      .map((id) => store.members.find((m) => m.id === id))
+      .filter(Boolean)
+      .map((m) => ({ id: m!.id, name: m!.name, role: m!.role, department: m!.department, email: m!.email }));
+    const tasks = store.tasks
+      .filter((t) => t.projectId === projectId)
+      .map((t) => ({ id: t.id, title: t.title, status: t.status, priority: t.priority, assigneeId: t.assigneeId, dueDate: t.dueDate }));
+    const orders = store.orders
+      .filter((o) => o.projectId === projectId)
+      .map((o) => ({ id: o.id, status: o.status, amount: o.amount, orderDate: o.orderDate, clientId: o.clientId }));
 
     return {
       content: [
-        { type: "text" as const, text: JSON.stringify(users, null, 2) },
+        { type: "text" as const, text: JSON.stringify({
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          startDate: project.startDate,
+          description: project.description,
+          clientName: client?.name,
+          leadName: lead?.name,
+          teamSize: team.length,
+          taskCount: tasks.length,
+          orderCount: orders.length,
+        }, null, 2) },
+        { type: "text" as const, text: JSON.stringify(team, null, 2) },
+        { type: "text" as const, text: JSON.stringify(tasks, null, 2) },
+        { type: "text" as const, text: JSON.stringify(orders, null, 2) },
       ],
     };
   }
 );
 
-// --- Tool: get-system-stats ---
 server.tool(
-  "get-system-stats",
-  "Returns current system metrics including CPU, memory, disk usage, and connection stats",
+  "search-projects",
+  "Search projects by name or description.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const matches = searchObjects(store.projects as unknown as Record<string, unknown>[], query, ["name", "description"]);
+    return asText(matches);
+  }
+);
+
+// ──────────────────────── Clients ────────────────────────
+
+server.tool(
+  "list-clients",
+  "List all clients with their industry and contact count.",
   {},
   async () => {
-    const stats = {
-      cpuUsage: "42.5%",
-      cpuCores: 8,
-      cpuModel: "Intel Xeon E5-2686 v4",
-      memoryUsed: "12.3 GB / 32 GB (38.4%)",
-      diskUsed: "156 GB / 500 GB (31.2%)",
-      activeConnections: 247,
-      requestsPerSecond: 1842,
-      bandwidthMbps: 450,
-      uptime: "45d 12h 33m",
-      healthyServices: 18,
-      degradedServices: 2,
-      downServices: 0,
-    };
+    const items = store.clients.map((c) => ({
+      id: c.id,
+      name: c.name,
+      industry: c.industry,
+      contactCount: c.contactIds.length,
+    }));
+    return asText(items);
+  }
+);
 
+server.tool(
+  "get-client",
+  "Get detailed information for a single client, including its contacts, projects, and orders.",
+  { clientId: z.string().describe("Client id, e.g. 'client-1'") },
+  async ({ clientId }) => {
+    const client = store.clients.find((c) => c.id === clientId);
+    if (!client) return notFound("client", clientId);
+    const contacts = store.contacts.filter((c) => c.clientId === clientId);
+    const projects = store.projects.filter((p) => p.clientId === clientId).map((p) => ({
+      id: p.id, name: p.name, status: p.status, startDate: p.startDate,
+    }));
+    const orders = store.orders.filter((o) => o.clientId === clientId).map((o) => ({
+      id: o.id, projectId: o.projectId, amount: o.amount, status: o.status, orderDate: o.orderDate,
+    }));
     return {
       content: [
-        { type: "text" as const, text: JSON.stringify(stats, null, 2) },
+        { type: "text" as const, text: JSON.stringify({
+          id: client.id,
+          name: client.name,
+          industry: client.industry,
+          contactCount: contacts.length,
+          projectCount: projects.length,
+          orderCount: orders.length,
+        }, null, 2) },
+        { type: "text" as const, text: JSON.stringify(contacts, null, 2) },
+        { type: "text" as const, text: JSON.stringify(projects, null, 2) },
+        { type: "text" as const, text: JSON.stringify(orders, null, 2) },
       ],
     };
   }
 );
 
-// --- Tool: get-sales-data ---
 server.tool(
-  "get-sales-data",
-  "Returns monthly sales data with categories, amounts, and trends for chart visualization",
-  {},
-  async () => {
-    const summary = [
-      { label: "Total Revenue", value: "$1,466,000" },
-      { label: "Growth Rate", value: "97.6%" },
-      { label: "Top Category", value: "Software" },
-      { label: "Avg Monthly", value: "$122,167" },
-    ];
+  "search-clients",
+  "Search clients by name or industry.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const matches = searchObjects(store.clients as unknown as Record<string, unknown>[], query, ["name", "industry"]);
+    return asText(matches);
+  }
+);
 
-    const chart = {
-      title: "Monthly Revenue — 2025",
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-      datasets: [
-        {
-          label: "Revenue ($k)",
-          data: [85, 92, 99, 105, 111, 121, 128, 131, 128, 150, 148, 168],
-        },
-      ],
-    };
+// ──────────────────────── Contacts ────────────────────────
 
+server.tool(
+  "list-contacts",
+  "List all contacts across all clients.",
+  { clientId: z.string().optional().describe("Optional client id to filter") },
+  async ({ clientId }) => {
+    const items = store.contacts
+      .filter((c) => !clientId || c.clientId === clientId)
+      .map((c) => ({ id: c.id, name: c.name, email: c.email, role: c.role, clientId: c.clientId }));
+    return asText(items);
+  }
+);
+
+server.tool(
+  "get-contact",
+  "Get detailed information for a single contact.",
+  { contactId: z.string().describe("Contact id, e.g. 'contact-1'") },
+  async ({ contactId }) => {
+    const contact = store.contacts.find((c) => c.id === contactId);
+    if (!contact) return notFound("contact", contactId);
+    const client = store.clients.find((c) => c.id === contact.clientId);
+    return asText({ ...contact, clientName: client?.name });
+  }
+);
+
+server.tool(
+  "search-contacts",
+  "Search contacts by name, email, or role.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const matches = searchObjects(store.contacts as unknown as Record<string, unknown>[], query, ["name", "email", "role"]);
+    return asText(matches);
+  }
+);
+
+// ──────────────────────── Team members ────────────────────────
+
+server.tool(
+  "list-team-members",
+  "List all team members with their role and department.",
+  { department: z.string().optional().describe("Filter by department name") },
+  async ({ department }) => {
+    const items = store.members
+      .filter((m) => !department || m.department === department)
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        role: m.role,
+        department: m.department,
+        email: m.email,
+        projectCount: m.projectIds.length,
+        taskCount: m.taskIds.length,
+      }));
+    return asText(items);
+  }
+);
+
+server.tool(
+  "get-team-member",
+  "Get detailed information for a single team member, including their projects and tasks.",
+  { memberId: z.string().describe("Team member id, e.g. 'member-1'") },
+  async ({ memberId }) => {
+    const member = store.members.find((m) => m.id === memberId);
+    if (!member) return notFound("team-member", memberId);
+    const projects = member.projectIds
+      .map((id) => store.projects.find((p) => p.id === id))
+      .filter(Boolean)
+      .map((p) => ({ id: p!.id, name: p!.name, status: p!.status }));
+    const tasks = store.tasks
+      .filter((t) => t.assigneeId === memberId)
+      .map((t) => ({ id: t.id, title: t.title, status: t.status, priority: t.priority, projectId: t.projectId, dueDate: t.dueDate }));
     return {
       content: [
-        { type: "text" as const, text: JSON.stringify(summary, null, 2) },
-        { type: "text" as const, text: JSON.stringify(chart, null, 2) },
+        { type: "text" as const, text: JSON.stringify({
+          id: member.id,
+          name: member.name,
+          email: member.email,
+          role: member.role,
+          department: member.department,
+          skills: member.skills,
+          managerId: member.managerId,
+          projectCount: projects.length,
+          taskCount: tasks.length,
+        }, null, 2) },
+        { type: "text" as const, text: JSON.stringify(projects, null, 2) },
+        { type: "text" as const, text: JSON.stringify(tasks, null, 2) },
       ],
     };
   }
 );
 
-// --- Tool: get-deployment-pipeline ---
 server.tool(
-  "get-deployment-pipeline",
-  "Returns deployment pipeline stages with status indicators for each stage",
-  {},
-  async () => {
-    const pipeline = {
-      _ui_hint: "pipeline",
-      steps: [
-        { server: "ci", tool: "build", status: "success", duration: "2m 14s" },
-        { server: "ci", tool: "unit-tests", status: "success", duration: "1m 48s" },
-        { server: "ci", tool: "integration-tests", status: "success", duration: "4m 32s" },
-        { server: "security", tool: "dependency-scan", status: "running", duration: "1m 05s" },
-        { server: "deploy", tool: "staging", status: "pending" },
-        { server: "deploy", tool: "production", status: "pending" },
+  "search-team-members",
+  "Search team members by name, email, role, or skill.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const q = query.trim().toLowerCase();
+    const matches = store.members.filter((m) =>
+      m.name.toLowerCase().includes(q) ||
+      m.email.toLowerCase().includes(q) ||
+      m.role.toLowerCase().includes(q) ||
+      m.skills.some((s) => s.toLowerCase().includes(q))
+    ).map((m) => ({ id: m.id, name: m.name, role: m.role, department: m.department, email: m.email }));
+    return asText(matches);
+  }
+);
+
+// ──────────────────────── Tasks ────────────────────────
+
+server.tool(
+  "list-tasks",
+  "List tasks with optional filters by project, status, or priority.",
+  {
+    projectId: z.string().optional().describe("Filter by project id"),
+    status: z.enum(["todo", "in-progress", "done", "blocked"]).optional().describe("Filter by status"),
+    priority: z.enum(["low", "medium", "high", "critical"]).optional().describe("Filter by priority"),
+  },
+  async ({ projectId, status, priority }) => {
+    const items = store.tasks
+      .filter((t) => (!projectId || t.projectId === projectId) &&
+        (!status || t.status === status) &&
+        (!priority || t.priority === priority))
+      .slice(0, 100)
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        projectId: t.projectId,
+        assigneeId: t.assigneeId,
+        dueDate: t.dueDate,
+      }));
+    return asText(items);
+  }
+);
+
+server.tool(
+  "get-task",
+  "Get detailed information for a single task, including its comments and subtasks.",
+  { taskId: z.string().describe("Task id, e.g. 'task-1'") },
+  async ({ taskId }) => {
+    const task = store.tasks.find((t) => t.id === taskId);
+    if (!task) return notFound("task", taskId);
+    const project = store.projects.find((p) => p.id === task.projectId);
+    const assignee = store.members.find((m) => m.id === task.assigneeId);
+    const reporter = store.members.find((m) => m.id === task.reporterId);
+    const comments = store.comments
+      .filter((c) => c.taskId === taskId)
+      .map((c) => ({ id: c.id, authorId: c.authorId, body: c.body, createdAt: c.createdAt, replyToId: c.replyToId }));
+    const subtasks = task.subtaskIds
+      .map((id) => store.tasks.find((t) => t.id === id))
+      .filter(Boolean)
+      .map((t) => ({ id: t!.id, title: t!.title, status: t!.status, priority: t!.priority }));
+    return {
+      content: [
+        { type: "text" as const, text: JSON.stringify({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          projectName: project?.name,
+          assigneeName: assignee?.name,
+          reporterName: reporter?.name,
+          dueDate: task.dueDate,
+          commentCount: comments.length,
+          subtaskCount: subtasks.length,
+        }, null, 2) },
+        { type: "text" as const, text: JSON.stringify(comments, null, 2) },
+        { type: "text" as const, text: JSON.stringify(subtasks, null, 2) },
       ],
     };
+  }
+);
 
+server.tool(
+  "search-tasks",
+  "Search tasks by title or description.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const matches = searchObjects(store.tasks as unknown as Record<string, unknown>[], query, ["title", "description"])
+      .slice(0, 50)
+      .map((t: any) => ({
+        id: t.id, title: t.title, status: t.status, priority: t.priority, projectId: t.projectId,
+      }));
+    return asText(matches);
+  }
+);
+
+// ──────────────────────── Comments ────────────────────────
+
+server.tool(
+  "list-comments",
+  "List comments, optionally filtered by task.",
+  { taskId: z.string().optional().describe("Filter by task id") },
+  async ({ taskId }) => {
+    const items = store.comments
+      .filter((c) => !taskId || c.taskId === taskId)
+      .slice(0, 100)
+      .map((c) => ({ id: c.id, taskId: c.taskId, authorId: c.authorId, body: c.body, createdAt: c.createdAt }));
+    return asText(items);
+  }
+);
+
+server.tool(
+  "get-comment",
+  "Get detailed information for a single comment.",
+  { commentId: z.string().describe("Comment id, e.g. 'comment-1'") },
+  async ({ commentId }) => {
+    const comment = store.comments.find((c) => c.id === commentId);
+    if (!comment) return notFound("comment", commentId);
+    const author = store.members.find((m) => m.id === comment.authorId);
+    const task = store.tasks.find((t) => t.id === comment.taskId);
+    return asText({
+      ...comment,
+      authorName: author?.name,
+      authorRole: author?.role,
+      taskTitle: task?.title,
+    });
+  }
+);
+
+server.tool(
+  "search-comments",
+  "Search comments by body text.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const matches = searchObjects(store.comments as unknown as Record<string, unknown>[], query, ["body"])
+      .slice(0, 50);
+    return asText(matches);
+  }
+);
+
+// ──────────────────────── Incidents ────────────────────────
+
+server.tool(
+  "list-incidents",
+  "List incidents with optional severity filter.",
+  { severity: z.enum(["low", "medium", "high", "critical"]).optional().describe("Filter by severity") },
+  async ({ severity }) => {
+    const items = store.incidents
+      .filter((i) => !severity || i.severity === severity)
+      .map((i) => ({
+        id: i.id,
+        title: i.title,
+        severity: i.severity,
+        status: i.status,
+        reportedByMemberId: i.reportedByMemberId,
+        affectedProjects: i.affectedProjectIds.length,
+        logCount: i.logIds.length,
+      }));
+    return asText(items);
+  }
+);
+
+server.tool(
+  "get-incident",
+  "Get detailed information for a single incident, including its logs and related tasks.",
+  { incidentId: z.string().describe("Incident id, e.g. 'incident-1'") },
+  async ({ incidentId }) => {
+    const incident = store.incidents.find((i) => i.id === incidentId);
+    if (!incident) return notFound("incident", incidentId);
+    const reporter = store.members.find((m) => m.id === incident.reportedByMemberId);
+    const logs = store.incidentLogs
+      .filter((l) => l.incidentId === incidentId)
+      .map((l) => ({ id: l.id, timestamp: l.timestamp, message: l.message, authorMemberId: l.authorMemberId }));
+    const relatedTasks = incident.relatedTaskIds
+      .map((id) => store.tasks.find((t) => t.id === id))
+      .filter(Boolean)
+      .map((t) => ({ id: t!.id, title: t!.title, status: t!.status, projectId: t!.projectId }));
     return {
-      content: [{ type: "text" as const, text: JSON.stringify(pipeline, null, 2) }],
+      content: [
+        { type: "text" as const, text: JSON.stringify({
+          id: incident.id,
+          title: incident.title,
+          severity: incident.severity,
+          status: incident.status,
+          reporterName: reporter?.name,
+          affectedProjectIds: incident.affectedProjectIds,
+          logCount: logs.length,
+        }, null, 2) },
+        { type: "text" as const, text: JSON.stringify(logs, null, 2) },
+        { type: "text" as const, text: JSON.stringify(relatedTasks, null, 2) },
+      ],
     };
   }
 );
 
-// --- Tool: get-server-metrics ---
 server.tool(
-  "get-server-metrics",
-  "Returns live server performance metrics with trend indicators",
-  {},
-  async () => {
-    const metrics = [
-      { label: "Uptime", value: "99.97", unit: "%", trend: "flat" },
-      { label: "Avg Response", value: "42", unit: "ms", trend: "down" },
-      { label: "Active Users", value: "1,847", trend: "up" },
-      { label: "Error Rate", value: "0.03", unit: "%", trend: "down" },
-    ];
+  "search-incidents",
+  "Search incidents by title.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const matches = searchObjects(store.incidents as unknown as Record<string, unknown>[], query, ["title"]);
+    return asText(matches);
+  }
+);
+
+// ──────────────────────── Orders ────────────────────────
+
+server.tool(
+  "list-orders",
+  "List orders with optional status filter.",
+  { status: z.enum(["pending", "paid", "overdue"]).optional().describe("Filter by status") },
+  async ({ status }) => {
+    const items = store.orders
+      .filter((o) => !status || o.status === status)
+      .map((o) => ({
+        id: o.id,
+        clientId: o.clientId,
+        projectId: o.projectId,
+        amount: o.amount,
+        status: o.status,
+        orderDate: o.orderDate,
+      }));
+    return asText(items);
+  }
+);
+
+server.tool(
+  "get-order",
+  "Get detailed information for a single order, including its line items.",
+  { orderId: z.string().describe("Order id, e.g. 'order-1'") },
+  async ({ orderId }) => {
+    const order = store.orders.find((o) => o.id === orderId);
+    if (!order) return notFound("order", orderId);
+    const client = store.clients.find((c) => c.id === order.clientId);
+    const project = store.projects.find((p) => p.id === order.projectId);
     return {
-      content: metrics.map(m => ({ type: "text" as const, text: JSON.stringify(m) })),
+      content: [
+        { type: "text" as const, text: JSON.stringify({
+          id: order.id,
+          amount: order.amount,
+          status: order.status,
+          orderDate: order.orderDate,
+          clientName: client?.name,
+          projectName: project?.name,
+        }, null, 2) },
+        { type: "text" as const, text: JSON.stringify(order.lineItems, null, 2) },
+      ],
     };
   }
 );
 
-// --- Tool: list-api-endpoints ---
 server.tool(
-  "list-api-endpoints",
-  "Returns API endpoint documentation with methods, paths, and descriptions",
-  {},
-  async () => {
-    const endpoints = [
-      { method: "GET", path: "/api/servers", status: "stable", auth: "optional", description: "List connected MCP servers" },
-      { method: "POST", path: "/api/tools/execute", status: "stable", auth: "required", description: "Execute a tool directly" },
-      { method: "GET", path: "/api/health", status: "stable", auth: "none", description: "Health check endpoint" },
-      { method: "GET", path: "/api/prompts", status: "beta", auth: "optional", description: "List MCP prompt templates" },
-      { method: "POST", path: "/api/prompts/execute", status: "beta", auth: "required", description: "Execute a prompt template" },
-      { method: "GET", path: "/api/resources", status: "beta", auth: "optional", description: "List MCP resources" },
-      { method: "GET", path: "/api/resources/:uri", status: "beta", auth: "required", description: "Read a specific resource" },
-      { method: "POST", path: "/api/tools/batch", status: "experimental", auth: "required", description: "Execute multiple tools in sequence" },
-      { method: "GET", path: "/api/sessions", status: "stable", auth: "required", description: "List active sessions" },
-      { method: "DELETE", path: "/api/sessions/:id", status: "stable", auth: "required", description: "Delete a session" },
-      { method: "GET", path: "/api/schema/:tool", status: "stable", auth: "none", description: "Get JSON schema for a tool" },
-      { method: "POST", path: "/api/webhooks", status: "experimental", auth: "required", description: "Register a webhook for tool events" },
-    ];
-    return { content: [{ type: "text" as const, text: JSON.stringify(endpoints) }] };
+  "search-orders",
+  "Search orders by line-item description.",
+  { query: z.string().describe("Search query") },
+  async ({ query }) => {
+    const q = query.trim().toLowerCase();
+    const matches = store.orders.filter((o) =>
+      o.lineItems.some((li) => li.description.toLowerCase().includes(q))
+    ).map((o) => ({ id: o.id, clientId: o.clientId, projectId: o.projectId, amount: o.amount, status: o.status }));
+    return asText(matches);
   }
 );
 
-// --- Tool: create-bug-report ---
+// ──────────────────────── Write tools ────────────────────────
+
+server.tool(
+  "create-task",
+  "Create a new task in an existing project. Demonstrates write-confirmation and form generation.",
+  {
+    title: z.string().describe("Task title"),
+    description: z.string().describe("Detailed description"),
+    projectId: z.string().describe("Project id this task belongs to"),
+    assigneeId: z.string().describe("Team member id of the assignee"),
+    priority: z.enum(["low", "medium", "high", "critical"]).describe("Task priority"),
+  },
+  async ({ title, description, projectId, assigneeId, priority }) => {
+    const project = store.projects.find((p) => p.id === projectId);
+    if (!project) return notFound("project", projectId);
+    const assignee = store.members.find((m) => m.id === assigneeId);
+    if (!assignee) return notFound("team-member", assigneeId);
+
+    const id = `task-${store.nextTaskId++}`;
+    const newTask = {
+      id,
+      title,
+      description,
+      status: "todo" as const,
+      priority,
+      projectId,
+      assigneeId,
+      reporterId: project.leadMemberId,
+      dueDate: new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10),
+      subtaskIds: [],
+      commentIds: [],
+    };
+    store.tasks.push(newTask);
+    assignee.taskIds.push(id);
+    return asText({ created: true, task: newTask });
+  }
+);
+
+server.tool(
+  "add-comment",
+  "Add a comment to an existing task. Optionally as a reply to another comment.",
+  {
+    taskId: z.string().describe("Task id to comment on"),
+    body: z.string().describe("Comment body"),
+    replyToId: z.string().optional().describe("Optional parent comment id"),
+  },
+  async ({ taskId, body, replyToId }) => {
+    const task = store.tasks.find((t) => t.id === taskId);
+    if (!task) return notFound("task", taskId);
+    const id = `comment-${store.nextCommentId++}`;
+    const newComment = {
+      id,
+      taskId,
+      authorId: "member-1", // attributed to a fixture user
+      body,
+      createdAt: new Date().toISOString(),
+      replyToId: replyToId ?? null,
+    };
+    store.comments.push(newComment);
+    task.commentIds.push(id);
+    return asText({ created: true, comment: newComment });
+  }
+);
+
+server.tool(
+  "update-task-status",
+  "Update the status of an existing task.",
+  {
+    taskId: z.string().describe("Task id"),
+    status: z.enum(["todo", "in-progress", "done", "blocked"]).describe("New status"),
+  },
+  async ({ taskId, status }) => {
+    const task = store.tasks.find((t) => t.id === taskId);
+    if (!task) return notFound("task", taskId);
+    const previous = task.status;
+    task.status = status;
+    return asText({ updated: true, taskId, previous, current: status });
+  }
+);
+
+// ──────────────────────── Showcase: severity enum form ────────────────────────
+// Retained from the previous example-server because it's the canonical demo
+// of enum-driven form generation (regression case for #377).
+
 server.tool(
   "create-bug-report",
-  "Submit a bug report with details for tracking",
+  "Submit a bug report with details for tracking. Showcases enum-driven form generation.",
   {
     title: z.string().describe("Bug title"),
     severity: z.enum(["low", "medium", "high", "critical"]).describe("Severity level"),
@@ -263,7 +639,7 @@ server.tool(
   },
   async ({ title, severity, description, steps_to_reproduce }) => {
     const report = {
-      id: "BUG-" + Math.floor(Math.random() * 9000 + 1000),
+      id: "BUG-" + (1000 + store.tasks.length),
       title,
       severity,
       description,
@@ -272,138 +648,12 @@ server.tool(
       assignee: "Unassigned",
       createdAt: new Date().toISOString(),
     };
-    return { content: [{ type: "text" as const, text: JSON.stringify(report) }] };
+    return asText(report);
   }
 );
 
-// --- Tool: get-team-performance ---
-server.tool(
-  "get-team-performance",
-  "Returns quarterly team performance data for bar chart visualization",
-  {},
-  async () => {
-    const performance = {
-      title: "Team Performance — Q1 2026",
-      labels: ["Frontend", "Backend", "DevOps", "QA", "Design"],
-      datasets: [
-        { label: "Tasks Completed", data: [48, 62, 35, 41, 28] },
-        { label: "Story Points", data: [142, 198, 95, 120, 78] },
-      ],
-    };
-    return { content: [{ type: "text" as const, text: JSON.stringify(performance) }] };
-  }
-);
+// ──────────────────────── Start server ────────────────────────
 
-// --- Tool: get-monthly-trends ---
-server.tool(
-  "get-monthly-trends",
-  "Returns monthly trend data with labels and datasets for line chart visualization",
-  {},
-  async () => {
-    const trends = {
-      title: "Platform Growth — 2025",
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-      datasets: [
-        {
-          label: "Active Users",
-          data: [1200, 1350, 1580, 1720, 1950, 2200, 2450, 2680, 2900, 3150, 3400, 3800],
-        },
-        {
-          label: "API Requests (k)",
-          data: [45, 52, 61, 73, 85, 98, 112, 128, 145, 162, 180, 205],
-        },
-        {
-          label: "Tool Executions (k)",
-          data: [12, 15, 19, 24, 31, 38, 47, 55, 64, 75, 88, 102],
-        },
-      ],
-    };
-
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(trends, null, 2) }],
-    };
-  }
-);
-
-// --- Tool: get-category-breakdown ---
-server.tool(
-  "get-category-breakdown",
-  "Returns category distribution data suitable for doughnut or bar chart visualization",
-  {},
-  async () => {
-    const breakdown = {
-      title: "MCP Server Usage by Category",
-      labels: ["Filesystem", "Database", "API Gateway", "DevOps", "Analytics", "Communication"],
-      datasets: [
-        {
-          label: "Tool Calls",
-          data: [3420, 2850, 2100, 1780, 1250, 890],
-        },
-      ],
-      summary: {
-        totalCalls: 12290,
-        mostPopular: "Filesystem",
-        fastestGrowing: "DevOps",
-        period: "Last 30 days",
-      },
-    };
-
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(breakdown, null, 2) }],
-    };
-  }
-);
-
-// --- Tool: search-knowledge-base ---
-server.tool(
-  "search-knowledge-base",
-  "Search the knowledge base for articles by keyword or topic",
-  { query: z.string().describe("Search query (e.g. 'getting started', 'troubleshooting', 'architecture')") },
-  async ({ query }) => {
-    const results = {
-      query,
-      totalResults: 12,
-      sections: [
-        {
-          title: "Quick Start Guides",
-          count: 4,
-          articles: [
-            { title: "Installing Burnish", status: "Published", author: "Alice Chen", updated: "2026-04-01", views: 2840 },
-            { title: "Connecting Your First MCP Server", status: "Published", author: "Bob Martinez", updated: "2026-03-28", views: 1920 },
-            { title: "Explorer Mode Tutorial", status: "Published", author: "Carol Williams", updated: "2026-04-05", views: 1540 },
-            { title: "Custom Component Themes", status: "Draft", author: "David Kim", updated: "2026-04-09", views: 320 },
-          ],
-        },
-        {
-          title: "Architecture & Concepts",
-          count: 4,
-          articles: [
-            { title: "How MCP Tool Calling Works", status: "Published", author: "Eva Singh", updated: "2026-03-15", views: 3100 },
-            { title: "Component Rendering Pipeline", status: "Published", author: "Frank Osei", updated: "2026-03-20", views: 1680 },
-            { title: "Streaming & Progressive Display", status: "Published", author: "Grace Tanaka", updated: "2026-04-02", views: 1250 },
-            { title: "Security Model & Guards", status: "Review", author: "Henry Novak", updated: "2026-04-08", views: 890 },
-          ],
-        },
-        {
-          title: "Troubleshooting",
-          count: 4,
-          articles: [
-            { title: "Common Connection Issues", status: "Published", author: "Alice Chen", updated: "2026-03-25", views: 4200 },
-            { title: "Rate Limiting & Quotas", status: "Published", author: "Bob Martinez", updated: "2026-03-30", views: 1100 },
-            { title: "Tool Execution Errors", status: "Published", author: "Carol Williams", updated: "2026-04-03", views: 2350 },
-            { title: "Performance Tuning Guide", status: "Draft", author: "Eva Singh", updated: "2026-04-07", views: 450 },
-          ],
-        },
-      ],
-    };
-
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(results, null, 2) }],
-    };
-  }
-);
-
-// --- Start server ---
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
