@@ -3,13 +3,16 @@ import { test, expect } from '@playwright/test';
 test.describe('Loading states', () => {
     test('loading spinner appears during tool execution', async ({ page }) => {
         await page.goto('/');
-        // Click a server button
-        const serverBtn = page.locator('#server-buttons button').first();
-        if (await serverBtn.count() === 0) {
+        // Click a server card's Explore action
+        const serverCard = page.locator('#server-buttons burnish-card').first();
+        if (await serverCard.count() === 0) {
             test.skip();
             return;
         }
-        await serverBtn.click();
+        await serverCard.evaluate(el => {
+            const btn = el.shadowRoot?.querySelector('.explore-btn, button');
+            if (btn) (btn as HTMLElement).click();
+        });
         await page.waitForTimeout(1000);
 
         // Find a tool card and click it
