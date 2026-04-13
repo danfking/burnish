@@ -45,8 +45,7 @@ export class BurnishCard extends LitElement {
         .card:hover .expand-btn { display: flex; }
         .expand-btn:hover { color: var(--burnish-accent, #8B3A3A); }
         .source-badge {
-            display: block;
-            text-align: right;
+            margin-left: auto;
             padding: var(--burnish-space-xs, 4px) var(--burnish-space-sm, 8px) var(--burnish-space-xs, 4px);
             font-size: 10px;
             font-weight: 500;
@@ -150,11 +149,9 @@ export class BurnishCard extends LitElement {
         .meta-value { color: var(--burnish-text); font-weight: 500; }
         .card-action {
             padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
-            border-top: 1px solid var(--burnish-border-light);
             font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-link, #7C3030);
             opacity: 0.6; transition: opacity var(--burnish-transition-fast);
             cursor: pointer;
-            margin-top: auto;
         }
         .card-action:hover { background: rgba(139, 58, 58, 0.04); }
         .card:hover .card-action { opacity: 1; }
@@ -180,6 +177,13 @@ export class BurnishCard extends LitElement {
             border-color: var(--burnish-link, #7C3030);
         }
         .link-icon { font-size: 10px; }
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: auto;
+            border-top: 1px solid var(--burnish-border-light, #F0EAEA);
+        }
         .error-state {
             display: flex; align-items: center; justify-content: center; gap: 8px;
             min-height: 60px; padding: var(--burnish-space-lg);
@@ -331,8 +335,12 @@ export class BurnishCard extends LitElement {
                         ` : ''}
                     `;
                 })()}
-                ${this['item-id'] ? html`<div class="card-action" role="button" tabindex="0">Explore \u2192</div>` : ''}
-                ${this.source ? html`<div class="source-badge" title="Source: ${this.source}"><span>${this.source}</span></div>` : ''}
+                ${this['item-id'] || this.source ? html`
+                    <div class="card-footer">
+                        ${this['item-id'] ? html`<div class="card-action" role="button" tabindex="0">Explore \u2192</div>` : ''}
+                        ${this.source ? html`<div class="source-badge" title="Source: ${this.source}"><span>${this.source}</span></div>` : ''}
+                    </div>
+                ` : ''}
             </div>
         `;
     }
