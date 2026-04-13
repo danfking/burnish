@@ -225,7 +225,7 @@ body {
     text-align: center;
     padding: 40px 20px;
     color: var(--burnish-text-secondary);
-    max-width: 600px;
+    max-width: 760px;
     margin: 0 auto;
 }
 .burnish-empty-icon { margin-bottom: 16px; }
