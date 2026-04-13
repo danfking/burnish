@@ -250,33 +250,15 @@ body {
     color: var(--burnish-text);
 }
 .burnish-server-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
     margin-bottom: 16px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
 }
 .burnish-server-buttons:empty { display: none; }
-.burnish-suggestion-server {
-    font-weight: 600;
-    font-size: 13px;
-    padding: 10px 20px;
-    text-transform: capitalize;
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.burnish-server-status {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 6px;
-    flex-shrink: 0;
-}
-.burnish-server-status.connected { background: var(--burnish-success, #22c55e); }
-.burnish-server-status.disconnected { background: var(--burnish-error, #ef4444); }
 .burnish-tool-shortcuts {
     display: flex;
     gap: 8px;
@@ -294,35 +276,6 @@ body {
     padding-top: 12px;
 }
 .burnish-starter-prompts:empty { display: none; padding: 0; }
-.burnish-suggestion-sub {
-    display: block;
-    width: 100%;
-    font-size: 11px;
-    color: var(--burnish-text-muted, #9C8F8F);
-    font-weight: 400;
-    margin-top: 2px;
-}
-.burnish-suggestion-server { max-width: 260px; }
-.burnish-server-card-description {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-    width: 100%;
-    margin-top: 4px;
-    font-size: 11px;
-    line-height: 1.35;
-    font-weight: 400;
-    color: var(--burnish-text-muted, #9C8F8F);
-    text-transform: none;
-    white-space: normal;
-    text-align: center;
-}
-.burnish-server-card-description-empty {
-    font-style: italic;
-    opacity: 0.75;
-}
 .burnish-suggestion-skeleton-pill {
     width: 140px;
     height: 40px;
@@ -1214,7 +1167,7 @@ body {
     .burnish-theme-toggle span { display: none; }
     .burnish-empty-state { padding: 40px 16px 40px; }
     .burnish-empty-state h2 { font-size: 22px; }
-    .burnish-server-buttons { flex-direction: column; align-items: center; }
+    .burnish-server-buttons { grid-template-columns: 1fr; }
     .burnish-tool-shortcuts { flex-direction: column; align-items: center; }
     .burnish-starter-prompts { flex-direction: column; align-items: center; }
 }

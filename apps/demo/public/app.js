@@ -860,17 +860,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Deterministic server button — render tool listing
-        if (btn.classList.contains('burnish-suggestion-server')) {
-            const serverName = btn.dataset.label;
-            const cachedServers = getCachedServers();
-            const serverData = cachedServers?.find(s => s.name === serverName);
-            if (serverData && serverData.tools.length > 0) {
-                renderDeterministicToolListing(serverName, serverData.tools);
-                return;
-            }
-        }
-
         // For any other suggestion, show available servers
         if (btn.dataset.prompt) {
             const cachedServers = getCachedServers();
@@ -878,6 +867,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const first = cachedServers[0];
                 renderDeterministicToolListing(first.name, first.tools);
             }
+        }
+    });
+
+    // ── Server card drill-down (landing page) ──
+    document.addEventListener('burnish-card-action', (e) => {
+        const card = e.target;
+        if (!card || !card.closest('#server-buttons')) return;
+        const { itemId } = e.detail || {};
+        if (!itemId) return;
+        const cachedServers = getCachedServers();
+        const serverData = cachedServers?.find(s => s.name === itemId);
+        if (serverData && serverData.tools.length > 0) {
+            renderDeterministicToolListing(itemId, serverData.tools);
         }
     });
 
@@ -1420,19 +1422,19 @@ async function loadDynamicSuggestions(container) {
             } else {
                 serverBtns.innerHTML = servers.map(s => {
                     const hasInstructions = typeof s.instructions === 'string' && s.instructions.trim().length > 0;
-                    const descText = hasInstructions
+                    const bodyText = hasInstructions
                         ? s.instructions.trim()
-                        : `${s.toolCount} tools — no description provided`;
-                    const toolCountLine = hasInstructions
-                        ? `<span class="burnish-suggestion-sub">${s.toolCount} tools</span>`
-                        : '';
+                        : `No description provided`;
+                    const statusVal = s.status === 'connected' ? 'success' : 'error';
+                    const statusLabel = `${s.toolCount} tools`;
                     return `
-                    <button class="burnish-suggestion burnish-suggestion-server" data-label="${escapeAttr(s.name)}" title="${escapeAttr(descText)}">
-                        <span class="burnish-server-status ${s.status === 'connected' ? 'connected' : 'disconnected'}"></span>
-                        ${escapeHtml(s.name)}
-                        ${toolCountLine}
-                        <span class="burnish-server-card-description${hasInstructions ? '' : ' burnish-server-card-description-empty'}">${escapeHtml(descText)}</span>
-                    </button>
+                    <burnish-card
+                        title="${escapeAttr(s.name)}"
+                        status="${escapeAttr(statusVal)}"
+                        status-label="${escapeAttr(statusLabel)}"
+                        body="${escapeAttr(bodyText)}"
+                        item-id="${escapeAttr(s.name)}"
+                    ></burnish-card>
                 `;
                 }).join('');
             }
