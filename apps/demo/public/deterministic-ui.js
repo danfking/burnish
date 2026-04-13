@@ -225,13 +225,13 @@ export async function executeToolDirect(toolName, args, label) {
             responseHtml: resultHtml,
         });
         refreshPerfPanel();
-        // Display execution timing badge
+        // Display execution timing badge next to timestamp
         if (data.durationMs != null && node) {
             const timingEl = document.createElement('span');
             timingEl.className = 'burnish-timing';
             timingEl.textContent = data.durationMs + 'ms';
-            const headerEl = document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-header');
-            if (headerEl) headerEl.appendChild(timingEl);
+            const timeEl = document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-time');
+            if (timeEl) timeEl.after(timingEl);
         }
         // Record successful execution in prompt library
         if (_sessionHelpers?.promptLibrary && toolName) {

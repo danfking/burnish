@@ -389,7 +389,7 @@ function createNodeEl(node) {
         <div class="burnish-node-header" role="button" tabindex="0">
             <span class="burnish-node-chevron">\u25bc</span>
             <span class="burnish-node-prompt">${escapeHtml(node.promptDisplay || node.prompt)}</span>
-            <span class="burnish-node-time">${formatTimeAgo(node.timestamp)}</span>
+            <span class="burnish-node-time" data-timestamp="${node.timestamp}">${formatTimeAgo(node.timestamp)}</span>
             ${node._executionMode === 'deterministic' ? `<span class="burnish-exec-badge burnish-exec-badge--direct" title="No LLM — direct tool execution">Direct</span>` : ''}
             ${statsTooltip ? `<button class="burnish-node-info" title="View details">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="8" y="12" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor">i</text></svg>
@@ -769,6 +769,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('btn-perf-toggle')?.addEventListener('click', () => togglePerfPanel());
+
+    // ── Periodic timestamp refresh ──
+    setInterval(() => {
+        document.querySelectorAll('.burnish-node-time[data-timestamp]').forEach(el => {
+            const ts = parseInt(el.dataset.timestamp, 10);
+            if (ts) el.textContent = formatTimeAgo(ts);
+        });
+    }, 30_000);
 
     document.getElementById('btn-dashboard-toggle')?.addEventListener('click', () => {
         dashboardMode = !dashboardMode;
@@ -1254,6 +1262,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const resultHtml = buildResultHtml(data.result, displayLabel, toolId, undefined, data.isError);
             recordToolPerf({ toolName: toolId, latencyMs: data.durationMs || 0, responseHtml: resultHtml });
             refreshPerfPanel();
+            // Show timing badge next to timestamp
+            if (data.durationMs != null) {
+                const timeEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-time`);
+                if (timeEl) {
+                    const timingEl = document.createElement('span');
+                    timingEl.className = 'burnish-timing';
+                    timingEl.textContent = data.durationMs + 'ms';
+                    timeEl.after(timingEl);
+                }
+            }
             node.response = resultHtml;
             const contentEl = document.querySelector(`[data-node-id="${nodeId}"] .burnish-node-content`);
             if (contentEl) {
