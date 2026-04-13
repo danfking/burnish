@@ -17,9 +17,8 @@ export class BurnishCard extends LitElement {
     static styles = css`
         :host {
             display: block;
-            width: 340px;
             max-width: 100%;
-            flex: 1 1 340px;
+            flex: 0 1 340px;
             min-width: 0;
             box-sizing: border-box;
             overflow: visible;
