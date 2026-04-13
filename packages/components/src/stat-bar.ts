@@ -9,7 +9,18 @@ export class BurnishStatBar extends LitElement {
     };
 
     static styles = css`
-        :host { display: inline-flex; min-width: 0; max-width: 100%; }
+        :host { display: inline-flex; min-width: 0; max-width: 100%; position: relative; }
+        :host::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 32px;
+            background: linear-gradient(to right, transparent, var(--burnish-surface-alt, #F8F5F5));
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity var(--burnish-transition-fast, 150ms);
+        }
+        :host([overflowing])::after { opacity: 1; }
         .stat-bar { display: flex; flex-direction: row; align-items: center; gap: var(--burnish-space-md, 12px); flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
         .stat-chip {
             display: flex; align-items: center; gap: var(--burnish-space-sm, 8px);
@@ -39,9 +50,45 @@ export class BurnishStatBar extends LitElement {
     declare variant: string;
     declare _activeFilter: string | null;
 
+    private _resizeObserver: ResizeObserver | null = null;
+
     constructor() {
         super();
         this._activeFilter = null;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this._resizeObserver = new ResizeObserver(() => this._checkOverflow());
+        this._resizeObserver.observe(this);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this._resizeObserver?.disconnect();
+        this._resizeObserver = null;
+    }
+
+    private _scrollBound = false;
+
+    protected updated() {
+        this._checkOverflow();
+        if (!this._scrollBound) {
+            const bar = this.shadowRoot?.querySelector('.stat-bar');
+            if (bar) {
+                bar.addEventListener('scroll', () => this._checkOverflow(), { passive: true });
+                this._scrollBound = true;
+            }
+        }
+    }
+
+    private _checkOverflow() {
+        requestAnimationFrame(() => {
+            const bar = this.shadowRoot?.querySelector('.stat-bar');
+            if (!bar) return;
+            const hasMore = bar.scrollWidth > bar.clientWidth + bar.scrollLeft + 1;
+            this.toggleAttribute('overflowing', hasMore);
+        });
     }
 
     private _handleClick(label: string) {
