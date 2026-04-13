@@ -19,6 +19,7 @@ export interface McpServerConfig {
     env?: Record<string, string>;
     url?: string;           // streamable HTTP transport (remote server)
     headers?: Record<string, string>;  // optional auth headers for HTTP
+    instructions?: string;  // fallback description if server doesn't provide one
 }
 
 export interface CliToolConfig {
@@ -191,7 +192,7 @@ export class McpHub {
             serverName: name,
         }));
 
-        const instructions = client.getInstructions();
+        const instructions = client.getInstructions() || config.instructions;
         this.servers.push({ name, client, transport, tools, config, status: 'connected', instructions });
     }
 
@@ -292,6 +293,10 @@ export class McpHub {
             const content = result.content
                 .map((c) => (c.type === 'text' ? c.text : JSON.stringify(c)))
                 .join('\n');
+            // Ensure error results always have a message body
+            if (isError && !content) {
+                return { content: 'Tool execution failed (no error details provided)', isError };
+            }
             return { content, isError };
         }
         return { content: JSON.stringify(result), isError };

@@ -245,7 +245,7 @@ export async function executeToolDirect(toolName, args, label) {
             appendAmbientSuggestions(contentEl, data.result, toolName, args, PURIFY_CONFIG);
         }
     } catch (err) {
-        var errorHtml = '<burnish-card title="Error" status="error" body="' + escapeAttr(err.message) + '"></burnish-card>';
+        var errorHtml = '<burnish-card title="Error" status="error" body="' + escapeAttr(err.message || 'Tool execution failed') + '"></burnish-card>';
         var contentEl2 = node ? document.querySelector('[data-node-id="' + node.id + '"] .burnish-node-content') : null;
         if (contentEl2) {
             contentEl2.innerHTML = DOMPurify.sanitize(errorHtml, PURIFY_CONFIG);

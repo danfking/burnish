@@ -866,11 +866,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ── Server card drill-down (landing page) ──
-    document.addEventListener('burnish-card-action', (e) => {
-        const card = e.target;
-        if (!card || !card.closest('#server-buttons')) return;
-        const { itemId } = e.detail || {};
+    // ── Server card click (landing page) — clicking anywhere on a server card navigates ──
+    document.addEventListener('click', (e) => {
+        const card = e.target.closest?.('#server-buttons burnish-card');
+        if (!card) return;
+        const itemId = card.getAttribute('item-id');
         if (!itemId) return;
         const cachedServers = getCachedServers();
         const serverData = cachedServers?.find(s => s.name === itemId);
@@ -1005,6 +1005,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.addEventListener('burnish-card-action', (e) => {
         const { title, status, itemId } = e.detail || {};
         if (!title) return;
+
+        // Server cards on landing page are handled by a separate click handler
+        if (e.target.closest('#server-buttons')) return;
 
         // Branch from the node containing this card
         const nodeEl = e.target.closest('.burnish-node');
@@ -1193,7 +1196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             } catch (err) {
                 console.error('Write tool execution failed:', err.message);
-                renderDeterministicNode(toolShortName, `<burnish-card title="Error" status="error" body="${escapeAttr(err.message)}"></burnish-card>`);
+                renderDeterministicNode(toolShortName, `<burnish-card title="Error" status="error" body="${escapeAttr(err.message || 'Tool execution failed')}"></burnish-card>`);
                 return;
             }
         }
@@ -1269,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (err) {
             console.error('Direct execution failed:', err.message);
             const toolShortName = (toolId.split('__').pop() || toolId).replace(/_/g, ' ');
-            renderDeterministicNode(toolShortName, `<burnish-card title="Error" status="error" body="${escapeAttr(err.message)}"></burnish-card>`);
+            renderDeterministicNode(toolShortName, `<burnish-card title="Error" status="error" body="${escapeAttr(err.message || 'Tool execution failed')}"></burnish-card>`);
         }
     });
 

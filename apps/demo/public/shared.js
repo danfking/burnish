@@ -14,6 +14,11 @@ export const PURIFY_CONFIG = {
                'steps', 'source'],
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+    // Allow colon-containing strings in custom element attributes (e.g. error
+    // messages like "MCP error -32602: ..." or Windows paths like "C:\Users\...").
+    // DOMPurify's core XSS protection still blocks javascript:, data:, and
+    // vbscript: URIs even with this flag enabled.
+    ALLOW_UNKNOWN_PROTOCOLS: true,
 };
 
 export const WRITE_TOOL_RE = /^(create|update|delete|remove|push|write|edit|move|fork|merge|add|set|close|lock|assign)/i;
