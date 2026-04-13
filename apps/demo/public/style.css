@@ -1335,7 +1335,7 @@ body {
     top: 0;
     z-index: 10;
     padding: 8px 0 12px;
-    background: inherit;
+    background: var(--burnish-surface, #fff);
 }
 .burnish-tool-filter {
     width: 100%;
