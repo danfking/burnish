@@ -55,6 +55,8 @@ export class BurnishCard extends LitElement {
             opacity: 0.7;
             transition: opacity var(--burnish-transition-fast);
             pointer-events: none;
+            min-width: 0;
+            overflow: hidden;
         }
         .source-badge span {
             display: inline-block;
@@ -62,6 +64,11 @@ export class BurnishCard extends LitElement {
             border: 1px solid var(--burnish-border-light, #F0EAEA);
             border-radius: 3px;
             padding: 1px 6px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            box-sizing: border-box;
         }
         .card:hover .source-badge { opacity: 1; }
         .card {
@@ -152,6 +159,9 @@ export class BurnishCard extends LitElement {
             font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-link, #7C3030);
             opacity: 0.6; transition: opacity var(--burnish-transition-fast);
             cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .card-action:hover { background: rgba(139, 58, 58, 0.04); }
         .card:hover .card-action { opacity: 1; }
