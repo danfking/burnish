@@ -278,11 +278,31 @@ function parseAttrsFromHtml(html: string): Record<string, string> {
     if (tagEnd === -1) return attrs;
     const attrString = html.substring(tagEnd);
 
-    // Match key="value" or key='value' pairs
-    const kvRe = /([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
-    let m: RegExpExecArray | null;
-    while ((m = kvRe.exec(attrString)) !== null) {
-        attrs[m[1].toLowerCase()] = m[2] ?? m[3] ?? '';
+    // Parse key="value" and key='value' pairs with a linear-time scanner
+    // (avoids polynomial backtracking flagged by CodeQL).
+    let i = 0;
+    while (i < attrString.length) {
+        // Skip whitespace
+        while (i < attrString.length && (attrString[i] === ' ' || attrString[i] === '\t' || attrString[i] === '\n' || attrString[i] === '\r')) i++;
+        // Read attribute name ([\w-] chars)
+        const nameStart = i;
+        while (i < attrString.length && /[\w-]/.test(attrString[i])) i++;
+        if (i === nameStart) { i++; continue; }
+        const name = attrString.substring(nameStart, i).toLowerCase();
+        // Skip whitespace around =
+        while (i < attrString.length && attrString[i] === ' ') i++;
+        if (i >= attrString.length || attrString[i] !== '=') continue;
+        i++; // skip '='
+        while (i < attrString.length && attrString[i] === ' ') i++;
+        // Read quoted value
+        if (i >= attrString.length) break;
+        const quote = attrString[i];
+        if (quote !== '"' && quote !== "'") continue;
+        i++; // skip opening quote
+        const valStart = i;
+        while (i < attrString.length && attrString[i] !== quote) i++;
+        attrs[name] = attrString.substring(valStart, i);
+        if (i < attrString.length) i++; // skip closing quote
     }
 
     // Match bare boolean attributes by splitting on whitespace and filtering
