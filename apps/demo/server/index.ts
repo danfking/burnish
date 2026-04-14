@@ -11,6 +11,7 @@
  */
 
 import { Hono } from 'hono';
+import { compress } from 'hono/compress';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { resolve, dirname } from 'node:path';
@@ -23,6 +24,9 @@ import { McpHub, isWriteTool, safePath } from '@burnishdev/server';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = new Hono();
+
+// --- Compression (gzip/deflate) ---
+app.use(compress());
 
 const mcpHub = new McpHub();
 
