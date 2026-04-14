@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Verify @burnishdev/components and @burnishdev/renderer can be imported via npm",
   "dependencies": {
-    "@burnishdev/components": "0.1.1",
-    "@burnishdev/renderer": "0.1.1"
+    "@burnishdev/components": "0.3.0",
+    "@burnishdev/renderer": "0.3.0"
   }
 }

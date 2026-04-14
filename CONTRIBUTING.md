@@ -9,7 +9,7 @@ git clone https://github.com/danfking/burnish.git
 cd burnish
 pnpm install
 pnpm build
-pnpm dev:nomodel  # Start Explorer mode (no LLM needed)
+pnpm dev              # Start Explorer mode (no LLM needed)
 ```
 
 Open http://localhost:3000 to see the app.

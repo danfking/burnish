@@ -5,6 +5,6 @@
   "type": "module",
   "description": "Verify @burnishdev/server McpHub can be imported and instantiated",
   "dependencies": {
-    "@burnishdev/server": "0.1.1"
+    "@burnishdev/server": "0.3.0"
   }
 }
