@@ -898,9 +898,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nodeId) {
             const session = getActiveSession();
             if (session) {
+                // Collapse all descendant nodes so the user visually "goes back"
+                const descendantIds = getDescendantIds(session, nodeId);
+                for (const dId of descendantIds) {
+                    if (dId === nodeId) continue;
+                    const dNode = getNodeById(session, dId);
+                    if (dNode && !dNode.collapsed) {
+                        dNode.collapsed = true;
+                        const el = document.querySelector(`.burnish-node[data-node-id="${dId}"]`);
+                        if (el) el.dataset.collapsed = 'true';
+                    }
+                }
                 session.activeNodeId = nodeId;
                 scrollToNode(nodeId, true);
                 updateBreadcrumb();
+                saveState();
             }
         } else if (crumb.dataset.scrollTop === 'true') {
             const mainContent = document.getElementById('main-content');
