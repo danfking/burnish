@@ -915,7 +915,7 @@ body {
 .burnish-json-view {
     background: var(--burnish-surface-alt, #F8F5F5); padding: 16px; border-radius: 4px;
     font-size: 11px; font-family: var(--burnish-font-mono, 'SF Mono', monospace);
-    overflow: auto; max-height: 500px; white-space: pre-wrap; word-break: break-all;
+    overflow: auto; max-height: 500px; white-space: pre-wrap; word-break: break-word;
     border: 1px solid var(--burnish-border-light, #F0EAEA);
 }
 .burnish-markdown-content {
