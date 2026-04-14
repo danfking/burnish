@@ -240,7 +240,7 @@ app.get('/api/health', (c) => {
         status: 'ok',
         servers: serverInfo.length,
         uptime: Math.floor((Date.now() - startedAt) / 1000),
-        version: '0.1.1',
+        version: '0.3.0',
     });
 });
 
