@@ -1345,6 +1345,7 @@ body {
     right: 0;
     height: 200px;
     background: inherit;
+    pointer-events: none;
 }
 .burnish-tool-filter {
     width: 100%;
