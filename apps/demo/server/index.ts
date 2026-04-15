@@ -99,9 +99,11 @@ app.use('/api/*', async (c, next) => {
 });
 
 app.use('/api/tools/execute', async (c, next) => {
-    const ip = getClientIp(c.req.raw, c.req.raw.headers);
-    if (!checkRateLimit(ip)) {
-        return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+    if (!process.env.CI) {
+        const ip = getClientIp(c.req.raw, c.req.raw.headers);
+        if (!checkRateLimit(ip)) {
+            return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+        }
     }
     await next();
 });
