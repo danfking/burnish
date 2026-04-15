@@ -852,8 +852,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (btn.dataset.action === 'list-servers') {
             const cachedServers = getCachedServers();
             if (cachedServers && cachedServers.length > 0) {
-                const first = cachedServers[0];
-                renderDeterministicToolListing(first.name, first.tools);
+                const targetName = btn.dataset.server;
+                const target = targetName
+                    ? cachedServers.find(s => s.name === targetName)
+                    : cachedServers[0];
+                if (target) {
+                    renderDeterministicToolListing(target.name, target.tools);
+                }
             }
             return;
         }
@@ -898,9 +903,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nodeId) {
             const session = getActiveSession();
             if (session) {
+                // Collapse all descendant nodes so the user visually "goes back"
+                const descendantIds = getDescendantIds(session, nodeId);
+                for (const dId of descendantIds) {
+                    if (dId === nodeId) continue;
+                    const dNode = getNodeById(session, dId);
+                    if (dNode && !dNode.collapsed) {
+                        dNode.collapsed = true;
+                        const el = document.querySelector(`.burnish-node[data-node-id="${dId}"]`);
+                        if (el) el.dataset.collapsed = 'true';
+                    }
+                }
                 session.activeNodeId = nodeId;
                 scrollToNode(nodeId, true);
                 updateBreadcrumb();
+                saveState();
             }
         } else if (crumb.dataset.scrollTop === 'true') {
             const mainContent = document.getElementById('main-content');
@@ -1507,8 +1524,20 @@ async function loadDynamicSuggestions(container) {
         if (starterSection && servers.length > 0) {
             const starters = [];
             for (const s of servers) {
-                const serverPrompts = STARTER_PROMPTS[s.name] || STARTER_PROMPTS._default;
-                starters.push(...serverPrompts.slice(0, 2));
+                // Skip servers with no tools
+                if (!s.tools || s.tools.length === 0) continue;
+                const serverPrompts = STARTER_PROMPTS[s.name];
+                if (serverPrompts) {
+                    starters.push(...serverPrompts.slice(0, 2));
+                } else {
+                    // Generate a labeled default prompt including the server name
+                    const displayName = s.name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    starters.push({
+                        label: `${displayName} tools`,
+                        action: 'list-servers',
+                        server: s.name,
+                    });
+                }
             }
             const limited = starters.slice(0, 6);
             if (limited.length > 0) {
@@ -1522,8 +1551,9 @@ async function loadDynamicSuggestions(container) {
                     }
                     const promptAttr = s.prompt ? ` data-prompt="${escapeAttr(s.prompt)}"` : '';
                     const actionAttr = s.action ? ` data-action="${escapeAttr(s.action)}"` : '';
+                    const serverAttr = s.server ? ` data-server="${escapeAttr(s.server)}"` : '';
                     return `
-                        <button class="burnish-suggestion"${promptAttr}${toolAttr}${argsAttr}${actionAttr} data-label="${escapeAttr(s.label)}">
+                        <button class="burnish-suggestion"${promptAttr}${toolAttr}${argsAttr}${actionAttr}${serverAttr} data-label="${escapeAttr(s.label)}">
                             ${escapeHtml(s.label)}
                         </button>
                     `;
