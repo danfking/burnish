@@ -1,7 +1,7 @@
 # Stage 1: Build
 FROM node:20-slim AS builder
 
-# Install pnpm + build tools for native modules (better-sqlite3)
+# Install pnpm + build tools
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate \
     && apt-get update && apt-get install -y python3 build-essential git && rm -rf /var/lib/apt/lists/*
 
@@ -24,7 +24,7 @@ COPY apps/demo/ apps/demo/
 RUN pnpm --filter '!burnish' -r build
 
 # Pre-install MCP server packages so npx doesn't download at runtime
-RUN npm install -g @modelcontextprotocol/server-filesystem@latest mcp-server-sqlite-npx@latest
+RUN npm install -g @modelcontextprotocol/server-filesystem@latest
 
 # Stage 2: Runtime
 FROM node:20-slim AS runner

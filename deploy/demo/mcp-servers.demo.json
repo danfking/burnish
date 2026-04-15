@@ -4,10 +4,6 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data/sample-files"]
     },
-    "demo-database": {
-      "command": "npx",
-      "args": ["-y", "mcp-server-sqlite-npx", "--db-path", "/data/demo.db"]
-    },
     "showcase": {
       "command": "node",
       "args": ["/app/packages/example-server/dist/index.js"]
