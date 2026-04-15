@@ -2,7 +2,8 @@
   "mcpServers": {
     "sample-files": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data/sample-files"]
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data/sample-files"],
+      "instructions": "Browse and read files from a sample directory using the MCP filesystem server"
     },
     "showcase": {
       "command": "node",
