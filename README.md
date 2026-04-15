@@ -97,6 +97,8 @@ npx burnish -- npx @your-org/your-mcp-server
 
 A hosted "Explore with Burnish" shields.io badge is tracked in [#385](https://github.com/danfking/burnish/issues/385).
 
+Want your tool results to render as cards, tables, and charts instead of raw JSON? See the [Output Format Guide](docs/OUTPUT-FORMAT.md).
+
 ## Links
 
 - **Hosted demo** — [burnish-demo.fly.dev](https://burnish-demo.fly.dev)
