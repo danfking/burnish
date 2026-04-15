@@ -104,6 +104,10 @@ const STARTER_PROMPTS = {
         { label: 'List my files', tool: 'list_directory', args: { path: '.' } },
         { label: 'Find large files', tool: 'search_files', args: { path: '.', pattern: '*' } },
     ],
+    'sample-files': [
+        { label: 'Get a detailed listing of all files and d...', tool: 'list_directory', args: { path: '/data/sample-files' }, server: 'sample-files' },
+        { label: 'Get a recursive tree view of files and d...', tool: 'directory_tree', args: { path: '/data/sample-files' }, server: 'sample-files' },
+    ],
     github: [
         { label: 'Search repos', tool: 'search_repositories', args: { query: 'stars:>100' } },
     ],
