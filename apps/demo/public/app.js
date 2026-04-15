@@ -1486,8 +1486,8 @@ async function loadDynamicSuggestions(container) {
                         };
                         for (const tool of s.tools) {
                             const schema = toolSchemaCache[tool.name];
-                            if (schema?.properties?.path && !schema.properties.path.default) {
-                                schema.properties.path.default = fileHints[tool.name] || rootDir;
+                            if (schema?.properties?.path && !schema.properties.path.default && fileHints[tool.name]) {
+                                schema.properties.path.default = fileHints[tool.name];
                             }
                         }
                         // Also update starter prompts with the actual root
