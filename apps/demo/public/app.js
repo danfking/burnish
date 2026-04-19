@@ -405,7 +405,7 @@ function createNodeEl(node) {
                 ${ICON_FOCUS}
             </button>
             <button class="burnish-node-refresh" title="Regenerate">${ICON_REFRESH}</button>
-            <button class="burnish-node-delete" data-delete-node="${node.id}" title="Delete this step">\u00d7</button>
+            <button class="burnish-node-delete" data-delete-node="${node.id}" title="Delete this step"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></button>
         </div>
         <div class="burnish-node-content"></div>
     `;

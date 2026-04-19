@@ -748,7 +748,6 @@ body {
     border: none;
     color: var(--burnish-text-muted, #9C8F8F);
     cursor: pointer;
-    font-size: 16px;
     padding: 4px 6px;
     border-radius: 3px;
     opacity: 0;
