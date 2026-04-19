@@ -104,7 +104,7 @@ Want your tool results to render as cards, tables, and charts instead of raw JSO
 - **Hosted demo** — [burnish-demo.fly.dev](https://burnish-demo.fly.dev)
 - **Discussions** — [github.com/danfking/burnish/discussions](https://github.com/danfking/burnish/discussions)
 - **Issues** — [github.com/danfking/burnish/issues](https://github.com/danfking/burnish/issues)
-- **Registries** — Smithery, Glama, mcp.so listings coming at launch (tracked in [#383](https://github.com/danfking/burnish/issues/383))
+- **Registries** — Smithery, Glama, mcp.so (tracked in [#383](https://github.com/danfking/burnish/issues/383))
 
 ## Features
 
