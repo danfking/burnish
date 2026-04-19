@@ -29,15 +29,15 @@ npx burnish -- npx -y @burnishdev/example-server
 
 That's it. Burnish spawns the example MCP server, reads its tool list, opens your browser, and renders every tool as an interactive form. The example server ships with a dozen tools — creating bug reports, listing team members, searching records — so you can click through, fill in forms, and see results rendered as cards, tables, and charts without writing a line of your own MCP code.
 
-Want to try it against a different server? Point `burnish` at any stdio or SSE MCP server — see [What you can point it at](#what-you-can-point-it-at) below.
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/quickstart-screenshot-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="docs/assets/quickstart-screenshot-light.png">
-    <img src="docs/assets/quickstart-screenshot-light.png" alt="Burnish Explorer showing a populated MCP server with rendered tool results" width="820">
+    <img src="docs/assets/quickstart-screenshot-light.png" alt="Burnish Explorer showing the example server's list-projects tool rendered as cards" width="820">
   </picture>
 </p>
+
+Want to try it against a different server? Point `burnish` at any stdio or SSE MCP server — see [What you can point it at](#what-you-can-point-it-at) below.
 
 Try the hosted demo: **[burnish-demo.fly.dev](https://burnish-demo.fly.dev)**
 
@@ -104,7 +104,7 @@ Want your tool results to render as cards, tables, and charts instead of raw JSO
 - **Hosted demo** — [burnish-demo.fly.dev](https://burnish-demo.fly.dev)
 - **Discussions** — [github.com/danfking/burnish/discussions](https://github.com/danfking/burnish/discussions)
 - **Issues** — [github.com/danfking/burnish/issues](https://github.com/danfking/burnish/issues)
-- **Registries** — Smithery, Glama, mcp.so listings coming at launch (tracked in [#383](https://github.com/danfking/burnish/issues/383))
+- **Registries** — Smithery, Glama, mcp.so (tracked in [#383](https://github.com/danfking/burnish/issues/383))
 
 ## Features
 
@@ -122,20 +122,20 @@ Connect. Browse. Execute. Everything is driven by the server's tool schemas.
 
 ## Component reference
 
-10 Lit 3 web components, each driven by JSON attributes:
+10 Lit 3 web components, each driven by JSON attributes. Every example below is live in the [hosted demo](https://burnish-demo.fly.dev) — click "Try it" to open the tool directly.
 
-| Component | Tag | Key Attributes | Purpose |
-|-----------|-----|----------------|---------|
-| Card | `<burnish-card>` | `title`, `status`, `body`, `meta` (JSON), `item-id` | Individual items with drill-down |
-| Stat Bar | `<burnish-stat-bar>` | `items` (JSON: `[{label, value, color?}]`) | Summary metrics / filter pills |
-| Table | `<burnish-table>` | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring |
-| Chart | `<burnish-chart>` | `type` (line/bar/doughnut), `config` (JSON) | Chart.js visualizations |
-| Section | `<burnish-section>` | `label`, `count`, `status`, `collapsed` | Collapsible grouping container |
-| Metric | `<burnish-metric>` | `label`, `value`, `unit`, `trend` (up/down/flat) | Single KPI display |
-| Message | `<burnish-message>` | `role` (user/assistant), `content`, `streaming` | Chat bubbles |
-| Form | `<burnish-form>` | `title`, `tool-id`, `fields` (JSON) | User input / tool execution |
-| Actions | `<burnish-actions>` | `actions` (JSON: `[{label, action, prompt, icon?}]`) | Contextual next-step buttons |
-| Pipeline | `<burnish-pipeline>` | `steps` (JSON: `[{server, tool, status}]`) | Real-time tool chain visualization |
+| Component | Preview | Key Attributes | Purpose | Live example |
+|-----------|---------|----------------|---------|--------------|
+| `<burnish-card>` | ![card](docs/assets/components/card.png) | `title`, `status`, `body`, `meta` (JSON), `item-id` | Individual items with drill-down | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-project) |
+| `<burnish-stat-bar>` | ![stat-bar](docs/assets/components/stat-bar.png) | `items` (JSON: `[{label, value, color?}]`) | Summary metrics / filter pills | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=list-projects) |
+| `<burnish-table>` | ![table](docs/assets/components/table.png) | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=list-projects) |
+| `<burnish-chart>` | ![chart](docs/assets/components/chart.png) | `type` (line/bar/doughnut), `config` (JSON) | Chart.js visualizations | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=revenue-chart) |
+| `<burnish-section>` | ![section](docs/assets/components/section.png) | `label`, `count`, `status`, `collapsed` | Collapsible grouping container | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=dashboard-overview) |
+| `<burnish-metric>` | ![metric](docs/assets/components/metric.png) | `label`, `value`, `unit`, `trend` (up/down/flat) | Single KPI display | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-team-member) |
+| `<burnish-message>` | ![message](docs/assets/components/message.png) | `role` (user/assistant), `content`, `streaming` | Chat bubbles | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=weekly-status-report) |
+| `<burnish-form>` | ![form](docs/assets/components/form.png) | `title`, `tool-id`, `fields` (JSON) | User input / tool execution | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=create-bug-report) |
+| `<burnish-actions>` | ![actions](docs/assets/components/actions.png) | `actions` (JSON: `[{label, action, prompt, icon?}]`) | Contextual next-step buttons | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=suggested-next-steps) |
+| `<burnish-pipeline>` | ![pipeline](docs/assets/components/pipeline.png) | `steps` (JSON: `[{server, tool, status}]`) | Real-time tool chain visualization | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=deploy-pipeline-status) |
 
 **Status values:** `success`, `warning`, `error`, `muted`, `info` — mapped to semantic colors via CSS custom properties.
 

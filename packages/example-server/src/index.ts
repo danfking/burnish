@@ -652,6 +652,144 @@ server.tool(
   }
 );
 
+// ──────────────────────── Showcase: component gallery ────────────────────────
+// These tools each exercise one of Burnish's 10 web components, so the README
+// and docs can link to live examples of every render path.
+
+server.tool(
+  "revenue-chart",
+  "Monthly revenue over the last 6 months as a line chart. Demonstrates <burnish-chart>.",
+  {},
+  async () => {
+    return asText({
+      title: "Monthly revenue",
+      labels: ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr"],
+      datasets: [
+        { label: "Revenue (AUD)", data: [142000, 158000, 151000, 178000, 192000, 215000] },
+      ],
+    });
+  }
+);
+
+server.tool(
+  "team-distribution",
+  "Headcount by department as a doughnut chart. Demonstrates <burnish-chart>.",
+  {},
+  async () => {
+    const byDept: Record<string, number> = {};
+    for (const m of store.members) {
+      byDept[m.department] = (byDept[m.department] || 0) + 1;
+    }
+    return asText({
+      title: "Team by department",
+      labels: Object.keys(byDept),
+      datasets: [{ label: "Headcount", data: Object.values(byDept) }],
+    });
+  }
+);
+
+server.tool(
+  "dashboard-overview",
+  "Company dashboard with summary stats, project table, and revenue chart in one response. Demonstrates <burnish-section> multi-section rendering.",
+  {},
+  async () => {
+    const activeProjects = store.projects.filter((p) => p.status === "active").length;
+    const openTasks = store.tasks.filter((t) => t.status !== "done").length;
+    const criticalIncidents = store.incidents.filter((i) => i.severity === "critical").length;
+    const totalRevenue = store.orders
+      .filter((o) => o.status === "paid")
+      .reduce((sum, o) => sum + o.amount, 0);
+
+    const stats = [
+      { label: "Active Projects", value: activeProjects, color: "success" },
+      { label: "Open Tasks", value: openTasks, color: "info" },
+      { label: "Critical Incidents", value: criticalIncidents, color: criticalIncidents > 0 ? "error" : "muted" },
+      { label: "Paid Revenue", value: `$${(totalRevenue / 1000).toFixed(0)}k`, color: "success" },
+    ];
+
+    const topProjects = store.projects
+      .filter((p) => p.status === "active")
+      .slice(0, 5)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        status: p.status,
+        teamSize: p.teamMemberIds.length,
+        startDate: p.startDate,
+      }));
+
+    const revenueChart = {
+      title: "Revenue trend",
+      labels: ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr"],
+      datasets: [
+        { label: "Revenue (AUD)", data: [142000, 158000, 151000, 178000, 192000, 215000] },
+      ],
+    };
+
+    return {
+      content: [
+        { type: "text" as const, text: JSON.stringify(stats) },
+        { type: "text" as const, text: JSON.stringify(topProjects) },
+        { type: "text" as const, text: JSON.stringify(revenueChart) },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "weekly-status-report",
+  "Generate a narrative weekly status report. Demonstrates <burnish-message> long-text rendering.",
+  {},
+  async () => {
+    const report = [
+      "# Weekly Status — Week of " + new Date().toISOString().slice(0, 10),
+      "",
+      "This week the team closed 18 tasks across 4 active projects, marking the highest throughput in the current quarter. The Apollo Platform milestone shipped on schedule, and Helios Dashboard is tracking green for its end-of-month launch.",
+      "",
+      "Two critical incidents were resolved within SLA. The underlying cause — a misconfigured load balancer — has been addressed and a postmortem is being drafted. No customer-facing outages occurred.",
+      "",
+      "Heading into next week, the Pulsar Sync project enters QA, and the Vega Analytics team begins integration testing with the new data warehouse. Expect a temporary dip in shipped features as integration work is less visible from the outside.",
+    ].join("\n");
+    return { content: [{ type: "text" as const, text: report }] };
+  }
+);
+
+server.tool(
+  "suggested-next-steps",
+  "Recommended next actions after reviewing a dashboard. Demonstrates <burnish-actions>.",
+  {},
+  async () => {
+    return asText({
+      _ui_hint: "actions",
+      actions: [
+        { label: "View active projects", action: "read", prompt: "List all active projects", icon: "list" },
+        { label: "Check critical incidents", action: "read", prompt: "List critical incidents", icon: "alert" },
+        { label: "Create a task", action: "write", prompt: "Create a new task", icon: "edit" },
+        { label: "Generate status report", action: "read", prompt: "Generate weekly status report", icon: "document" },
+      ],
+    });
+  }
+);
+
+server.tool(
+  "deploy-pipeline-status",
+  "Current deploy pipeline stages with status for each step. Demonstrates <burnish-pipeline>.",
+  {},
+  async () => {
+    return asText({
+      _ui_hint: "pipeline",
+      steps: [
+        { server: "ci", tool: "build", status: "success" },
+        { server: "ci", tool: "test", status: "success" },
+        { server: "ci", tool: "lint", status: "success" },
+        { server: "deploy", tool: "stage-deploy", status: "success" },
+        { server: "deploy", tool: "smoke-test", status: "running" },
+        { server: "deploy", tool: "prod-deploy", status: "pending" },
+      ],
+    });
+  }
+);
+
 // ──────────────────────── Start server ────────────────────────
 
 async function main() {

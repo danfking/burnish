@@ -237,6 +237,11 @@ export function renderParsedResult(parsed, label, sourceToolName, sourceName) {
             return `<burnish-pipeline steps='${escapeAttr(JSON.stringify(parsed.steps))}'${sourceAttr}></burnish-pipeline>`;
         }
 
+        // Actions: object with _ui_hint === "actions" and actions array
+        if (parsed._ui_hint === 'actions' && Array.isArray(parsed.actions)) {
+            return `<burnish-actions actions='${escapeAttr(JSON.stringify(parsed.actions))}'${sourceAttr}></burnish-actions>`;
+        }
+
         // Metric: object with label + value + optional trend/unit, ≤5 keys
         if ('label' in parsed && 'value' in parsed && ('trend' in parsed || 'unit' in parsed)) {
             const keys = Object.keys(parsed).filter(k => !k.startsWith('_'));

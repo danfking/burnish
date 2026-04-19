@@ -1643,6 +1643,38 @@ async function loadDynamicSuggestions(container) {
         if (hintEl && servers.length > 0) {
             hintEl.innerHTML = '<span class="burnish-hint-text">Click a server to browse its tools, or use the shortcuts above</span>';
         }
+
+        // Deep link support: ?server=<name>&tool=<toolName>
+        // Only fires on a fresh session (no existing nodes) so bookmarks don't
+        // clobber ongoing work.
+        const session = getActiveSession();
+        if (!session || session.nodes.length === 0) {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const targetServer = params.get('server');
+                const targetTool = params.get('tool');
+                if (targetServer) {
+                    const s = servers.find(s => s.name === targetServer);
+                    if (s && s.tools.length > 0) {
+                        renderDeterministicToolListing(s.name, s.tools);
+                        if (targetTool) {
+                            // Wait for the tool listing to render, then dispatch
+                            // a card-action event targeting the requested tool.
+                            setTimeout(() => {
+                                const evt = new CustomEvent('burnish-card-action', {
+                                    detail: { title: targetTool, itemId: targetTool },
+                                    bubbles: true,
+                                });
+                                const card = document.querySelector(
+                                    `#server-buttons burnish-card[item-id="${CSS.escape(targetTool)}"], burnish-card[item-id="${CSS.escape(targetTool)}"]`
+                                );
+                                (card || container).dispatchEvent(evt);
+                            }, 150);
+                        }
+                    }
+                }
+            } catch { /* ignore deep link errors */ }
+        }
     } catch {
         const serverBtns = container.querySelector('#server-buttons');
         if (serverBtns) serverBtns.innerHTML = '';
