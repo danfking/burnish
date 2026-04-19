@@ -24,7 +24,7 @@ export class BurnishActions extends LitElement {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 7px 14px;
+            padding: 8px 16px;
             border-radius: 6px;
             font-size: 13px;
             font-weight: 500;

@@ -36,11 +36,12 @@ export class BurnishCard extends LitElement {
             background: none;
             border: none;
             cursor: pointer;
-            padding: 2px;
+            padding: 6px;
             color: var(--burnish-text-muted, #9C8F8F);
-            display: none; align-items: center; flex-shrink: 0;
+            display: none; align-items: center; justify-content: center; flex-shrink: 0;
+            min-width: 28px; min-height: 28px;
             border-radius: 3px; transition: all 0.15s ease;
-            font-size: 10px; line-height: 1;
+            font-size: 13px; line-height: 1;
         }
         .card:hover .expand-btn { display: flex; }
         .expand-btn:hover { color: var(--burnish-accent, #8B3A3A); }
@@ -156,7 +157,7 @@ export class BurnishCard extends LitElement {
         .meta-value { color: var(--burnish-text); font-weight: 500; }
         .card-action {
             padding: var(--burnish-space-sm, 8px) var(--burnish-space-lg, 16px);
-            font-size: var(--burnish-font-size-sm, 12px); color: var(--burnish-link, #7C3030);
+            font-size: var(--burnish-font-size-sm, 13px); color: var(--burnish-link, #7C3030);
             opacity: 0.6; transition: opacity var(--burnish-transition-fast);
             cursor: pointer;
             overflow: hidden;
@@ -177,8 +178,8 @@ export class BurnishCard extends LitElement {
         }
         .link-btn {
             display: inline-flex; align-items: center; gap: 4px;
-            padding: 2px 8px; border: 1px solid var(--burnish-border, #E5DDDD);
-            border-radius: 3px; font-size: 11px; text-decoration: none;
+            padding: 4px 10px; border: 1px solid var(--burnish-border, #E5DDDD);
+            border-radius: 4px; font-size: 12px; text-decoration: none;
             color: var(--burnish-link, #7C3030); background: none;
             cursor: pointer; transition: all 0.15s ease;
         }
@@ -186,7 +187,7 @@ export class BurnishCard extends LitElement {
             background: rgba(139, 58, 58, 0.06);
             border-color: var(--burnish-link, #7C3030);
         }
-        .link-icon { font-size: 10px; }
+        .link-icon { font-size: 12px; }
         .card-footer {
             display: flex;
             align-items: center;

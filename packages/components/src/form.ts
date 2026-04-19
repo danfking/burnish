@@ -72,11 +72,11 @@ export class BurnishForm extends LitElement {
         .form-input-row { display: flex; gap: 4px; }
         .form-input-row .form-input { flex: 1; }
         .form-lookup-btn {
-            padding: 0 10px; border: 1px solid var(--burnish-border, #E5DDDD); border-radius: 6px;
+            padding: 6px 12px; border: 1px solid var(--burnish-border, #E5DDDD); border-radius: 6px;
             background: var(--burnish-surface-alt, #F3EDED); cursor: pointer;
             color: var(--burnish-text-muted, #6B5A5A); font-size: 14px;
             display: flex; align-items: center; transition: all 0.15s ease;
-            flex-shrink: 0;
+            flex-shrink: 0; min-height: 32px;
         }
         .form-lookup-btn:hover {
             background: var(--burnish-border-light, #F0EAEA);

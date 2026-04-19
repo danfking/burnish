@@ -46,7 +46,7 @@ export class BurnishTable extends LitElement {
             cursor: pointer; user-select: none; white-space: nowrap;
         }
         th:hover { color: var(--burnish-text, #2D1F1F); }
-        th .sort-arrow { font-size: 10px; margin-left: 4px; opacity: 0.4; }
+        th .sort-arrow { font-size: 12px; margin-left: 4px; opacity: 0.4; }
         th .sort-arrow.active { opacity: 1; color: var(--burnish-accent, #8B3A3A); }
         th:last-child { cursor: default; }
         td {
@@ -74,14 +74,14 @@ export class BurnishTable extends LitElement {
         }
         .table-pagination { display: flex; align-items: center; gap: 6px; }
         .page-btn {
-            padding: 3px 8px; border: 1px solid var(--burnish-border, #E5DDDD);
-            border-radius: 3px; background: var(--burnish-surface, #fff); color: var(--burnish-text, #2D1F1F); cursor: pointer; font-size: 12px;
+            padding: 6px 10px; border: 1px solid var(--burnish-border, #E5DDDD);
+            border-radius: 4px; background: var(--burnish-surface, #fff); color: var(--burnish-text, #2D1F1F); cursor: pointer; font-size: 13px;
         }
         .page-btn:hover:not(:disabled) { background: var(--burnish-surface-alt, #F8F5F5); }
         .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .page-size-select {
-            padding: 2px 4px; border: 1px solid var(--burnish-border, #E5DDDD);
-            border-radius: 3px; font-size: 11px; background: var(--burnish-input-bg, var(--burnish-surface, #fff)); color: var(--burnish-text, #2D1F1F);
+            padding: 4px 6px; border: 1px solid var(--burnish-border, #E5DDDD);
+            border-radius: 4px; font-size: 12px; background: var(--burnish-input-bg, var(--burnish-surface, #fff)); color: var(--burnish-text, #2D1F1F);
         }
         .no-results {
             padding: 24px 16px; text-align: center;
