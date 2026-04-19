@@ -3,22 +3,21 @@ import { test, expect } from '@playwright/test';
 test('server button generates tool listing without LLM', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for server buttons — skip test if MCP servers didn't connect
-    const serverBtns = page.locator('#server-buttons button');
+    // Wait for server cards — skip test if MCP servers didn't connect
+    const exploreBtns = page.locator('#server-buttons .card-action');
     try {
-        await serverBtns.first().waitFor({ state: 'visible', timeout: 30_000 });
+        await exploreBtns.first().waitFor({ state: 'visible', timeout: 30_000 });
     } catch {
         test.skip(true, 'MCP servers not connected in time');
         return;
     }
 
-    // Click a server button (prefer filesystem — fewer tools, faster)
-    const fsButton = page.locator('.burnish-suggestion-server', { hasText: 'filesystem' });
-    if (await fsButton.count() > 0) {
-        await fsButton.click();
+    // Click "Explore →" on a server card (prefer filesystem — fewer tools, faster)
+    const fsCard = page.locator('#server-buttons burnish-card[title="filesystem"]');
+    if (await fsCard.count() > 0) {
+        await fsCard.locator('.card-action').click();
     } else {
-        // Click whatever server button exists
-        await page.locator('.burnish-suggestion-server').first().click();
+        await exploreBtns.first().click();
     }
 
     // Wait for a node to appear

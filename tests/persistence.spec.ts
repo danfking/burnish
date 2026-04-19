@@ -26,15 +26,15 @@ test('session with explorer steps persists after refresh', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('.burnish-session-item');
 
-    // Wait for server buttons — skip test if MCP servers didn't connect
-    const serverBtns = page.locator('#server-buttons button');
+    // Wait for server cards — skip test if MCP servers didn't connect
+    const exploreBtns = page.locator('#server-buttons .card-action');
     try {
-        await serverBtns.first().waitFor({ state: 'visible', timeout: 30_000 });
+        await exploreBtns.first().waitFor({ state: 'visible', timeout: 30_000 });
     } catch {
         test.skip(true, 'MCP servers not connected in time');
         return;
     }
-    await page.locator('.burnish-suggestion-server').first().click();
+    await exploreBtns.first().click();
 
     // Wait for tool listing to render
     await page.waitForSelector('burnish-card', { timeout: 10_000 });
