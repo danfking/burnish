@@ -95,8 +95,6 @@ npx burnish -- npx @your-org/your-mcp-server
 ```
 ````
 
-A hosted "Explore with Burnish" shields.io badge is tracked in [#385](https://github.com/danfking/burnish/issues/385).
-
 Want your tool results to render as cards, tables, and charts instead of raw JSON? See the [Output Format Guide](docs/OUTPUT-FORMAT.md).
 
 ## Links
@@ -253,10 +251,11 @@ pnpm clean            # Clean all build artifacts
 burnish/
 ├── packages/
 │   ├── components/       @burnishdev/components — 10 Lit web components
-│   ├── renderer/         @burnishdev/renderer  — streaming parser + sanitizer
+│   ├── renderer/         @burnishdev/renderer — streaming parser + sanitizer
 │   ├── app/              @burnishdev/app — drill-down logic + stream orchestration
 │   ├── server/           @burnishdev/server — MCP hub + guards + intent resolver
-│   └── cli/              @burnishdev/cli — npx burnish launcher
+│   ├── example-server/   @burnishdev/example-server — showcase MCP server (34 tools)
+│   └── cli/              burnish CLI — npx burnish launcher + middleware
 ├── apps/
 │   └── demo/
 │       ├── server/       Hono API
