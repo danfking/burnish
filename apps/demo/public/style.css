@@ -1374,11 +1374,12 @@ body {
     list-style: none;
 }
 .burnish-schema-tree-wrapper > summary::before {
-    content: '\25BC ';
+    content: '\25BC';
     font-size: 10px;
+    margin-right: 8px;
 }
 .burnish-schema-tree-wrapper:not([open]) > summary::before {
-    content: '\25B6 ';
+    content: '\25B6';
 }
 .burnish-schema-tree {
     font-family: var(--burnish-font-mono, monospace);
@@ -1465,11 +1466,12 @@ details.burnish-schema-prop > summary {
     list-style: none;
 }
 details.burnish-schema-prop > summary::before {
-    content: '\25B6 ';
+    content: '\25B6';
     font-size: 10px;
+    margin-right: 8px;
 }
 details.burnish-schema-prop[open] > summary::before {
-    content: '\25BC ';
+    content: '\25BC';
 }
 
 /* ── Theme Toggle ── */
