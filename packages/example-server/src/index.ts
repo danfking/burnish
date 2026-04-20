@@ -657,7 +657,7 @@ server.tool(
 // and docs can link to live examples of every render path.
 
 server.tool(
-  "revenue-chart",
+  "get-revenue-chart",
   "Monthly revenue over the last 6 months as a line chart. Demonstrates <burnish-chart>.",
   {},
   async () => {
@@ -672,7 +672,7 @@ server.tool(
 );
 
 server.tool(
-  "team-distribution",
+  "get-team-distribution",
   "Headcount by department as a doughnut chart. Demonstrates <burnish-chart>.",
   {},
   async () => {
@@ -689,7 +689,7 @@ server.tool(
 );
 
 server.tool(
-  "dashboard-overview",
+  "get-dashboard-overview",
   "Company dashboard with summary stats, project table, and revenue chart in one response. Demonstrates <burnish-section> multi-section rendering.",
   {},
   async () => {
@@ -737,7 +737,7 @@ server.tool(
 );
 
 server.tool(
-  "weekly-status-report",
+  "get-status-report",
   "Generate a narrative weekly status report. Demonstrates <burnish-message> long-text rendering.",
   {},
   async () => {
@@ -755,7 +755,7 @@ server.tool(
 );
 
 server.tool(
-  "suggested-next-steps",
+  "get-suggested-actions",
   "Recommended next actions after reviewing a dashboard. Demonstrates <burnish-actions>.",
   {},
   async () => {
@@ -772,7 +772,7 @@ server.tool(
 );
 
 server.tool(
-  "deploy-pipeline-status",
+  "get-pipeline-status",
   "Current deploy pipeline stages with status for each step. Demonstrates <burnish-pipeline>.",
   {},
   async () => {

@@ -127,13 +127,13 @@ Connect. Browse. Execute. Everything is driven by the server's tool schemas.
 | `<burnish-card>` | ![card](docs/assets/components/card.png) | `title`, `status`, `body`, `meta` (JSON), `item-id` | Individual items with drill-down | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-project) |
 | `<burnish-stat-bar>` | ![stat-bar](docs/assets/components/stat-bar.png) | `items` (JSON: `[{label, value, color?}]`) | Summary metrics / filter pills | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=list-projects) |
 | `<burnish-table>` | ![table](docs/assets/components/table.png) | `title`, `columns` (JSON), `rows` (JSON), `status-field` | Tabular data with status coloring | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=list-projects) |
-| `<burnish-chart>` | ![chart](docs/assets/components/chart.png) | `type` (line/bar/doughnut), `config` (JSON) | Chart.js visualizations | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=revenue-chart) |
-| `<burnish-section>` | ![section](docs/assets/components/section.png) | `label`, `count`, `status`, `collapsed` | Collapsible grouping container | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=dashboard-overview) |
+| `<burnish-chart>` | ![chart](docs/assets/components/chart.png) | `type` (line/bar/doughnut), `config` (JSON) | Chart.js visualizations | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-revenue-chart) |
+| `<burnish-section>` | ![section](docs/assets/components/section.png) | `label`, `count`, `status`, `collapsed` | Collapsible grouping container | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-dashboard-overview) |
 | `<burnish-metric>` | ![metric](docs/assets/components/metric.png) | `label`, `value`, `unit`, `trend` (up/down/flat) | Single KPI display | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-team-member) |
-| `<burnish-message>` | ![message](docs/assets/components/message.png) | `role` (user/assistant), `content`, `streaming` | Chat bubbles | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=weekly-status-report) |
+| `<burnish-message>` | ![message](docs/assets/components/message.png) | `role` (user/assistant), `content`, `streaming` | Chat bubbles | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-status-report) |
 | `<burnish-form>` | ![form](docs/assets/components/form.png) | `title`, `tool-id`, `fields` (JSON) | User input / tool execution | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=create-bug-report) |
-| `<burnish-actions>` | ![actions](docs/assets/components/actions.png) | `actions` (JSON: `[{label, action, prompt, icon?}]`) | Contextual next-step buttons | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=suggested-next-steps) |
-| `<burnish-pipeline>` | ![pipeline](docs/assets/components/pipeline.png) | `steps` (JSON: `[{server, tool, status}]`) | Real-time tool chain visualization | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=deploy-pipeline-status) |
+| `<burnish-actions>` | ![actions](docs/assets/components/actions.png) | `actions` (JSON: `[{label, action, prompt, icon?}]`) | Contextual next-step buttons | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-suggested-actions) |
+| `<burnish-pipeline>` | ![pipeline](docs/assets/components/pipeline.png) | `steps` (JSON: `[{server, tool, status}]`) | Real-time tool chain visualization | [Try it](https://burnish-demo.fly.dev?server=showcase&tool=get-pipeline-status) |
 
 **Status values:** `success`, `warning`, `error`, `muted`, `info` — mapped to semantic colors via CSS custom properties.
 
@@ -162,9 +162,9 @@ npx burnish export -- npx @your-org/your-server > schema.json
 
 ```html
 <script type="module"
-  src="https://esm.sh/@burnishdev/components@0.4.0"></script>
+  src="https://esm.sh/@burnishdev/components@0.4.1"></script>
 <link rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@burnishdev/components@0.4.0/src/tokens.css" />
+  href="https://cdn.jsdelivr.net/npm/@burnishdev/components@0.4.1/src/tokens.css" />
 
 <burnish-card
   title="API Gateway"

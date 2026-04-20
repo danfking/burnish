@@ -1339,7 +1339,7 @@ body {
     top: 0;
     z-index: 10;
     padding: 8px 0 12px;
-    background: var(--burnish-surface, #fff);
+    background: var(--burnish-surface-alt, #F8F5F5);
 }
 /* No ::before overlay — the filter container's own background
    covers content behind the sticky bar. */
@@ -1350,7 +1350,7 @@ body {
     border-radius: 8px;
     font-size: var(--burnish-font-size-base, 14px);
     color: var(--burnish-text, #2D1F1F);
-    background-color: var(--burnish-surface-alt, #F8F5F5);
+    background-color: var(--burnish-surface, #fff);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239C8F8F' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
     background-position: 12px center;
     background-repeat: no-repeat;
