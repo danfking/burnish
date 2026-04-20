@@ -1,6 +1,6 @@
 {
   "name": "@burnishdev/server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "MCP orchestration and session management for Burnish",
   "type": "module",
   "main": "dist/index.js",
@@ -36,5 +36,10 @@
   "license": "AGPL-3.0",
   "homepage": "https://github.com/danfking/burnish",
   "author": "danfking",
-  "keywords": ["mcp", "model-context-protocol", "server", "burnish"]
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "server",
+    "burnish"
+  ]
 }

@@ -164,9 +164,9 @@ npx burnish export -- npx @your-org/your-server > schema.json
 
 ```html
 <script type="module"
-  src="https://esm.sh/@burnishdev/components@0.3.0"></script>
+  src="https://esm.sh/@burnishdev/components@0.4.0"></script>
 <link rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@burnishdev/components@0.3.0/src/tokens.css" />
+  href="https://cdn.jsdelivr.net/npm/@burnishdev/components@0.4.0/src/tokens.css" />
 
 <burnish-card
   title="API Gateway"
