@@ -1,6 +1,6 @@
 {
   "name": "@burnishdev/components",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Lit web components for rendering MCP tool call results",
   "type": "module",
   "main": "dist/index.js",
@@ -12,7 +12,10 @@
     },
     "./tokens.css": "./src/tokens.css"
   },
-  "files": ["dist", "src/tokens.css"],
+  "files": [
+    "dist",
+    "src/tokens.css"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist"
@@ -34,5 +37,12 @@
   "license": "AGPL-3.0",
   "homepage": "https://github.com/danfking/burnish",
   "author": "danfking",
-  "keywords": ["mcp", "model-context-protocol", "web-components", "lit", "burnish", "ui"]
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "web-components",
+    "lit",
+    "burnish",
+    "ui"
+  ]
 }

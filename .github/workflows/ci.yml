@@ -7,8 +7,15 @@ on:
     branches: [main]
 
 jobs:
+  check-encoding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/check-encoding.sh
+
   build:
     runs-on: ubuntu-latest
+    needs: check-encoding
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
