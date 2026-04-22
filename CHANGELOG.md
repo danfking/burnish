@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.4](https://github.com/danfking/burnish/compare/v0.4.3...v0.4.4) (2026-04-22)
+
+
+### Bug Fixes
+
+* **components,demo:** cap card-body height and skip required-arg shortcuts ([#493](https://github.com/danfking/burnish/issues/493)) ([0990195](https://github.com/danfking/burnish/commit/09901959d3bfec6e9333f3327d7a403b1c01fc3d))
+* **components:** prevent card-body from stretching in flex layout ([#492](https://github.com/danfking/burnish/issues/492)) ([6f3e2b5](https://github.com/danfking/burnish/commit/6f3e2b5a2736a947044a63cef074f0beb7041833))
+* **example-server:** trim showcase tile description to fit card ([#490](https://github.com/danfking/burnish/issues/490)) ([37fcbb0](https://github.com/danfking/burnish/commit/37fcbb07373c32db54306e963804fd5ecc95ffd7))
+
 ## [0.4.3](https://github.com/danfking/burnish/compare/v0.4.2...v0.4.3) (2026-04-20)
 
 
