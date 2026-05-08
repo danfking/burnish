@@ -15,7 +15,7 @@
     "@burnishdev/renderer": "workspace:*",
     "@burnishdev/server": "workspace:*",
     "@hono/node-server": "^1.19.13",
-    "hono": "^4.12.14"
+    "hono": "^4.12.16"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
